@@ -1,6 +1,14 @@
+/*!\name      i2c_slave.h
+ *
+ * \brief     Implements a I2C slave on I2C5 using pins SDA5 (F4) and SCL5 (F5)
+ *            The slave returns the last two bytes the master writes
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"   // constants, funcs for startup and UART
-// Implements a I2C slave on I2C5 using pins SDA5 (F4) and SCL5 (F5)
-// The slave returns the last two bytes the master writes
+#include "i2c_slave.h"
 
 void __ISR(_I2C_5_VECTOR, IPL1SOFT) I2C5SlaveInterrupt(void) {
   static unsigned char bytes[2];    // store two received bytes 

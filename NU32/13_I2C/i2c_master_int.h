@@ -1,6 +1,16 @@
 #ifndef I2C_MASTER_INT__H__
 #define I2C_MASTER_INT__H__
 
+
+/*!\name      i2c_master_int.h
+ *
+ * \brief     helps implement use I2C1 as a master with interrupts
+ *
+ * \author    Juan Gago
+ *
+ */
+
+
 // buffer pointer type.  The buffer is shared by an ISR and mainline code.
 // the pointer to the buffer is also shared by an ISR and mainline code.
 // Hence the double volatile qualification

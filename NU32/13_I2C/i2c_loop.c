@@ -1,13 +1,21 @@
+/*!\name      i2c_loop.c
+ *
+ * \brief     Demonstrate I2C by having the I2C1 talk to I2C5 on the same PIC32
+ *            Master will use SDA1 (D9) and SCL1 (D10).  Connect these through resistors to
+ *            Vcc (3.3 V) (2.4k resistors recommended, but around that should be good enough)
+ *            Slave will use SDA5 (F4) and SCL5 (F5)
+ *            SDA5 -> SDA1
+ *            SCL5 -> SCL1
+ *            Two bytes will be written to the slave and then read back to the slave.
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // config bits, constants, funcs for startup and UART
 #include "i2c_slave.h"
 #include "i2c_master_noint.h"
-// Demonstrate I2C by having the I2C1 talk to I2C5 on the same PIC32
-// Master will use SDA1 (D9) and SCL1 (D10).  Connect these through resistors to
-// Vcc (3.3 V) (2.4k resistors recommended, but around that should be good enough)
-// Slave will use SDA5 (F4) and SCL5 (F5)
-// SDA5 -> SDA1
-// SCL5 -> SCL1
-// Two bytes will be written to the slave and then read back to the slave.
+
 #define SLAVE_ADDR 0x32
 
 int main() {

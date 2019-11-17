@@ -1,10 +1,17 @@
+/*!\name      i2c_master_noint.h
+ *
+ * \brief     helps implement use I2C1 as a master without using interrupts
+ *            I2C Master utilities, 100 kHz, using polling rather than interrupts
+ *            The functions must be callled in the correct order as per the I2C protocol
+ *             - Master will use I2C1 SDA1 (D9) and SCL1 (D10)
+ *             - Connect SDA1 to the SDA pin and SCL1 to the SCL pin on the slave 
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // constants, funcs for startup and UART
-// I2C Master utilities, 100 kHz, using polling rather than interrupts
-// The functions must be callled in the correct order as per the I2C protocol
-// Master will use I2C1 SDA1 (D9) and SCL1 (D10)
-// Connect these through resistors to Vcc (3.3 V). 2.4k resistors recommended, 
-// but something close will do.
-// Connect SDA1 to the SDA pin on the slave and SCL1 to the SCL pin on a slave
+#include "i2c_master_int.h"
 
 void i2c_master_setup(void) {
   I2C1BRG = 390;                    // I2CBRG = [1/(2*Fsck) - PGD]*Pblck - 2 

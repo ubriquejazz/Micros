@@ -16,7 +16,7 @@ void __ISR(_CHANGE_NOTICE_VECTOR, IPL3SOFT) CNISR(void) { // INT step 1
 int main(void) {
   NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
 
-  AD1PCFG = 0x00FF;       // set B8-B15 as analog in, 0-7 as digital pins
+  AD1PCFG = 0x00FF;       // set B8-B15 as analog in, B0-B7 as digital pins
   TRISB = 0xFF0F;         // set B4-B7 as digital outputs, 0-3 as digital inputs
   ODCBSET = 0x00C0;       // set ODCB bits 6 and 7, so RB6, RB7 are open drain outputs
   CNPUEbits.CNPUE2 = 1;   // CN2/RB0 input has internal pull-up 
