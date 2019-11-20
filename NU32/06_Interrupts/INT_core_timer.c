@@ -1,3 +1,12 @@
+/*!\name      INT_ext_int.c
+ *
+ * \brief     Chapter 6 - Interrupts
+ *            A Core Timer Int using the SRS
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"           // constants, funcs for startup and UART
 #define CORE_TICKS 40000000 // 40 M ticks (one second)
 
@@ -20,7 +29,6 @@ int main(void) {
   __builtin_enable_interrupts();    // step 7: CPU interrupts enabled
 
   _CP0_SET_COUNT(0);                // set core timer counter to 0
-
   while(1);
   return 0;
 }

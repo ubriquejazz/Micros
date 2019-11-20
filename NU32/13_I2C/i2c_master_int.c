@@ -68,6 +68,12 @@ void __ISR(_I2C_1_VECTOR, IPL1SOFT) I2C1MasterInterrupt(void) {
   static unsigned int write_index = 0, read_index = 0;  //indexes the read/write arrays
 
   switch(state) {
+
+    case STOP: // we have returned from transaction, indicating that the data is ready
+    case IDLE:
+      Nop();
+      break;
+
     case START:                         // start bit has been sent
       write_index = 0;                  // reset indices
       read_index = 0;
@@ -91,25 +97,28 @@ void __ISR(_I2C_1_VECTOR, IPL1SOFT) I2C1MasterInterrupt(void) {
       state = ACK;  // when interrupted in ACK mode, we will initiate reading a byte
       I2C1TRN = (address << 1) | 1; // the address is sent with the read bit sent
       break;
+
     case READ:
       to_read[read_index] = I2C1RCV;
       _read_next_state(++read_index);
       break;
+
     case ACK: // just sent an ack meaning we want to read more bytes
       state = READ;
       I2C1CONbits.RCEN = 1;
       break;
+
     case NACK: // issue a stop
       state = STOP;
       I2C1CONbits.PEN = 1;
       break;
-    case STOP:
-      state = IDLE; // we have returned to idle mode, indicating that the data is ready
+
+    default:
+    case ERROR:
+      Nop();
       break;
-    default: // some error has occurred
-      state = ERROR;
   }
-  IFS0bits.I2C1MIF = 0;       //clear the interrupt flag
+  PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_I2C1);  //clear the interrupt flag 
 }
 
 void i2c_master_setup() {

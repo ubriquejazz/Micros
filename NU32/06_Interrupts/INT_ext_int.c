@@ -1,3 +1,12 @@
+/*!\name      INT_ext_int.c
+ *
+ * \brief     Chapter 6 - Interrupts
+ *            Using the Ext Int to flash some LEDS
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // constants, funcs for startup and UART
 
 void __ISR(_EXTERNAL_0_VECTOR, IPL2SOFT) Ext0ISR(void) { // step 1: the ISR
@@ -22,7 +31,6 @@ int main(void) {
   IEC0bits.INT0IE = 1;            // step 6: enable INT0 by setting IEC0<3>
   __builtin_enable_interrupts();  // step 7: enable interrupts
                                   // Connect RD7 (USER button) to INT0 (RD0)
-
   while(1);
   return 0;
 }
