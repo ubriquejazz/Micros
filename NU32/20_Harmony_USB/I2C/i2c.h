@@ -3,7 +3,7 @@
 
 /*!\name      i2c_master_int.h
  *
- * \brief     helps implement use I2C1 as a master with interrupts
+ * \brief     helps implement I2Cx as a master with driver functions
  *
  * \author    Juan Gago
  *
@@ -21,12 +21,23 @@ typedef volatile unsigned char * volatile buffer_t;
 
 typedef enum I2C_STATE
 {	
-	IDLE=0, START, WRITE, READ, RESTART, STOP, ERROR
+	I2C_DRV_IDLE=0, 
+	I2C_DRV_ERROR,
+	I2C_DRV_START, 
+	I2C_DRV_WRITE, 
+	I2C_DRV_READ, 
+	I2C_DRV_RESTART, 
+	I2C_DRV_STOP, 
+	I2C_DRV_CLOSE
 };
 
 typedef enum I2C_CLIENT_STATE
 {
-	INIT=0, DONE, BUSY, 
+	I2C_CLIENT_NONE=0, 
+	I2C_CLIENT_DONE, 
+	I2C_CLIENT_REQ, 
+	I2C_CLIENT_ERROR, 
+	I2C_CLIENT_TIMEOUT
 }
 
 typedef struct
