@@ -52,19 +52,34 @@ void I2C_Tasks (I2C_DATA* ptr, uint32_t*)
 
 	if (ptr->fifo_index)
 	{
-		client = ptr->fifo[ptr->fifo_index];
+		// first take a the handle
 		handle = DRV_I2C_Open (ptr->driver_index, DRV_IO_INTENT_READWRITE);
 
+		// Transmit with its buffer handle
+		client = ptr->fifo[ptr->fifo_index];
 		buffer_handle = DRV_I2C_Transmit (handle, client.address, client.write, client.wlen, NULL);
-    	_Error(handle, buffer_handle)
 
-	    buffer_handle = DRV_I2C_Receive (handle, client.address, client.read, client.rlen, NULL);
-	    _Error(handle, buffer_handle)
+		// TIMEOUT_WRITE_MS
+		_Error(handle, buffer_handle);
 
+		// Receive with same buffer handle
+		client = ptr->fifo[ptr->fifo_index];
+		buffer_handle = DRV_I2C_Receive (handle, client.address, client.read, client.rlen, NULL);
+
+		// TIMEOUT_READ_MS 
+		_Error(handle, buffer_handle);
+
+		// the client has been sucessfully processed
+		(ptr->fifo [ptr->fifo_index]).state = DONE;
+
+		// error detected but the client has been processed
+		(ptr->fifo [ptr->fifo_index]).state = ERROR;
+		ptr->error_count += 1;
+
+		// finally free the handle 
+		ptr->fifo_index -= 1;
 		DRV_I2C_Close (ptr->driver_index);
-
-    	client.state = DONE;
-    	ptr->fifo_index -= 1;
+		handle = DRV_HANDLE_INVALID;
 	}
 }
 
