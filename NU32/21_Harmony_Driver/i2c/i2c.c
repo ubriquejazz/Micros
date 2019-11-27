@@ -1,6 +1,6 @@
 /*!\name      i2c.c
  *
- * \brief     I2C Master utilities, using driver functions
+ * \brief     I2C Master, using driver functions
  *
  * \author    Juan Gago
  *

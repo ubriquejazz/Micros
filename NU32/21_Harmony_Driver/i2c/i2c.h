@@ -1,7 +1,7 @@
-#ifndef I2C_MASTER_INT__H__
-#define I2C_MASTER_INT__H__
+#ifndef I2C__H__
+#define I2C__H__
 
-/*!\name      i2c_master_int.h
+/*!\name      i2c.h
  *
  * \brief     helps implement I2Cx as a master with driver functions
  *
@@ -13,13 +13,12 @@
 #define TIMEOUT_WRITE_MS	100
 #define TIMEOUT_READ_MS		100
 
-
 // buffer pointer type.  The buffer is shared by an ISR and mainline code.
 // the pointer to the buffer is also shared by an ISR and mainline code.
 // Hence the double volatile qualification
 typedef volatile unsigned char * volatile buffer_t;
 
-typedef enum I2C_STATE
+typedef enum 
 {	
 	I2C_DRV_IDLE=0, 
 	I2C_DRV_ERROR,
@@ -29,16 +28,18 @@ typedef enum I2C_STATE
 	I2C_DRV_RESTART, 
 	I2C_DRV_STOP, 
 	I2C_DRV_CLOSE
-};
 
-typedef enum I2C_CLIENT_STATE
+} I2C_DRV_STATE;
+
+typedef enum 
 {
 	I2C_CLIENT_NONE=0, 
 	I2C_CLIENT_DONE, 
 	I2C_CLIENT_REQ, 
 	I2C_CLIENT_ERROR, 
 	I2C_CLIENT_TIMEOUT
-}
+
+} I2C_CLIENT_STATE;
 
 typedef struct
 {
@@ -46,6 +47,7 @@ typedef struct
     buffer_t			write, read;
     uint8_t				wlen, rlen;
     I2C_CLIENT_STATE	state;
+
 } I2C_CLIENT;
 
 typedef struct
@@ -53,8 +55,10 @@ typedef struct
 	uint8_t				driver_index;
 	uint8_t				fifo_index;
     uint32_t     		error_count;
-    I2C_STATE			state;
-    I2C_CLIENT			fifo [MAX_I2C_CLIENTS];
+    I2C_DRV_STATE		state;
+    /* Clients per driver */
+    I2C_CLIENT			data[MAX_I2C_CLIENTS];
+
 } I2C_DATA;
 
 /* Application Initialization and State Machine Functions */
