@@ -3,7 +3,7 @@
 
 /*!\name      i2c.h
  *
- * \brief     helps implement I2Cx as a master with driver functions
+ * \brief     I2C Class
  *
  * \author    Juan Gago
  *

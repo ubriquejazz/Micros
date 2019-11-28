@@ -1,4 +1,11 @@
-// demonstrates the timer driver
+/*!\name      demo_tmr.h
+ *
+ * \brief     demonstrates the timer driver
+ *            program similar to app.c (Program Structure) 
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include "system_config.h"
 #include "system_definitions.h"
@@ -26,14 +33,8 @@ const static DRV_TMR_INIT init =   // used to configure timer; const so stored i
   .asyncWriteEnable = false                    // no asynchronous write
 };
 
-
-
 int main(void) 
 {
-
-
-
-  /* system_init.c */
 
   SYS_MODULE_OBJ timer_handle;     // handle to the timer driver
   SYS_MODULE_OBJ devcon_handle;    // device configuration handle
@@ -54,10 +55,6 @@ int main(void)
  
   // initialize the timer driver
   timer_handle = DRV_TMR_Initialize(DRV_TMR_INDEX_0, (SYS_MODULE_INIT*)&init);
-
-
-
-  /* system_tasks.c */
 
   // open the timer, this is the only client (only place where DRV_TMR_Open is called)
   timer1 = DRV_TMR_Open(DRV_TMR_INDEX_0, DRV_IO_INTENT_EXCLUSIVE); 

@@ -1,3 +1,11 @@
+/*!\name      app.h
+ *
+ * \brief     demonstrates the timer driver
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "system_config.h"
 #include "system_definitions.h"
 #include "app.h"
@@ -16,13 +24,13 @@ void APP_Initialize(void) {
   appdata.state = APP_STATE_INIT;
 }
 
-void APP_Tasks(void) {
-  switch(appdata.state) {
+void APP_Tasks(void) 
+{
+  switch(appdata.state) 
+  {
     case APP_STATE_INIT:
-      // turn on LED1 by clearing A5
-      PLIB_PORTS_PinClear(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED1_POS); 
-      // turn off LED2 by setting A5
-      PLIB_PORTS_PinSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED2_POS);   
+      PLIB_PORTS_PinClear(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED1_POS);  // turn on LED1
+      PLIB_PORTS_PinSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED2_POS);   // turn off LED2
 
       // only one client at a time, open the timer
       appdata.handleTmr = DRV_TMR_Open(DRV_TMR_INDEX_0, DRV_IO_INTENT_EXCLUSIVE); 
@@ -34,6 +42,10 @@ void APP_Tasks(void) {
       break;
       
     case APP_STATE_WAIT:
-      break; // we need not do anything here
+      Nop();    // we need not do anything here
+      break;
+
+    default:
+      ;// logic error, impossible state!
   }
 }

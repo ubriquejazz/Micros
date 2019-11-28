@@ -1,5 +1,11 @@
-// Demonstrates the harmony UART driver.
-// Implements a program similar to talkingPIC.c.
+/*!\name      demo_uart.h
+ *
+ * \brief     demonstrates the uart driver
+ *            implements a program similar to talkingPIC.c
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include "system_config.h"       // macros needed for this program 
 #include "system_definitions.h"  // includes header files needed by the program

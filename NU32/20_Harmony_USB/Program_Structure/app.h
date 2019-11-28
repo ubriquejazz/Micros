@@ -1,12 +1,22 @@
 #ifndef APP__H__
 #define APP__H__
 
-// The application states.  APP_STATE_INIT is the initial state, used to perform 
-// application-specific setup.  Then, during program operation, we enter 
-// APP_STATE_WAIT as the timer takes over.
-typedef enum { APP_STATE_INIT, APP_STATE_WAIT} APP_STATES; 
+/*!\name      app.h
+ *
+ * \brief     demonstrates the timer driver
+ *
+ * \author    Juan Gago
+ *
+ */
 
-// Harmony structure suggests that you place your application-specific data in a struct.
+// The application states. 
+typedef enum { 
+	APP_STATE_INIT, 	// initial state, used to perform app-specific setup
+	APP_STATE_WAIT,		// during program operation, we enter as the timer takes over
+	APP_STATE_ERROR
+} APP_STATES; 
+
+// Harmony suggests that you place your application-specific data in a struct.
 typedef struct {
   APP_STATES state;
   DRV_HANDLE handleTmr;
