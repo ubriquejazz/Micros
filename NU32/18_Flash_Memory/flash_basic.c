@@ -1,10 +1,16 @@
+/*!\name      flash_basic.h
+ *
+ * \brief     Uses flash.{c,h} library to allocate a page in flash and then write 32-bit
+ *            words there, consecutively starting from the zeroth index in the array.  
+ *            LIMITATION:  Words that are all 1's (0xFFFFFFFF) cannot be saved; array
+ *            elements holding this value are considered to be empty (not written since erase).
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // constants, funcs for startup and UART
 #include "flash.h"         // allocates buffer of PAGE_WORDS (1024) unsigned ints
-
-// Uses flash.{c,h} library to allocate a page in flash and then write 32-bit
-// words there, consecutively starting from the zeroth index in the array.  
-// LIMITATION:  Words that are all 1's (0xFFFFFFFF) cannot be saved; array
-// elements holding this value are considered to be empty (not written since erase).
 
 #define PAGE_IN_USE_PWD    0xdeadbeef // password meaning a valid flash buffer is present
 #define PAGE_IN_USE_INDEX  (PAGE_WORDS-1) // the password is at the last index of buffer
@@ -63,11 +69,13 @@ void show_words() {  // print out the currently saved four-byte words in hex
   }
 }
 
-int main(void) {
+int main(void) 
+{
   char msg[100]="";
-
   NU32_Startup(); // cache on, interrupts on, LED/button init, UART init
-  while(1) {
+
+  while(1) 
+  {
     if (!page_exists()) {  // initialize a flash page if the password is not present
       NU32_WriteUART3("\r\nNo flash memory allocated currently; making a page.");
       make_page();

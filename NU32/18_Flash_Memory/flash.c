@@ -1,3 +1,11 @@
+/*!\name      flash.h
+ *
+ * \brief     allocates a page of flash and provides read/write accesss
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "flash.h"
 #include <xc.h>
 #include <sys/kmem.h> // macros for converting between physical and virtual addresses

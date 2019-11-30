@@ -1,6 +1,13 @@
 #ifndef FLASH__H__
 #define FLASH__H__
-// the flash module allocates a page of flash and provides read/write accesss
+
+/*!\name      flash.h
+ *
+ * \brief     allocates a page of flash and provides read/write accesss
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #define PAGE_SIZE 4096                                 // size of a page, in bytes
 #define PAGE_WORDS (PAGE_SIZE/4)                       // size of a page, in 4-byte words
