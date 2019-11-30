@@ -1,3 +1,11 @@
+/*!\name      hid.c
+ *
+ * \brief     common code to all hid examples
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "hid.h"
 #include "system_config.h"
 #include "system_definitions.h"

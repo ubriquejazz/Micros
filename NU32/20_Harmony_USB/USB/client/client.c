@@ -1,20 +1,29 @@
+/*!\name      client.c
+ *
+ * \brief     Client that talks to the HID device using hidapi
+ *            Note: error checking code omitted for clarity
+ *       
+ *            HIDAPI (signal11.us)   
+ *              
+ *              § allows you to communicate with hid devices 
+ *              § you first must compile the library.
+ *              § you need its header to be on your path 
+ *              § you need to link against the library.
+ *              § The procedure for doing this varies by platform. 
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include <stdio.h>
 #include <stddef.h>
 #include "hidapi.h"
 
-// Client that talks to the HID device
-// using hidapi, from www.signal11.us.
-// hidapi allows you to directly communicate with hid devices
-// without needing a special driver.
-// To use hidapi you first must compile the library.
-// You need its header to be on your path and you need to
-// link against the library.  The procedure for doing this
-// varies by platform.
-// Note: error checking code omitted for clarity
 #define REPORT_LEN 65 // 64 bytes per report plus report ID
 #define MAX_STR 255   // max length for a descriptor string
 
-int main(void) {
+int main(void) 
+{
   char outbuf[REPORT_LEN] = "";
   char inbuf[REPORT_LEN] = ""; 
   wchar_t wstr[MAX_STR] = L""; // use 2-character "wide chars" for USB string descriptors

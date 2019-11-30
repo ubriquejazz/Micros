@@ -1,18 +1,25 @@
 #ifndef HID__H__
 #define HID__H__
-// code common to all hid examples
+
+/*!\name      hid.h
+ *
+ * \brief     common code to all hid examples
+ * 			  you must define the following variables and macros in system_config.h
+ * 			  
+ * 			  #define NU32_PID - the product ID for the device
+ * 			  #define NU32_REPORT_SIZE  the size of the hid report
+ * 			  #define NU32_DEVICE_NAME  the name of the device in usb string descriptor format
+ * 			  #define NU32_HID_SUBCLASS the hid subclass
+ * 			  #define NU32_HID_PROTOCOL the hid protocol
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include <stdbool.h>      // bool type with true, false
 #include <stdint.h>       // uint8_t
 #include "system_config.h"
 
-// following harmony's lead you must define the following variables and macros
-// macros in system_config.h
-// #define NU32_PID - the product ID for the device
-// #define NU32_REPORT_SIZE  the size of the hid report
-// #define NU32_DEVICE_NAME  the name of the device in usb string descriptor format
-// #define NU32_HID_SUBCLASS the hid subclass
-// #define NU32_HID_PROTOCOL the hid protocol
 // in one of your .c files you must also define the HID_REPORT
 const extern uint8_t HID_REPORT[NU32_REPORT_SIZE]; // the hid report
 
