@@ -1,8 +1,17 @@
+/*!\name      talkingHID.h
+ *
+ * \brief     Echo example.
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "hid.h"
 #include "system_config.h"
 #include "system_definitions.h"
 #include <sys/attribs.h>
 #include <ctype.h> //for toupper
+
 #define REPORT_LEN 0x40 // reports have 64 bytes in them
 
 // the HID report descriptor (see Universal Serial Bus HID Usage Tables document).
@@ -35,12 +44,12 @@ typedef enum {APP_STATE_INIT, APP_STATE_RECEIVE, APP_STATE_SEND} APP_STATE;
 
 int main (void) {
   char report[REPORT_LEN]="";// message report buffer 64 bytes per hid report descriptor
+
   APP_STATE state = APP_STATE_INIT;
   hid_setup();              // initialize the hid usb helper module
 
   // enable interrupts
   PLIB_INT_Enable(INT_ID_0);
-
   while (1) {
     switch(state) {
       case APP_STATE_INIT:

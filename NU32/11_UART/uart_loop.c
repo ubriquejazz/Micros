@@ -1,9 +1,16 @@
-#include "NU32.h"                 // constants, functions for startup and UART
+/*!\name      uart_loop.h
+ *
+ * \brief     We will set up UART1 at a slow baud rate so you can examine the signal on a scope.
+ *            Connect the UART1 RX and TX pins together so the UART can communicate with itself.
+ *
+ * \author    Juan Gago
+ *
+ */
 
-// We will set up UART1 at a slow baud rate so you can examine the signal on a scope.
-// Connect the UART1 RX and TX pins together so the UART can communicate with itself.
+#include "NU32.h" // constants, functions for startup and UART
 
-int main(void) {
+int main(void) 
+{
   char msg[100] = {};
   NU32_Startup();  // cache on, interrupts on, LED/button init, UART init
 

@@ -1,7 +1,14 @@
+/*!\name      cicrc_buf.h
+ *
+ * \brief     helps implements a basic circular buffer to stream data from an ISR over the UART
+ *            notice that the buffer can be much smaller than the total number of samples sent and
+ *            that data starts streaming immediately unlike with batch.c
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h" // constants, functions for startup and UART
-// uses a circular buffer to stream data from an ISR over the UART
-// notice that the buffer can be much smaller than the total number of samples sent and
-// that data starts streaming immediately unlike with batch.c
 
 #define BUFLEN   1024                             // length of the buffer
 #define NSAMPLES 5000                             // number of samples to collect
@@ -46,19 +53,20 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {  // timer 1 isr operates
   IFS0bits.T1IF = 0;      // clear interrupt flag
 }
 
-int main(void) {
+int main(void) 
+{
   int sent = 0;
   char msg[100] = {};
   NU32_Startup();                   // cache on, interrupts on, LED/button init, UART init
 
   __builtin_disable_interrupts();   // INT step 2: disable interrupts at CPU
   T1CONbits.TCKPS = 0b01;           // PBCLK prescaler value of 1:8
-  PR1 = 1999;                   // The frequency is 80 MHz / (8 * (1999 + 1)) = 5 kHz
+  PR1 = 1999;                       // The frequency is 80 MHz / (8 * (1999 + 1)) = 5 kHz
   TMR1 = 0;       
-  IPC1bits.T1IP = 5;              // interrupt priority 5
-  IFS0bits.T1IF = 0;              // clear the interrupt flag
-  IEC0bits.T1IE = 1;              // enable the interrupt
-  T1CONbits.ON  = 1;              // turn the timer on                                 
+  IPC1bits.T1IP = 5;                // interrupt priority 5
+  IFS0bits.T1IF = 0;                // clear the interrupt flag
+  IEC0bits.T1IE = 1;                // enable the interrupt
+  T1CONbits.ON  = 1;                // turn the timer on                                 
   __builtin_enable_interrupts();    // INT step 7: enable interrupts at CPU
 
   NU32_ReadUART3(msg,sizeof(msg));  // wait for the user to press enter before continuing
