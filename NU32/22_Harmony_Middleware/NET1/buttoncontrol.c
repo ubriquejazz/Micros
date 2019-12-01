@@ -1,22 +1,19 @@
- 
+/*!\name      buttoncontrol.h
+ *
+ * \brief     TCP/IP example.
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "buttoncontrol.h"
- 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Global Data Definitions
-// *****************************************************************************
-// *****************************************************************************
  
 BUTTONCONTROL_DATA buttoncontrolData;
  
 #define BUTTON_STABLE_PERIOD_ms 30
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Callback Functions
-// *****************************************************************************
-// *****************************************************************************
- 
+/* Callback Functions */
+
 ECS_CALL_BUTTON_STATE_TYPE BUTTONCONTROL_GetCallButtonState()
 {
 	ECS_CALL_BUTTON_STATE_TYPE callButtonState = ECS_CALL_NONE; //Default return value is ECS_CALL_NONE (no buttons pressed)
@@ -86,20 +83,15 @@ void BUTTONCONTROL_DebounceInit(SWITCH_DEBOUNCE_TYPE* button)
 	button->debounceLatch = false;																	//Set the debounce latch to false
 }
  
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Initialization and State Machine Functions
-// *****************************************************************************
-// *****************************************************************************
- 
+// Application Initialization and State Machine Functions
 
 void BUTTONCONTROL_Initialize(void)
 {
 	/* Place the App state machine in its initial state. */
 	buttoncontrolData.state = BUTTONCONTROL_STATE_INIT;
  
-	BUTTONCONTROL_DebounceInit(&buttoncontrolData.upCallButton);		// Initialise the debounce variables for the up call button
-	BUTTONCONTROL_DebounceInit(&buttoncontrolData.downCallButton);		// Initialise the debounce variables for the down call button
+	BUTTONCONTROL_DebounceInit(&buttoncontrolData.upCallButton);									// Initialise the debounce variables for the up call button
+	BUTTONCONTROL_DebounceInit(&buttoncontrolData.downCallButton);									// Initialise the debounce variables for the down call button
 }
 
 void BUTTONCONTROL_Tasks(void)
@@ -107,9 +99,9 @@ void BUTTONCONTROL_Tasks(void)
 	/* Check the application's current state. */
 	switch (buttoncontrolData.state)
 	{
-		/* Application's initial state. */
+
 		case BUTTONCONTROL_STATE_INIT:
-		{
+		
 			if (SYS_TMR_Status(sysObj.sysTmr) == SYS_STATUS_READY)		  							// Is the system timer ready?
 			{
 				buttoncontrolData.buttonDebounceTmrHandle = SYS_TMR_DelayMS(1);						// Setup a timer for 1ms, store handle
@@ -119,10 +111,9 @@ void BUTTONCONTROL_Tasks(void)
 				}
 			}
 			break;
-		}
  
 		case BUTTONCONTROL_STATE_SERVICE_TASKS:
-		{
+		
 			if (SYS_TMR_DelayStatusGet(buttoncontrolData.buttonDebounceTmrHandle) == true)			// Has the timer expired?
 			{
 				buttoncontrolData.upCallButton.currentState = BSP_SwitchStateGet(BSP_SWITCH_1);		// Read State of Push Button 1, store value in upCallButton structure
@@ -138,14 +129,14 @@ void BUTTONCONTROL_Tasks(void)
 				}
 			}
 			break;
-		}
  
 		default:
-		{
+			Nop();
 			break;
-		}
+		
 	}
 }
+ 
  
  
 /*******************************************************************************

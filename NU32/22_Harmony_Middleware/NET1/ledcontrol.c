@@ -1,15 +1,18 @@
+/*!\name      ledcontrol.h
+ *
+ * \brief     TCP/IP example.
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include "ledcontrol.h"
  
 LEDCONTROL_DATA ledcontrolData;
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Callback Functions
-// *****************************************************************************
-// *****************************************************************************
- 
- void LEDCONTROL_SetCallIndicators(ECS_CALL_BUTTON_STATE_TYPE indicatorState)
+/* Functions */
+
+int LEDCONTROL_SetCallIndicators(ECS_CALL_BUTTON_STATE_TYPE indicatorState)
 {
 	switch (indicatorState)
 	{
@@ -40,21 +43,12 @@ LEDCONTROL_DATA ledcontrolData;
 	}
 }
  
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Initialization and State Machine Functions
-// *****************************************************************************
-// *****************************************************************************
- 
+/* Application Initialization and State Machine Functions */
+
 void LEDCONTROL_Initialize(void)
 {
 	/* Place the App state machine in its initial state. */
 	ledcontrolData.state = LEDCONTROL_STATE_INIT;
- 
- 
-	/* TODO: Initialize your application's state machine and other
-	 * parameters.
-	 */
 }
  
 void LEDCONTROL_Tasks(void)
@@ -63,26 +57,26 @@ void LEDCONTROL_Tasks(void)
 	/* Check the application's current state. */
 	switch (ledcontrolData.state)
 	{
-		/* Application's initial state. */
+		
 		case LEDCONTROL_STATE_INIT:
-		{
-			if (SYS_TMR_Status(sysObj.sysTmr) == SYS_STATUS_READY)				// Is the system timer ready?
+			if (SYS_TMR_Status(sysObj.sysTmr) == SYS_STATUS_READY) // Is the system timer ready?
 			{
 				ledcontrolData.ledFlashTmrHandle = SYS_TMR_DelayMS(500);			// Setup a timer for 500ms
 				if (ledcontrolData.ledFlashTmrHandle != SYS_TMR_HANDLE_INVALID)		// Is the timer handle valid?
 				{
-					ledcontrolData.state = LEDCONTROL_STATE_SERVICE_TASKS;		// Handle is valid, advance to next state
+					ledcontrolData.state = LEDCONTROL_STATE_SERVICE_TASKS; // Handle is valid, advance to next state
 				}
 			}
 			break;
-		}
+		
  
 		case LEDCONTROL_STATE_SERVICE_TASKS:
-		{
+		
 			if (SYS_TMR_DelayStatusGet(ledcontrolData.ledFlashTmrHandle) == true)	// Has the timer expired?
 			{
 				ledcontrolData.ledFlashTmrHandle = SYS_TMR_DelayMS(500);			// Start another 500ms timer
-				SYS_CMD_READY_TO_READ();
+				SYS_CMD_READY_TO_READ();											// Accept new data
+
 				if (ledcontrolData.ledFlashTmrHandle != SYS_TMR_HANDLE_INVALID)		// Is the handle valid (timer set)?
 				{													   
 					BSP_LEDToggle(BSP_LED_3);		// Toggle LED3
@@ -94,13 +88,14 @@ void LEDCONTROL_Tasks(void)
 				}
 			}
 			break;
-		}
+		
+
 		/* The default state should never be executed. */
 		default:
-		{
+		
 			/* TODO: Handle error in application's state machine. */
 			break;
-		}
+		
 	}
 }
  
