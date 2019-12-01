@@ -274,7 +274,7 @@
 #define TCPIP_IF_PIC32INT
 #define TCPIP_NETWORK_DEFAULT_HOST_NAME				"21070_LAB2_SOLUTION"
 #define TCPIP_NETWORK_DEFAULT_MAC_ADDR				0
-#define TCPIP_NETWORK_DEFAULT_IP_ADDRESS			"192.168.1.1"
+#define TCPIP_NETWORK_DEFAULT_IP_ADDRESS			"192.168.1.101"
 #define TCPIP_NETWORK_DEFAULT_IP_MASK				"255.255.255.0"
 #define TCPIP_NETWORK_DEFAULT_GATEWAY				"192.168.1.1"
 #define TCPIP_NETWORK_DEFAULT_DNS					"192.168.1.1"
@@ -308,11 +308,13 @@
 
 /*** USB Driver Configuration ***/
 
+// work as a USB device not as a host
+#define DRV_USB_DEVICE_SUPPORT      true
+#define DRV_USB_HOST_SUPPORT        false
+
 /* Enables Device Support */
 #define DRV_USBHS_DEVICE_SUPPORT      true
-
-/* Disable Device Support */
-#define DRV_USBHS_HOST_SUPPORT      false
+#define DRV_USBHS_HOST_SUPPORT        false
 
 /* Maximum USB driver instances */
 #define DRV_USBHS_INSTANCES_NUMBER    1
@@ -329,31 +331,26 @@
 #define USB_DEVICE_DRIVER_INITIALIZE_EXPLICIT
 
 /* Maximum device layer instances */
-#define USB_DEVICE_INSTANCES_NUMBER     1
+#define USB_DEVICE_INSTANCES_NUMBER         1
 
 /* EP0 size in bytes */
-#define USB_DEVICE_EP0_BUFFER_SIZE      64
+#define USB_DEVICE_EP0_BUFFER_SIZE          64
 
 /* Maximum instances of CDC function driver */
 #define USB_DEVICE_CDC_INSTANCES_NUMBER     1
 
-/* CDC Transfer Queue Size for both read and
-   write. Applicable to all instances of the
-   function driver */
+/* Total size of the CDC read and write queues */
 #define USB_DEVICE_CDC_QUEUE_DEPTH_COMBINED 3
+
 
 // *****************************************************************************
 // *****************************************************************************
-// Section: BSP Configuration
+// Section: BSP Configuration - PIC32MZ EF Starter Kit
 // *****************************************************************************
 // *****************************************************************************
 
 //
 #define BSP_OSC_FREQUENCY 24000000
-
-// work as a USB device not as a host
-#define DRV_USB_DEVICE_SUPPORT      true
-#define DRV_USB_HOST_SUPPORT        false
 
 /*** Functions for BSP_LED_1 pin ***/
 #define BSP_LED_1Toggle() PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_H, PORTS_BIT_POS_0)

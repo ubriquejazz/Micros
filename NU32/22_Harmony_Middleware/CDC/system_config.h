@@ -16,17 +16,6 @@
 #define SYS_CLK_CONFIG_PRIMARY_XTAL         24000000ul
 #define SYS_CLK_CONFIG_SECONDARY_XTAL       32768ul
 
-/*** Console System Service Configuration ***/
-#define SYS_CONSOLE_OVERRIDE_STDIO
-#define SYS_CONSOLE_DEVICE_MAX_INSTANCES        2
-#define SYS_CONSOLE_INSTANCES_NUMBER            1
-#define SYS_CONSOLE_USB_CDC_INSTANCE       		USB_DEVICE_CDC_INDEX_0
-#define SYS_CONSOLE_USB_CDC_COMM_BAUD_RATE 		921600
-#define SYS_CONSOLE_USB_CDC_RD_QUEUE_DEPTH 		1
-#define SYS_CONSOLE_USB_CDC_WR_QUEUE_DEPTH 		128
-#define SYS_CONSOLE_USB_CDC_READ_BUFFER_SIZE   	512
-#define SYS_CONSOLE_BUFFER_DMA_READY __attribute__((coherent)) __attribute__((aligned(16)))
-
 /*** Interrupt System Service Configuration ***/
 #define SYS_INT                     true
 
