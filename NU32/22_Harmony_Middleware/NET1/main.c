@@ -18,6 +18,23 @@
 /* Structure to hold the object handles for the modules in the system. */
 SYSTEM_OBJECTS sysObj;
 
+SYS_CMD_INIT sysCmdInit =
+{
+    .moduleInit = {0},
+    .consoleCmdIOParam = SYS_CMD_FULL_COMMAND_READ_CONSOLE_IO_PARAM,
+};
+
+SYS_MODULE_OBJ sysConsoleObjects[] = { SYS_MODULE_OBJ_INVALID };
+
+/* Declared in console device implementation (sys_console_appio.c) */
+extern SYS_CONSOLE_DEV_DESC consAppIODevDesc;
+
+SYS_CONSOLE_INIT consUsbInit0 =
+{
+    .moduleInit = {0},
+    .consDevDesc = &consAppIODevDesc,
+};
+
 const DRV_TMR_INIT drvTmr0InitData =
 {
     .moduleInit.sys.powerState = DRV_TMR_POWER_STATE_IDX0,
@@ -87,8 +104,11 @@ int main() {
         /* SYS_COMMAND layer tasks routine */ 
         SYS_CMD_Tasks();
         SYS_CONSOLE_Tasks(sysObj.sysConsole0);
+
+        /* Maintain system services */
         SYS_TMR_Tasks(sysObj.sysTmr);
          
+        /* Maintain Middleware */
         cdc_tasks();
         tcp_tasks();
 
