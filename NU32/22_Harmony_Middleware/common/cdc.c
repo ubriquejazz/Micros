@@ -413,6 +413,10 @@ void cdc_setup(void) {
     sysObj.usbDevObject0 = USB_DEVICE_Initialize (USB_DEVICE_INDEX_0, (const SYS_MODULE_INIT*) &usbDevInitData);
 }
 
+bool cdc_open() {
+    return true;
+}
+
 // update the usb state machine, should be called from the main loop
 void cdc_update() {
     DRV_USBHS_Tasks(sysObj.drvUSBObject);

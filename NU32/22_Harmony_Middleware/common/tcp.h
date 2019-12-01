@@ -22,5 +22,4 @@ bool tcp_open(void);
 // update the necessary harmony state machines, call from the main loop
 void tcp_update(void);
 
-
 #endif
