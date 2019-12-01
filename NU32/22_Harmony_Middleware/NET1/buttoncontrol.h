@@ -19,12 +19,11 @@
 
 typedef struct
 {
-	 BSP_SWITCH_STATE currentState;			// Current state of the button
-	 BSP_SWITCH_STATE previousState;		// State of the button from the previous read
-	 uint16_t debounceTime_ms;				// Time period (in ms) the button has been in the current state
-	 bool debounceLatch;					// Latch used to indicate if the debounced value of the button 
-											// has been read and acted upon by the application
-	 BSP_SWITCH_STATE debouncedValue;		// Final state of the button after the debounce period has elapsed
+	 BSP_SWITCH_STATE 	currentState;		// Current state of the button
+	 BSP_SWITCH_STATE 	previousState;		// State of the button from the previous read
+	 uint16_t 			debounceTime_ms;	// Time period (in ms) the button has been in the current state
+	 BSP_SWITCH_STATE 	debouncedValue; 	// Final state of the button after the debounce period has elapsed
+	 bool 				debounceLatch;		// True if debouncedValue has been read and acted upon by the application
 } SWITCH_DEBOUNCE_TYPE;
  
 typedef enum
@@ -41,8 +40,8 @@ typedef struct
 	BUTTONCONTROL_STATES 	state;
 	SYS_TMR_HANDLE 			buttonDebounceTmrHandle;
 
-	SWITCH_DEBOUNCE_TYPE upCallButton;		//Context Structure for deboucning the up call button
-	SWITCH_DEBOUNCE_TYPE downCallButton;	//Context Structure for debouncing the down call button
+	SWITCH_DEBOUNCE_TYPE upCallButton;		//Context Structure for the up call button
+	SWITCH_DEBOUNCE_TYPE downCallButton;	//Context Structure for the down call button
 } BUTTONCONTROL_DATA;
  
 /* Application Initialization and State Machine Functions */

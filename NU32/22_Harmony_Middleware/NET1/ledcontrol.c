@@ -61,8 +61,8 @@ void LEDCONTROL_Tasks(void)
 		case LEDCONTROL_STATE_INIT:
 			if (SYS_TMR_Status(sysObj.sysTmr) == SYS_STATUS_READY) // Is the system timer ready?
 			{
-				ledcontrolData.ledFlashTmrHandle = SYS_TMR_DelayMS(500);			// Setup a timer for 500ms
-				if (ledcontrolData.ledFlashTmrHandle != SYS_TMR_HANDLE_INVALID)		// Is the timer handle valid?
+				ledcontrolData.ledFlashTmrHandle = SYS_TMR_DelayMS(500); // Setup a timer for 500ms
+				if (ledcontrolData.ledFlashTmrHandle != SYS_TMR_HANDLE_INVALID) // Is the timer handle valid?
 				{
 					ledcontrolData.state = LEDCONTROL_STATE_SERVICE_TASKS; // Handle is valid, advance to next state
 				}
@@ -71,7 +71,6 @@ void LEDCONTROL_Tasks(void)
 		
  
 		case LEDCONTROL_STATE_SERVICE_TASKS:
-		
 			if (SYS_TMR_DelayStatusGet(ledcontrolData.ledFlashTmrHandle) == true)	// Has the timer expired?
 			{
 				ledcontrolData.ledFlashTmrHandle = SYS_TMR_DelayMS(500);			// Start another 500ms timer
