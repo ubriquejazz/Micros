@@ -1,8 +1,16 @@
+/*!\name      demo_plib.h
+ *
+ * \brief     Almost a direct translation of TMR_5Hz.c to use the PLIB library.
+ *            The main difference is that it flashes two LEDs out of phase,
+ *            instead of just flashing LED2.
+ *            Also, similar to demo_tmr.c and app.c (Program Structure) 
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include <peripheral/peripheral.h>    // harmony peripheral library
 #include <sys/attribs.h>              // defines the __ISR macro
-// Almost a direct translation of TMR_5Hz.c to use the harmony peripheral library.
-// The main difference is that it flashes two LEDs out of phase,
-// instead of just flashing LED2.
 
 void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {  
   // toggle LATF0 (LED1) and LATF1 (LED2)
@@ -41,8 +49,6 @@ int main(void) {
   PLIB_TMR_Start(TMR_ID_1);
   // enable interrupts
   PLIB_INT_Enable(INT_ID_0);
-  while (1) {
-      ;       // infinite loop
-  }
+  while(1);
   return 0;
 }

@@ -1,15 +1,37 @@
-// Demonstrates the timer service.
-// The timer service allows us to use one hardware timer to run tasks
-// at different frequencies.
+/*!\name      demo_service.h
+ *
+ * \brief     Demonstrates the timer service.
+ *            The timer service allows us to use one hardware timer 
+ *            to run tasksat different frequencies.
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include "system_config.h"
 #include "system_definitions.h"
+
+// holds the state of the application
+typedef enum {APP_STATE_INIT, APP_STATE_RUN} AppState; 
+
+SYS_MODULE_OBJ timer_handle;    // handle to the timer driver
+SYS_MODULE_OBJ devcon_handle;   // device configuration handle
+SYS_TMR_HANDLE sys_tmr;
+
+/* system_interrupt.c */
+
+void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {  
+      // update the timer driver state machine
+    DRV_TMR_Tasks(timer_handle);
+}
 
 void invert_leds_callback(uintptr_t context, uint32_t alarmCount) {
   // context is data passed by the user that can then be used in the callback.
   // Here the context is NU32_LED1_POS or NU32_LED2_POS to tell us which LED to toggle.
   PLIB_PORTS_PinToggle(PORTS_ID_0, NU32_LED_CHANNEL, context); 
 }
+
+/* system_init.c */
 
 const static DRV_TMR_INIT init =   // used to configure timer; const so stored in flash
 {
@@ -30,13 +52,9 @@ const static SYS_TMR_INIT sys_init =
   .tmrFreq = 1000                  // base frequency of the system service (Hz)
 };
 
-// holds the state of the application
-typedef enum {APP_STATE_INIT, APP_STATE_RUN} AppState; 
+void SYS_Initialize(void)
+{
 
-int main(void) {
-  SYS_MODULE_OBJ timer_handle;    // handle to the timer driver
-  SYS_MODULE_OBJ devcon_handle;   // device configuration handle
-  SYS_TMR_HANDLE sys_tmr;
   SYS_CLK_Initialize(NULL);       // initialize the clock, 
                                   // but tell it to use configuration bit settings
                                   // that were set with the bootloader
@@ -51,14 +69,28 @@ int main(void) {
   PLIB_PORTS_PinSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED2_POS);  
  
   // initialize the timer driver
-  timer_handle = DRV_TMR_Initialize(DRV_TMR_INDEX_0, (SYS_MODULE_INIT*)&init);
+  timer_handle = DRV_TMR_Initialize(DRV_TMR_INDEX_0, (SYS_MODULE_INIT*) &init);
+  PLIB_INT_VectorPrioritySet(INT_ID_0, _TIMER_1_VECTOR, INT_PRIORITY_LEVEL5);
 
   // initialize the timer system service
-  sys_tmr = SYS_TMR_Initialize(SYS_TMR_INDEX_0,(SYS_MODULE_INIT*)&sys_init);
-  
+  sys_tmr = SYS_TMR_Initialize(SYS_TMR_INDEX_0,(SYS_MODULE_INIT*) &sys_init);
+}
+
+int main(void) 
+{
   AppState state = APP_STATE_INIT; // initialize the application state 
 
-  while (1) {
+  SYS_Initialize();
+
+  // enable interrupts
+  PLIB_INT_Enable(INT_ID_0);
+
+  while (1) 
+  {
+    //update the device configuration
+    SYS_DEVCON_Tasks(devcon_handle); 
+    SYS_TMR_Tasks(sys_tmr);
+
     // based on the application state, we may need to initialize timer callbacks
     switch(state) {
       case APP_STATE_INIT: 
@@ -79,12 +111,6 @@ int main(void) {
       case APP_STATE_RUN: 
         break; // we are just running
       }
-
-    //update the device configuration
-    SYS_DEVCON_Tasks(devcon_handle); 
-    SYS_TMR_Tasks(sys_tmr);
-    // update the timer driver state machine
-    DRV_TMR_Tasks(timer_handle);
   }
   return 0;
 }

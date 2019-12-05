@@ -12,6 +12,7 @@
 #include "system/clk/sys_clk.h"        // clock system service
 #include "system/common/sys_module.h"  // basic system module
 #include "driver/tmr/drv_tmr.h"        // the timer driver
+#include "app.h"
 
 // system object handles
 typedef struct {

@@ -27,7 +27,7 @@
 #define DRV_TMR_INSTANCES_NUMBER 5
 
 // Set this to true to enable interrupts.  We do not use interrupts in this example.
-#define DRV_TMR_INTERRUPT_MODE false
+#define DRV_TMR_INTERRUPT_MODE true
 
 // Some definitions for the NU32 board.
 #define NU32_LED_CHANNEL PORT_CHANNEL_F  // port channel for the NU32 LEDs

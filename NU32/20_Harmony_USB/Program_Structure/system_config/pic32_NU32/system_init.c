@@ -1,12 +1,20 @@
+/*!\name      system_init.c
+ *
+ * \brief     Code to initialize the system: SYS_Initialize(void)
+ *            For standalone projects (those without a bootloader)
+ *            you would define the configuration values here, e.g.,
+ *            #pragma config FWDTEN = OFF
+ *            See NU32.h for configuration bits.  
+ *            (these are set by the bootloader in this example)
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "system_config.h"
 #include "system_definitions.h"
-#include "app.h"
 
-// Code to initialize the system.
-// For standalone projects (those without a bootloader)
-// you would define the configuration values here, e.g.,
-// #pragma config FWDTEN = OFF
-// See NU32.h for configuration bits.  These are set by the bootloader in this example.
+SYSTEM_OBJECTS sysObj; // handles to harmony modules. Defined in system_definitions.h.
 
 const static DRV_TMR_INIT init = // used to configure the timer; const so stored in flash
 {
@@ -19,10 +27,9 @@ const static DRV_TMR_INIT init = // used to configure the timer; const so stored
   .asyncWriteEnable = false             
 };
 
-SYSTEM_OBJECTS sysObj; // handles to harmony modules. Defined in system_definitions.h.
-
 // called from the beginning of main to initialize the harmony components etc.
-void SYS_Initialize(void * data) {
+void SYS_Initialize(void * data) 
+{
   SYS_CLK_Initialize(NULL);  // initialize the clock, but use configuration bit settings
                              // that were set with the bootloader
                                  

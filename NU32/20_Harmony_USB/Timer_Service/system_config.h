@@ -22,7 +22,7 @@
 #define DRV_TMR_INSTANCES_NUMBER 5
 
 // do not use interrupt mode
-#define DRV_TMR_INTERRUPT_MODE false
+#define DRV_TMR_INTERRUPT_MODE true
 
 // system timer configuration
 // max number of timer objects that can be created

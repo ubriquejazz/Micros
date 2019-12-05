@@ -1,7 +1,13 @@
 /*!\name      demo_uart.h
  *
- * \brief     demonstrates the uart driver
+ * \brief     demonstrates the uart driver in dynamic mode
  *            implements a program similar to talkingPIC.c
+ *
+ *            uart_init, below, is of type DRV_USART_INIT, a struct.  Here we initialize uart_init.
+ *            The fields in DRV_USART_INIT, according to framework/driver/usart/drv_usart.h, are
+ *            .moduleInit, .usartID, .mode, etc.  Syntax below doesn't give the field names, so the
+ *            values are assigned to fields in the order they appear in the definition of the 
+ *            DRV_USART_INIT struct.
  *
  * \author    Juan Gago
  *
@@ -10,11 +16,22 @@
 #include "system_config.h"       // macros needed for this program 
 #include "system_definitions.h"  // includes header files needed by the program
 
-// UART_init, below, is of type DRV_USART_INIT, a struct.  Here we initialize uart_init.
-// The fields in DRV_USART_INIT, according to framework/driver/usart/drv_usart.h, are
-// .moduleInit, .usartID, .mode, etc.  Syntax below doesn't give the field names, so the
-// values are assigned to fields in the order they appear in the definition of the 
-// DRV_USART_INIT struct.
+#define BUF_SIZE 100
+
+SYS_MODULE_OBJ uart_module;  // handle to the uart driver
+
+// states for our FSM
+typedef enum {APP_STATE_QUERY, APP_STATE_RECEIVE, APP_STATE_ECHO} APP_STATE;  
+
+// Write a string to the UART. Does not block.  Returns true when finished writing.
+int WriteUart(DRV_HANDLE handle, const char * msg);
+
+// Read a string from the UART. The string is ended with a '\r' or '\n'.
+// If more than maxlen characters are read, data wraps around to the beginning.
+// Does not block, returns true when '\r' or '\n' is encountered.
+int ReadUart(DRV_HANDLE handle, char * msg, int maxlen);
+
+/* system_init.c */
 
 const static DRV_USART_INIT uart_init = {       // initialize struct with driver options
   .moduleInit = {SYS_MODULE_POWER_RUN_FULL},    // no power saving
@@ -29,28 +46,15 @@ const static DRV_USART_INIT uart_init = {       // initialize struct with driver
                                                 // remaining fields are not needed here
 };
 
-// Write a string to the UART. Does not block.  Returns true when finished writing.
-int WriteUart(DRV_HANDLE handle, const char * msg);
-
-// Read a string from the UART.  The string is ended with a '\r' or '\n'.
-// If more than maxlen characters are read, data wraps around to the beginning.
-// Does not block, returns true when '\r' or '\n' is encountered.
-int ReadUart(DRV_HANDLE handle, char * msg, int maxlen);
-
-#define BUF_SIZE 100
-
-// states for our FSM
-typedef enum {APP_STATE_QUERY, APP_STATE_RECEIVE, APP_STATE_ECHO} APP_STATE;  
-
-int main(void) {
+int main(void) 
+{
+  DRV_HANDLE uart_handle;
   char buffer[BUF_SIZE]; 
   APP_STATE state = APP_STATE_QUERY;  // initial state of our FSM will ask user for text
-  SYS_MODULE_OBJ uart_module;        
-  DRV_HANDLE uart_handle;
-
-  // Initialize the UART.
-  uart_module = DRV_USART_Initialize(DRV_USART_INDEX_0,(SYS_MODULE_INIT*)&uart_init);
   
+  // Initialize the UART.
+  uart_module = DRV_USART_Initialize(DRV_USART_INDEX_0,(SYS_MODULE_INIT*) &uart_init);
+
   // Open the UART for non-blocking read/write operations.  
   uart_handle = DRV_USART_Open(
       uart_module, DRV_IO_INTENT_READWRITE | DRV_IO_INTENT_NONBLOCKING);
