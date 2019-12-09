@@ -1,11 +1,16 @@
+/*!\name      accel.h
+ *
+ * \brief     interface with an LSM303D accelerometer/compass using spi
+ *            Wire GND to GND, VDD to 3.3V, Vin is disconnected (on Pololu breakout board)
+ *               SDI4 (F4) -> SDO     SDO4 (F5) -> SDI (labeled SDA on Pololu board),        
+ *               SCK4 (B14) -> SCL    RB8 -> CS *
+ *                    
+ * \author    Juan Gago
+ */
+
 #include "accel.h"
 #include "NU32.h"
-// interface with the LSM303D accelerometer/magnetometer using spi
-// Wire GND to GND, VDD to 3.3V, Vin is disconnected (on Pololu breakout board)
-// SDO4 (F5) ->  SDI (labeled SDA on Pololu board),
-// SDI4 (F4) -> SDO
-// SCK4 (B14) -> SCL
-// RB8 -> CS
+
 #define CS LATBbits.LATB8        // use RB8 as CS
 
 // send a byte via spi and return the response

@@ -1,8 +1,17 @@
-#include "NU32.h" // constants, funcs for startup and UART
-#include "accel.h"
-// accelerometer/magnetometer example.  Prints the results from the sensor to the UART
+/*!\name      accel.h
+ *
+ * \brief     Accelerometer/magnetometer example.
+ *            Prints the results from the sensor to the UART
+ *
+ * \author    Juan Gago
+ *
+ */
 
-int main() {
+#include "NU32.h"   // constants, funcs for startup and UART
+#include "accel.h"  // spi or i2c
+
+int main() 
+{
   char buffer[200];
   NU32_Startup(); // cache on, interrupts on, LED/button init, UART init
   acc_setup();
@@ -36,6 +45,6 @@ int main() {
 
     //delay
    _CP0_SET_COUNT(0);
-   while(_CP0_GET_COUNT() < 40000000) { ; }
+   while(_CP0_GET_COUNT() < 40000000);
   }
 }

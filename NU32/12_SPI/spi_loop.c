@@ -1,11 +1,17 @@
+/*!\name      spi_loop.h
+ *
+ * \brief     Demonstrates spi by using two spi peripherals on the same PIC32,
+ *            - one is the master, the other is the slave
+ *            - SPI4 will be the master, SPI3 the slave.
+ *                  SDO4 -> SDI3 (pin F5 -> pin D2)
+ *                  SDI4 -> SDO3 (pin F4 -> pin D3)
+ *                  SCK4 -> SCK3 (pin B14 -> pin D1)
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"  // constants, funcs for startup and UART
-// Demonstrates spi by using two spi peripherals on the same PIC32,
-// one is the master, the other is the slave
-// SPI4 will be the master, SPI3 the slave.
-// connect
-// SDO4 -> SDI3 (pin F5 -> pin D2)
-// SDI4 -> SDO3 (pin F4 -> pin D3)
-// SCK4 -> SCK3 (pin B14 -> pin D1)
  
 int main(void) {
   char buf[100] = {};

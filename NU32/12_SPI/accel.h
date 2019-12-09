@@ -1,8 +1,14 @@
 #ifndef ACCEL__H__
 #define ACCEL__H__
-// Basic interface with an LSM303D accelerometer/compass.
-// Used for both i2c and spi examples, but with different implementation (.c) files
 
+/*!\name      accel.h
+ *
+ * \brief     interface with an LSM303D accelerometer/compass. used for
+ *			  both i2c and spi examples, but with different implementations
+ *
+ * \author    Juan Gago
+ *
+ */
                         // register addresses
 #define CTRL1 0x20      // control register 1
 #define CTRL5 0x24      // control register 5
@@ -21,5 +27,6 @@ void acc_read_register(unsigned char reg, unsigned char data[], unsigned int len
 void acc_write_register(unsigned char reg, unsigned char data);                    
 
 // initialize the accelerometer
-void acc_setup();                                                                  
+void acc_setup();    
+                                                              
 #endif
