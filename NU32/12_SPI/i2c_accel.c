@@ -1,6 +1,6 @@
 /*!\name      accel.h
  *
- * \brief     interface with an LSM303D accelerometer/compass using i2c
+ * \brief     Interface with an LSM303D accelerometer/compass using i2c
  *            GND to GND, VDD to 3.3V, SDA to SDA2 (RA3) and SCL to SCL2 (RA2)
  *
  * \author    Juan Gago
@@ -23,15 +23,16 @@ void acc_read_register(unsigned char reg, unsigned char data[], unsigned int len
   else {
     write_cmd[0] = reg;
   }
-  i2c_write_read(I2C_ADDR,write_cmd, 1, data,len);
+  i2c_write_read (I2C_ADDR, write_cmd, 1, data, len);
 }
 
+// write to the register
 void acc_write_register(unsigned char reg, unsigned char data)
 {
   unsigned char write_cmd[2];
   write_cmd[0] = reg;   // write the register
   write_cmd[1] = data;  // write the actual data
-  i2c_write_read(I2C_ADDR, write_cmd, 2, NULL, 0);
+  i2c_write_read (I2C_ADDR, write_cmd, 2, NULL, 0);
 }
 
 void acc_setup() {                 // set up the accelerometer, using I2C 2

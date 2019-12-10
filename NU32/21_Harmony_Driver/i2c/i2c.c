@@ -1,6 +1,7 @@
 /*!\name      i2c.c
  *
  * \brief     I2C Master, using driver functions
+ *			  and ring buffer
  *
  * \author    Juan Gago
  *
@@ -8,7 +9,51 @@
  
 #include "i2c.h"
 
-int8_t _GetStatus (DRV_HANDLE handle, DRV_I2C_BUFFER_HANDLE buffer_handle)
+int buffer_empty(I2C_DRIVER* ptr)
+{    
+  	// return true if the buffer is empty (read = write)
+  	return ptr->widx == ptr->ridx; 
+}
+
+int buffer_full(I2C_DRIVER* ptr)
+{     
+	// return true if the buffer is full.  
+  	return (ptr->widx + 1) % MAX_I2C_CLIENTS == ptr->ridx; 
+}
+
+// reads from current buffer location; assumes buffer not empty
+I2C_CLIENT buffer_read(I2C_DRIVER* ptr)
+{     
+	I2C_CLIENT val = ptr->data[ptr->ridx];
+	++ptr->ridx; // increments read index and wrap around
+	if(ptr->ridx >= MAX_I2C_CLIENTS) {  
+		ptr->ridx = 0;
+	}
+	return val;
+}
+
+// add an element to the buffer; assumes buffer not full 
+void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr)
+{
+	ptr->data[ptr->widx] = client;
+	++ptr->widx; // increment the write index and wrap around if necessary
+	if(ptr->widx >= MAX_I2C_CLIENTS) {  
+		ptr->widx = 0;
+	}
+}
+
+bool I2C_Add (I2C_CLIENT client, I2C_DRIVER* ptr)
+{
+	// if the buffer is full the data is lost
+	if(buffer_full(ptr)) 
+	{        
+		return false;
+	}
+	buffer_write(client, ptr);
+	return true;
+}
+
+int8_t I2C_GetStatus (DRV_HANDLE handle, DRV_I2C_BUFFER_HANDLE buffer_handle)
 {
 	DRV_I2C_BUFFER_EVENT event_handle;
 	event_handle = DRV_I2C_TransferStatusGet (handle, buffer_handle);
@@ -19,50 +64,57 @@ int8_t _GetStatus (DRV_HANDLE handle, DRV_I2C_BUFFER_HANDLE buffer_handle)
 	return 0;
 }
 
-void I2C_Initialize (I2C_DATA* ptr, uint8_t index)
-{
-	int i; 
-	for (i=0; i<MAX_I2C_CLIENTS; i++)
+/*
+
+    I2C_CLIENT sensor = {
+    	.write = NULL, 	.wlen = 1,
+    	.read  = NULL,	.rlen = 2,
+    	.address = 0x30,
+    };
+	I2C_Add(sensor, &i2cBB);
+
+	volatile int temperature;
+	I2C_CLIENT* ptr = I2C_Tasks(&i2cBB, &tout);
+	if (ptr->state == I2C_CLIENT_DONE)
 	{
-		ptr->fifo[i].state = I2C_CLIENT_NONE;
+		switch (ptr->address)
+		{
+			case 0x30:
+				uint8_t low = ptr->read[0];
+				uint8_t high = ptr->read[1];
+				temperature = MCP9808_Read(low, high);
+				break;
+		}
 	}
-	ptr->driver_index = index;
-	ptr->state = I2C_DRV_IDLE;
-	ptr->fifo_index = 0;
-}
 
-bool I2C_AddToQueue (I2C_DATA* ptr, I2C_CLIENT client)
-{
-	(ptr->fifo [ptr->fifo_index]).wlen = client.wlen;
-	(ptr->fifo [ptr->fifo_index]).rlen = client.rlen;
-	(ptr->fifo [ptr->fifo_index]).write = client.write;
-	(ptr->fifo [ptr->fifo_index]).read = client.read;
-	(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_REQ;
-	ptr->fifo_index += 1;
-	if (ptr->fifo_index > MAX_I2C_CLIENTS)
-		return false;
-	return true;
-}
 
-void I2C_Tasks (I2C_DATA* ptr, uint32_t* milliseconds)
+*/
+
+I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds)
 {
     static DRV_HANDLE handle;
     static DRV_I2C_BUFFER_HANDLE buffer_handle;
+    static I2C_CLIENT client = {
+    	.write = NULL, 	.wlen = 0,
+    	.read  = NULL,	.rlen = 0,
+    	.state = I2C_CLIENT_NONE,
+    };
+    int error_code;
 
 	switch(ptr->state)
 	{	
 		case I2C_DRV_IDLE:
-			if (ptr->fifo_index && (ptr->fifo[fifo_index].state == I2C_CLIENT_REQ))
+			if (!buffer_empty(ptr)) 
 			{
-				// first take static driver handle
-				handle = DRV_I2C_Open (ptr->driver_index, DRV_IO_INTENT_READWRITE);
+				client = buffer_read(ptr); // first take the driver handle
+				client.state = I2C_CLIENT_REQ;
+				handle = DRV_I2C_Open (ptr->index, DRV_IO_INTENT_READWRITE);
 				ptr->state = I2C_DRV_START;
 			}
 			break;
 
 		case I2C_DRV_START: // Transmit with static buffer handle
 
-			I2C_CLIENT client = ptr->fifo[ptr->fifo_index];
 			buffer_handle = DRV_I2C_Transmit (handle, client.address, client.write, client.wlen, NULL);
 			if (buffer_handle != NULL)
 			{
@@ -73,35 +125,34 @@ void I2C_Tasks (I2C_DATA* ptr, uint32_t* milliseconds)
 
 		case I2C_DRV_WRITE:
 
-			int error_code = _GetStatus(handle, buffer_handle);
+			error_code = I2C_GetStatus(handle, buffer_handle);
 			if (error_code < 0)
 			{
-				(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_ERROR;
-				ptr->error_count += 1;
+				printLog("__ERR %d I2C%d Write /r/n", ++ptr->error_count, ptr->index);
+				client.state = I2C_CLIENT_ERROR;
 				ptr->state = I2C_DRV_CLOSE;
 			}
 			else if (error_code > 0)
 			{
-				if ((ptr->fifo [ptr->fifo_index]).rlen > 0)
+				if (client.rlen > 0)
 				{
 					ptr->state = I2C_DRV_RESTART;
 				}
 				else // skip reading states
 				{
-					(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_DONE;
+					client.state = I2C_CLIENT_DONE;
 					ptr->state = I2C_DRV_CLOSE;
 				}
 			}
 			else if (!error_code && (milliseconds > TIMEOUT_WRITE_MS))
 			{
-				(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_TIMEOUT;
+				client.state = I2C_CLIENT_TIMEOUT;
 				ptr->state = I2C_DRV_CLOSE;
 			}s
 			break;
 
 		case I2C_DRV_RESTART: // Receive with same buffer handle
 
-			I2C_CLIENT client = ptr->fifo[ptr->fifo_index];
 			buffer_handle = DRV_I2C_Receive (handle, client.address, client.read, client.rlen, NULL);
 			if (buffer_handle != NULL)
 			{
@@ -112,30 +163,29 @@ void I2C_Tasks (I2C_DATA* ptr, uint32_t* milliseconds)
 
 		case I2C_DRV_READ:
 
-			int error_code = _GetStatus(handle, buffer_handle);
+			error_code = I2C_GetStatus(handle, buffer_handle);
 			if (error_code < 0)
 			{
-				(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_ERROR;
-				ptr->error_count += 1;
+				printLog("__ERR %d I2C%d Read /r/n", ++ptr->error_count, ptr->index);
+				client.state = I2C_CLIENT_ERROR;
 				ptr->state = I2C_DRV_CLOSE;
 			}
 			else if (error_code > 0)
 			{
-				(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_DONE;
+				client.state = I2C_CLIENT_DONE;
 				ptr->state = I2C_DRV_CLOSE;
 			}
 			else if (!error_code && (milliseconds > TIMEOUT_READ_MS))
 			{
-				(ptr->fifo [ptr->fifo_index]).state = I2C_CLIENT_TIMEOUT;
+				client.state = I2C_CLIENT_TIMEOUT;
 				ptr->state = I2C_DRV_CLOSE;
 			}
 			break;
 
 		case I2C_DRV_CLOSE:
 
-			DRV_I2C_Close (ptr->driver_index);
+			DRV_I2C_Close (ptr->index);
 			handle = DRV_HANDLE_INVALID;
-			ptr->fifo_index -= 1;
 			ptr->state = I2C_DRV_IDLE;
 			break;
 
@@ -143,5 +193,19 @@ void I2C_Tasks (I2C_DATA* ptr, uint32_t* milliseconds)
 		case I2C_DRV_ERROR:
 			break;
 	}
+	return &client;
+}
+
+void I2C_Initialize (I2C_DRIVER* ptr, uint8_t index)
+{
+	int i; 
+	for (i=0; i<MAX_I2C_CLIENTS; i++)
+	{
+		ptr->data[i].state = I2C_CLIENT_NONE;
+	}
+	ptr->index = index;
+	ptr->state = I2C_DRV_IDLE;
+	ptr->widx = 0;
+	ptr->ridx = 0;
 }
 

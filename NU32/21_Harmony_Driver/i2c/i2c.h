@@ -9,7 +9,7 @@
  *
  */
 
-#define MAX_I2C_CLIENTS		5
+#define MAX_I2C_CLIENTS		32		// length of the buffer
 #define TIMEOUT_WRITE_MS	100
 #define TIMEOUT_READ_MS		100
 
@@ -47,24 +47,21 @@ typedef struct
     buffer_t			write, read;
     uint8_t				wlen, rlen;
     I2C_CLIENT_STATE	state;
-
 } I2C_CLIENT;
 
 typedef struct
 {
-	uint8_t				driver_index;
-	uint8_t				fifo_index;
+	I2C_DRV_STATE		state;
+	uint8_t				index;
     uint32_t     		error_count;
-    I2C_DRV_STATE		state;
-    /* Clients per driver */
+    uint8_t				widx, ridx;
     I2C_CLIENT			data[MAX_I2C_CLIENTS];
-
-} I2C_DATA;
+} I2C_DRIVER;
 
 /* Application Initialization and State Machine Functions */
 
-void I2C_Initialize(I2C_DATA*, uint8_t);
-void I2C_Tasks(I2C_DATA*, uint32_t*);
-void I2C_AddToQueue (I2C_DATA*, I2C_CLIENT);
+void		I2C_Initialize (I2C_DRIVER*, uint8_t);
+bool		I2C_Add (I2C_CLIENT, I2C_DRIVER*);
+I2C_CLIENT* I2C_Tasks (I2C_CLIENT*, I2C_DRIVER*, uint32_t*);
 
 #endif
