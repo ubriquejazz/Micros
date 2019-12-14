@@ -1,7 +1,6 @@
 /*!\name      i2c.c
  *
- * \brief     I2C Master, using driver functions
- *			  and ring buffer
+ * \brief     I2C library, using driver functions and ring buffer
  *
  * \author    Juan Gago
  *
@@ -9,21 +8,18 @@
  
 #include "i2c.h"
 
-int buffer_empty(I2C_DRIVER* ptr)
-{    
+int buffer_empty(I2C_DRIVER* ptr) {    
   	// return true if the buffer is empty (read = write)
   	return ptr->widx == ptr->ridx; 
 }
 
-int buffer_full(I2C_DRIVER* ptr)
-{     
+int buffer_full(I2C_DRIVER* ptr) {     
 	// return true if the buffer is full.  
   	return (ptr->widx + 1) % MAX_I2C_CLIENTS == ptr->ridx; 
 }
 
 // reads from current buffer location; assumes buffer not empty
-I2C_CLIENT buffer_read(I2C_DRIVER* ptr)
-{     
+I2C_CLIENT buffer_read(I2C_DRIVER* ptr) {     
 	I2C_CLIENT val = ptr->data[ptr->ridx];
 	++ptr->ridx; // increments read index and wrap around
 	if(ptr->ridx >= MAX_I2C_CLIENTS) {  
@@ -32,9 +28,8 @@ I2C_CLIENT buffer_read(I2C_DRIVER* ptr)
 	return val;
 }
 
-// add an element to the buffer; assumes buffer not full 
-void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr)
-{
+void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr) {
+	// add an element to the buffer; assumes buffer not full 
 	ptr->data[ptr->widx] = client;
 	++ptr->widx; // increment the write index and wrap around if necessary
 	if(ptr->widx >= MAX_I2C_CLIENTS) {  
@@ -42,13 +37,11 @@ void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr)
 	}
 }
 
-bool I2C_Add (I2C_CLIENT client, I2C_DRIVER* ptr)
-{
+bool I2C_Add (I2C_CLIENT client, I2C_DRIVER* ptr) {
 	// if the buffer is full the data is lost
-	if(buffer_full(ptr)) 
-	{        
+	if(buffer_full(ptr))        
 		return false;
-	}
+	
 	buffer_write(client, ptr);
 	return true;
 }
@@ -63,32 +56,6 @@ int8_t I2C_GetStatus (DRV_HANDLE handle, DRV_I2C_BUFFER_HANDLE buffer_handle)
 		return 1;
 	return 0;
 }
-
-/*
-
-    I2C_CLIENT sensor = {
-    	.write = NULL, 	.wlen = 1,
-    	.read  = NULL,	.rlen = 2,
-    	.address = 0x30,
-    };
-	I2C_Add(sensor, &i2cBB);
-
-	volatile int temperature;
-	I2C_CLIENT* ptr = I2C_Tasks(&i2cBB, &tout);
-	if (ptr->state == I2C_CLIENT_DONE)
-	{
-		switch (ptr->address)
-		{
-			case 0x30:
-				uint8_t low = ptr->read[0];
-				uint8_t high = ptr->read[1];
-				temperature = MCP9808_Read(low, high);
-				break;
-		}
-	}
-
-
-*/
 
 I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds)
 {
