@@ -3,7 +3,7 @@
 
 /*!\name      clients.c
  *
- * \brief     I2C Clients, MCP9808_{},  RFE1600_{}
+ * \brief     Local clients: MCP9808_{},  RFE1600_{}, etc.
  *
  * \author    Juan Gago
  *
@@ -21,17 +21,17 @@ typedef enum {
 typedef enum {
 } RFE1600_ADDR;
 
-/* Sensor */
-int8_t MCP9808_Degrees (uint8_t upper, uint8_t lower);
-bool MCP9808_Write (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG, uint16_t);
-bool MCP9808_Read  (I2C_CLIENT*, MCP9808_ADDR);
+/* Conversion */
+int8_t MCP9808_Temp  (uint16_t y); // uint8_t upper, uint8_t lower
+float  RFE1600_Vout  (uint16_t y);
+float  RFE1600_Iout  (uint16_t y);
+float  RFE1600_Temp  (uint16_t y);
 
-/* PSU - Write */
-bool  RFE1600_Write (I2C_CLIENT*, RFE1600_REG, uint16_t);
-bool  RFE1600_Read  (I2C_CLIENT*, RFE1600_REG, uint8_t);
-float RFE1600_Vout  (uint16_t y);
-float RFE1600_Iout  (uint16_t y);
-float RFE1600_Temp  (uint16_t y);
-bool  RFE1600_Command_Vout (I2C_CLIENT* ptr, float x);
+/* I2C Transaction */
+bool MCP9808_Wr_Word (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG, uint16_t);
+bool MCP9808_Rd_Word (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG, const uint8_t*);
+bool RFE1600_Rd_Word (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG, const uint8_t*);
+
+bool RFE1600_Command_Vout (I2C_CLIENT*, float x); // Write Vout
 
 #endif
