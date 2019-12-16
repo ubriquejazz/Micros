@@ -23,8 +23,9 @@ bool I2CLIENT_Write_Read (I2C_CLIENT* ptr, uint8_t addr, const uint8_t* to_write
 bool I2CLIENT_Prom_Setup (I2C_CLIENT* ptr, uint8_t addr, uint16_t page)
 {
 	// prepare the write buffer but the operation is on hold
-	ptr->wlen = 2;
-	ptr->rlen = 0;
+	if (ptr->write == NULL)
+		return false;
+
 	ptr->write[0] = f(page);
 	ptr->write[1] = f(page);
 	ptr->read = NULL;
@@ -36,6 +37,7 @@ bool I2CLIENT_Prom_Setup (I2C_CLIENT* ptr, uint8_t addr, uint16_t page)
 bool I2CLIENT_Prom_Read (I2C_CLIENT* ptr, const uint8_t* to_read, uint8_t rlen)
 {
 	// page address already setup
+	ptr->wlen = 2;
 	ptr->rlen = rlen;
 	ptr->read = to_read;
 	ptr->state = I2C_CLIENT_REQ;
@@ -61,25 +63,22 @@ bool I2CLIENT_Wr_Byte(I2C_CLIENT* ptr, uint8_t addr, uint8_t command) {
 	return I2CLIENT_Write_Read (ptr, addr, &command, 1, NULL, 0);
 }
 
-bool I2CLIENT_Rd_Byte(I2C_CLIENT* ptr, uint8_t addr, uint8_t command, const uint8_t* to_read)
-{
+bool I2CLIENT_Rd_Byte(I2C_CLIENT* ptr, uint8_t addr, uint8_t command, const uint8_t* to_read) {
 	// write a byte and read a byte
 	return I2CLIENT_Write_Read (ptr, addr, &command, 1, to_read, 1);
 }
 
-bool I2CLIENT_Rd_Word(I2C_CLIENT* ptr, uint8_t addr, uint8_t command, const uint8_t* to_read)
-{
+bool I2CLIENT_Rd_Word(I2C_CLIENT* ptr, uint8_t addr, uint8_t command, const uint8_t* to_read) {
 	// write a byte and read a byte
 	return I2CLIENT_Write_Read (ptr, addr, &command, 1, to_read, 2);
 }
 
 bool I2CLIENT_Wr_Block(I2C_CLIENT* ptr, uint8_t addr, const uint8_t* to_write, uint8_t wlen) {
-	// write a buffer to the slave
+	// write a buffer to the slave - used on operation on-off (tdk_config.h)
 	return I2CLIENT_Write_Read (ptr, addr, to_write, wlen, NULL, 0);
 }
 
 bool I2CLIENT_Rd_Block(I2C_CLIENT* ptr, uint8_t addr, uint8_t command, const uint8_t* to_read, uint8_t rlen) {
-{
 	// write a byte and read a buffer
 	return I2CLIENT_Write_Read (ptr, addr, &command, 1, to_read, rlen);
 }
