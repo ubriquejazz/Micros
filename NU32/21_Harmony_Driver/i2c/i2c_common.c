@@ -57,10 +57,11 @@ int8_t I2C_GetStatus (DRV_HANDLE handle, DRV_I2C_BUFFER_HANDLE buffer_handle)
 	return 0;
 }
 
-I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds)
+const I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds, uint8_t* result)
 {
     static DRV_HANDLE handle;
     static DRV_I2C_BUFFER_HANDLE buffer_handle;
+    
     static I2C_CLIENT client = {
     	.write = NULL, 	.wlen = 0,
     	.read  = NULL,	.rlen = 0,
@@ -141,6 +142,7 @@ I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds)
 			{
 				client.state = I2C_CLIENT_DONE;
 				ptr->state = I2C_DRV_CLOSE;
+				memcpy(result, client.read, client.rlen);
 			}
 			else if (!error_code && (milliseconds > TIMEOUT_READ_MS))
 			{

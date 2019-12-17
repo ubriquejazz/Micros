@@ -28,10 +28,10 @@ float  RFE1600_Iout  (uint16_t y);
 float  RFE1600_Temp  (uint16_t y);
 
 /* I2C Transaction */
-bool MCP9808_Wr_Word (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG, uint16_t);
-bool MCP9808_Rd_Word (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG, const uint8_t*);
-bool RFE1600_Rd_Word (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG, const uint8_t*);
+bool MCP9808_Rd_Word  (I2C_CLIENT*, MCP9808_ADDR, MCP9808_REG);
 
-bool RFE1600_Command_Vout (I2C_CLIENT*, float x); // Write Vout
+bool RFE1600_Rd_Byte  (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG);
+bool RFE1600_Rd_Word  (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG);
+bool RFE1600_Wr_Block (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG, const uint8_t*, uint8_t);
 
 #endif

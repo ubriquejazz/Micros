@@ -59,6 +59,7 @@ typedef struct {
 
 void		I2C_Initialize 	(I2C_DRIVER*, uint8_t);
 bool		I2C_Add 		(I2C_CLIENT,  I2C_DRIVER*);
-I2C_CLIENT* I2C_Tasks 		(I2C_CLIENT*, I2C_DRIVER*, uint32_t*);
+
+const I2C_CLIENT* I2C_Tasks (I2C_DRIVER*, uint32_t*, uint8_t*);
 
 #endif
