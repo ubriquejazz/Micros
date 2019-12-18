@@ -8,8 +8,8 @@
 
 #include <stdio.h>
 #include "clients.h"
-#include "i2c_client.h"
 #include "smm_i2c.h"
+#include "i2client_common.h"
 
 I2C_DRIVER DriverA, DriverB;
 uint8_t LastMessageA[8];
@@ -50,9 +50,9 @@ void SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
 
 	I2C_CLIENT* ptra = I2C_Tasks(&DriverA, &tout_a, LastMessageA);
 	I2C_CLIENT* ptrb = I2C_Tasks(&DriverB, &tout_b, LastMessageB);
+	// reentrance issue: ptra and ptrb reference to the same client?
 
 	if (ptra->state == I2C_CLIENT_DONE) {
-		// this check avoid problem of reentrance
 		if (ptra->address == 0x30) {
 			temperature = MCP9808_Temp (LastMessageA[1], LastMessageA[0]);
 		}
@@ -64,7 +64,6 @@ void SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
 	}
 
 	if (ptrb->state == I2C_CLIENT_DONE) {
-		// this check avoid problem of reentrance
 		if (ptrb->address == 0x2F) {
 			temperature = RFE1600_Temp (LastMessageB[1], LastMessageB[0]);
 		}

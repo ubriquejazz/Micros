@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include "clients.h"
-#include "i2c_client.h"
+#include "i2client_common.h"
 
 uint8_t sensor_rxBuff[3];
 uint8_t sensor_txBuff[3];
