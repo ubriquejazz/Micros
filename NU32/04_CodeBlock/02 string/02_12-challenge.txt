@@ -1,0 +1,28 @@
+Challenge 2
+-----------
+
+It's a single program with three parts: 1. fetch string input from the user. 
+2. process that input, mixing it with a string literal to generate a phrase 
+3. output the phrase. 
+
+In the first part, you're writing your own text input function:
+- Prompt the user to type their name. 
+- Write a loop that processes those characters, storing them in a buffer called 'name'
+- The buffer should hold 32 characters
+
+For part two, you copy the 'name' array into a second character buffer called 'buffer'. 
+Then you take the text from the 'last' array and append it to text stored in the buffer. 
+Now the 'last' array is a string literal and it contains the text "passed the challenge". 
+
+For the final part you output the contents of the character array buffer. 
+- don't use the puts or printf function to output the text. 
+- write a loop that uses the putchar function to output the contents of the buffer. 
+
+Now here's an example of how the code would run. 
+
+	What is your name? Juan
+	Juan Gago passed the challenge!
+
+	So the results should look something like this with whatever you typed as the name appearing first.
+
+This challenge should take you at least 20 minutes to complete.
