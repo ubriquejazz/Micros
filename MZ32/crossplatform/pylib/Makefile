@@ -1,27 +1,14 @@
-# We try to detect the OS we are running on, and adjust commands as needed
-ifeq ($(OS),Windows_NT)
-  ifeq ($(shell uname -s),) # not in a bash-like shell
-	CLEANUP = del /F /Q
-	MKDIR = mkdir
-  else # in a bash-like shell, like msys
-	CLEANUP = rm -f
-	MKDIR = mkdir -p
-  endif
-	TARGET_EXTENSION=.exe
-else
-	CLEANUP = rm -f
-	MKDIR = mkdir -p
-	TARGET_EXTENSION=.so
-endif
+# We try to detect the OS
+CLEANUP = rm -f
+MKDIR = mkdir -p
 
-C_COMPILER=gcc
-ifeq ($(shell uname -s), Darwin)
-C_COMPILER=clang
-endif
-
+SRC_DIR=./src
+OBJ_DIR=./obj
 PROJECT_ROOT=../..
+
+TARGETLIB = libdevicewrapper.a
 UNITY_ROOT=$(PROJECT_ROOT)/external/libs/Unity-master
-CROSS_DIR=..
+INC_DIRS=-Iinc -I$(UNITY_ROOT)/src -I/usr/include/python3.5
 
 CFLAGS=-std=c99
 CFLAGS += -Wall
@@ -49,36 +36,39 @@ ifdef DEBUG_PRINT
 endif
 CFLAGS += -fPIC
 
-SRC_DIR=./src
-OBJ_DIR=./obj
-TARGETLIB = libdevicewrapper.a
-TARGET_BASE1=DeviceWrapper
+TESTS = DeviceWrapper
+TARGET1 = $(OBJ_DIR)/DeviceWrapper.so
+TARGET2 =
+TARGETS = $(TARGET1) $(TARGET2) 
+
+all: clean  $(TARGETLIB) $(TARGETS) unit_tests
+
+# components
 
 COMPONENTS=DeviceWrapper.c
 COMPONENT_SRCS=$(addprefix $(SRC_DIR)/,$(COMPONENTS))
 COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
 
-TARGET1=$(OBJ_DIR)/$(TARGET_BASE1)$(TARGET_EXTENSION)
-TARGETS = $(TARGET1) $(TARGET2) 
-
-INC_DIRS=-Iinc -I$(UNITY_ROOT)/src -I/usr/include/python3.5
 SYMBOLS=
-
-
-all: clean  $(TARGETLIB) $(TARGETS) unit_tests
+INC_FILES=
+COMP_OPTS=$(CFLAGS) $(INC_DIRS) $(SYMBOLS) $(INC_FILES)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(MKDIR) ./obj
-	$(C_COMPILER) -c  -o $@ $< $(CFLAGS) $(INC_DIRS) $(SYMBOLS)
- 
+	gcc -c  -o $@ $< $(COMP_OPTS)
+
 $(OBJ_DIR)/unity.o: $(UNITY_ROOT)/src/unity.c
-	$(C_COMPILER) -c $(CFLAGS) $(INC_DIRS) $(SYMBOLS)  $(UNITY_ROOT)/src/unity.c -o $(OBJ_DIR)/unity.o
+	gcc -c $(CFLAGS) $(UNITY_ROOT)/src/unity.c -o $(OBJ_DIR)/unity.o
+
+# lib.a and targets
+
+LINK_OPTS = $(CFLAGS) -pthread -shared
 
 $(TARGETLIB): $(COMPONENT_OBJS)
 	ar rcs $(TARGETLIB) $(COMPONENT_OBJS)
 
 $(TARGET1): $(TARGET_LIB) $(OBJ_DIR)/unity.o $(COMPONENT_OBJS)
-	$(C_COMPILER) $(CFLAGS) -pthread -shared -Wl,-soname=$(TARGET_BASE1) -o $(TARGET1) $(COMPONENT_OBJS) $(USER_OBJS) $(LIBS)
+	gcc $(LINK_OPTS) -Wl,-soname=DeviceWrapper -o $(TARGET1) $(COMPONENT_OBJS)
 	cp $(TARGET1) ./test
 
 .PHONY: clean
