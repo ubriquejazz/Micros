@@ -1,4 +1,4 @@
-/*!\name      blade.c
+/*!\name      Blade.c
  *
  * \brief     IrDA Pic - registers
  *
@@ -6,9 +6,7 @@
  */
 
 #include <stdio.h>
-#ifndef MOCK
-    #include "blade.h"
-#endif
+#include "Global.h"
 
 uint8_t  BladeCalibrated[] = {1, 0, 1, 0, 1};
 uint8_t  BladeID_Counter[] = {3, 0, 3, 0, 3};

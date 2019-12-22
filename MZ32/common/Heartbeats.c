@@ -1,15 +1,11 @@
-/*!\name      heartbeats.c
+/*!\name      Heartbeats.c
  *
- * \brief     Heartbeats  (depends on blade.h
+ * \brief     Heartbeats, depends on Blade.c
  *
  * \author    Juan Gago, 2019
  */
 
 #include <stdio.h>
-#ifndef MOCK
-    #include "heartbeats.h"
-    #include "blade.h"
-#endif
 
 uint8_t HB_Beacons[] = {0, 0, 0, 0, 0};    // issue in i = 2
 uint8_t HB_Counter[] = {0, 0, 0, 0, 0};

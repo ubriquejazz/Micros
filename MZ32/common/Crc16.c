@@ -1,3 +1,12 @@
+/*!\name      Crc16.c
+ *
+ * \brief     Calculates CRC for the given data and len
+ *
+ * \author    Juan Gago, 2019
+ */
+
+#include <stdio.h>
+
 /* Static table used for the table_driven implementation. */
 static const uint16_t crc_table[16] =
 {
