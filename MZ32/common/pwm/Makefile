@@ -4,10 +4,10 @@ MKDIR = mkdir -p
 
 SRC_DIR=./src
 OBJ_DIR=./obj
-PROJECT_ROOT=../..
+PROJECT_ROOT=../../../..
 
 TARGETLIB=$(OBJ_DIR)/libtesters.a
-UNITY_ROOT=$(PROJECT_ROOT)/external/libs/Unity
+UNITY_ROOT=$(PROJECT_ROOT)/Unity
 INC_DIRS =-I$(UNITY_ROOT)/src
 
 CFLAGS=-std=c99
@@ -29,7 +29,7 @@ all: clean $(TARGETLIB) unit_tests
 
 # components
 
-COMPONENTS=blade.c heartbeats.c irda_pic.c irda_ack.c irda_dummy.c pwm_functions.c
+COMPONENTS=Crc16.c Blade.c Heartbeats.c irda_pic.c irda_ack.c irda_dummy.c pwm_functions.c
 COMPONENT_SRCS=$(addprefix $(SRC_DIR)/,$(COMPONENTS))
 COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
 
