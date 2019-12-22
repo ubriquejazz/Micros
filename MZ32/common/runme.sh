@@ -1,7 +1,7 @@
 #!/bin/bash
 
 case "$1" in
-        test)
+        base)
 			./obj/test_A.out
 			./obj/test_B.out
             ;;
@@ -16,11 +16,11 @@ case "$1" in
             ;;
          
          clean)
-			rm -rf ./test/obj
+			rm -rf ./base/obj
 			rm -rf ./pwm/obj
 			;;
         *)
-            echo $"Usage: $0 {test|pwm|clean}"
+            echo $"Usage: $0 {base|pwm|clean}"
             exit 1
  
 esac
