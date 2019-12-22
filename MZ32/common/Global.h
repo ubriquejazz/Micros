@@ -56,19 +56,19 @@
 #define us_SCALE                (GetSystemClock()/2000000)
 #define ms_SCALE                (GetSystemClock()/2000)
 
-/*!\brief     IO Check Constants. */
+/*!\brief     Command */
 
-#define MAX_CNT_ERRORS          128
-#define MAX_CNT_PIC_MST_2V5     28  //  8 + 20
-#define MAX_CNT_MICTOR          50  // 16 + 34
+typedef struct {  
 
-/*!\brief     IRDA Constants. */
+    char*       seq_no;             // unique id string
+    char*       src_addr;           // Source of message. Used to route reply back
+    char*       dst_addr;           // Destination of message: the PSU, IrDA, FAN            
+    uint8_t     argc;               // 
+    char*       argv[MAX_NUM_ARG];  // argc = 12 
+    uint16_t    checksum;           // 
+    bool        ready;              //      
 
-#define IRDA_ADDR_1             0xBF822000
-#define IRDA_ADDR_2             0xBF822200
-#define IRDA_ADDR_3             0xBF822400
-#define IRDA_ADDR_4             0xBF822600
-#define IRDA_ADDR_5             0xBF822800
+} COMMAND_DATA;
 
 /*!\brief     Port Definition */
 
@@ -78,6 +78,7 @@ typedef struct
     PORTS_CHANNEL   channel;                // PIC bank name
     PORTS_BIT_POS   bitPos;                 // Pin position
     uint8_t description[MAX_NUM_OF_BYTES];  // Net name
+
 } PORT_DEF; 
 
 /*!\brief     Status register */
@@ -101,26 +102,6 @@ typedef union{
     } bits;
         
 } IRDA_STATUS_BYTE;
-
-typedef struct node {
-    int val;
-    struct node* next;
-
-} NODE_T;
-
-/*!\brief     Command */
-
-typedef struct {  
-
-    char*       seq_no;             // unique id string
-    char*       src_addr;           // Source of message. Used to route reply back
-    char*       dst_addr;           // Destination of message: the PSU, IrDA, FAN            
-    uint8_t     argc;               // 
-    char*       argv[MAX_NUM_ARG];  // argc = 12 
-    uint16_t    checksum;           // 
-    bool        ready;              //      
-
-} COMMAND_DATA;
 
 #endif // _ENUM_H 
  

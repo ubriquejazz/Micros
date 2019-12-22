@@ -2,8 +2,6 @@
 #ifndef _CONSOLE_H    /* Guard against multiple inclusion */
 #define _CONSOLE_H
 
-#include <stdint.h>
-
 /*!\brief     InfraRed Messages */
 
 #define CONSOLE_IR_BEACON_ACK   'A'

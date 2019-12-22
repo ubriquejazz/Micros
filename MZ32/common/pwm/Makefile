@@ -22,14 +22,14 @@ CFLAGS += -Wno-implicit-function-declaration
 CFLAGS += -Wno-incompatible-pointer-types-discards-qualifiers
 
 SYMBOLS=-DMOCK -DVERBO -DPROD1
-INC_FILES=-include "../enum.h" -include "../console.h" 
+INC_FILES=-include "../Global.h" -include "../Console.h" 
 COMP_OPTS=$(CFLAGS) $(SYMBOLS) $(INC_FILES)
 
 all: clean $(TARGETLIB) unit_tests
 
 # components
 
-COMPONENTS=Crc16.c Blade.c Heartbeats.c irda_pic.c irda_ack.c irda_dummy.c pwm_functions.c
+COMPONENTS=irda_pic.c irda_ack.c irda_dummy.c pwm_functions.c 
 COMPONENT_SRCS=$(addprefix $(SRC_DIR)/,$(COMPONENTS))
 COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
 
@@ -40,20 +40,24 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 $(OBJ_DIR)/unity.o: $(UNITY_ROOT)/src/unity.c
 	gcc -c $(CFLAGS) $(UNITY_ROOT)/src/unity.c -o $(OBJ_DIR)/unity.o
 
-$(OBJ_DIR)/miscellaneous.o: ../miscellaneous.c
-	gcc -c $(COMP_OPTS) ../miscellaneous.c -o $(OBJ_DIR)/miscellaneous.o
+$(OBJ_DIR)/Misc.o: ../Misc.c
+	gcc -c $(COMP_OPTS) ../Misc.c -o $(OBJ_DIR)/Misc.o
+
+$(OBJ_DIR)/Crc16.o: ../Crc16.c
+	gcc -c $(COMP_OPTS) ../Crc16.c -o $(OBJ_DIR)/Crc16.o
+
+$(OBJ_DIR)/Blade.o: ../Blade.c
+	gcc -c $(COMP_OPTS) ../Blade.c -o $(OBJ_DIR)/Blade.o
 
 # lib.a and targets
 
 TARGET1=$(OBJ_DIR)/test_irda_pic.out
 TARGET2=$(OBJ_DIR)/test_irda_ack.out
 TARGET3=$(OBJ_DIR)/test_irda_dummy.out
-TARGET4=$(OBJ_DIR)/test_blade.out
-TARGET5=$(OBJ_DIR)/test_heartbeats.out
-TARGET6=$(OBJ_DIR)/test_pwm_functions.out
-TARGETS=$(TARGET1) $(TARGET2) $(TARGET3) $(TARGET4) $(TARGET5) $(TARGET6) 
+TARGET4=$(OBJ_DIR)/test_pwm_functions.out
+TARGETS=$(TARGET1) $(TARGET2) $(TARGET3) $(TARGET4)
 LINK_OPTS=$(CFLAGS) $(INC_DIRS) $(SYMBOLS) $(INC_FILES) 
-EXTRA=$(OBJ_DIR)/unity.o $(OBJ_DIR)/miscellaneous.o
+EXTRA=$(OBJ_DIR)/unity.o $(OBJ_DIR)/Misc.o $(OBJ_DIR)/Crc16.o $(OBJ_DIR)/Blade.o
 
 $(TARGETLIB): $(COMPONENT_OBJS)
 	ar rcs $(TARGETLIB) $(COMPONENT_OBJS)
@@ -68,13 +72,7 @@ $(TARGET3): $(TARGET_LIB) $(EXTRA) $($COMPONENT_OBJS)
 	gcc $(LINK_OPTS) test_irda_dummy.c $(EXTRA) $(TARGETLIB) -o $(TARGET3)
 
 $(TARGET4): $(TARGET_LIB) $(EXTRA) $($COMPONENT_OBJS)
-	gcc $(LINK_OPTS) test_blade.c $(EXTRA) $(TARGETLIB) -o $(TARGET4)
-
-$(TARGET5): $(TARGET_LIB) $(EXTRA) $($COMPONENT_OBJS)
-	gcc $(LINK_OPTS) test_heartbeats.c $(EXTRA) $(TARGETLIB) -o $(TARGET5)
-
-$(TARGET6): $(TARGET_LIB) $(EXTRA) $($COMPONENT_OBJS)
-	gcc $(LINK_OPTS) test_pwm_functions.c $(EXTRA) $(TARGETLIB) -o $(TARGET6)
+	gcc $(LINK_OPTS) test_pwm_functions.c $(EXTRA) $(TARGETLIB) -o $(TARGET4)
 
 
 .PHONY: clean
@@ -90,5 +88,4 @@ unit_tests: $(TARGETS)
 	$(TARGET2)
 	$(TARGET3)
 	$(TARGET4)
-	$(TARGET5)
-	$(TARGET6)
+	

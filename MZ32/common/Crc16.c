@@ -61,23 +61,6 @@ uint16_t AppendCrc(uint8_t* buffer)
     return crc;
 }
 
-bool crc_update (COMMAND_DATA* commandData)
-{
-    int argc = commandData->argc;
-    uint8_t crc_inv[5];    
-    if (strlen(commandData->argv[argc-1]) == 4)
-    {
-        crc_inv[3] = commandData->argv[argc-1][0];
-        crc_inv[2] = commandData->argv[argc-1][1];
-        crc_inv[1] = commandData->argv[argc-1][2];
-        crc_inv[0] = commandData->argv[argc-1][3];
-        crc_inv[4] = 0; // Decode CRC (****) into a decimal
-        commandData->checksum = hexa2decimal(crc_inv);
-        return true;
-    }
-    else
-    {
-        commandData->checksum = -1;
-        return false;
-    }
-}
+/* *****************************************************************************
+ * End of File
+ */
