@@ -1,5 +1,5 @@
 # We try to detect the OS
-CLEANUP = rm -f
+RM = rm -f
 MKDIR = mkdir -p
 
 SRC_DIR=./src
@@ -22,8 +22,8 @@ CFLAGS += -Wno-pointer-sign
 CFLAGS += -Wno-implicit-function-declaration
 CFLAGS += -Wno-incompatible-pointer-types-discards-qualifiers
 
-COMP_OPTS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES)
-LINK_OPTS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES) $(INC_DIRS) 
+COMP_FLAGS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES)
+LINK_FLAGS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES) $(INC_DIRS) 
 EXTRA_OBJS = $(OBJ_DIR)/unity.o
 
 all: clean $(TARGETLIB) tests
@@ -36,7 +36,7 @@ COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(MKDIR) ./obj
-	gcc -c  -o $@ $< $(COMP_OPTS)
+	gcc -c  -o $@ $< $(COMP_FLAGS)
 
 # extra objects 
 
@@ -52,16 +52,16 @@ $(TARGETLIB): $(COMPONENT_OBJS)
 	ar rcs $(TARGETLIB) $(COMPONENT_OBJS)
 
 $(TARGET1): $(TARGET_LIB) $(EXTRA_OBJS) $($COMPONENT_OBJS)
-	gcc $(LINK_OPTS) test_A.c $(EXTRA_OBJS) $(TARGETLIB) -o $(TARGET1)
+	gcc $(LINK_FLAGS) test_A.c $(EXTRA_OBJS) $(TARGETLIB) -o $(TARGET1)
 
 $(TARGET2): $(TARGET_LIB) $(EXTRA_OBJS) $($COMPONENT_OBJS)
-	gcc $(LINK_OPTS) test_B.c $(EXTRA_OBJS) $(TARGETLIB) -o $(TARGET2)
+	gcc $(LINK_FLAGS) test_B.c $(EXTRA_OBJS) $(TARGETLIB) -o $(TARGET2)
 
 
 .PHONY: clean
 clean:
 	@echo "Clean up"
-	$(CLEANUP) $(OBJ_DIR)/*
+	$(RM) $(OBJ_DIR)/*
 
 .PHONY: tests
 tests: $(TARGET1) $(TARGET2)

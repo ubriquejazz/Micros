@@ -113,12 +113,12 @@ int main(int argc, char** argv)
 
     UNITY_BEGIN();
 
-    printf("\n\r");
+    printf("Blade ID\n\r");
     RUN_TEST(test_BLADE_WriteID_OneIteration);
     RUN_TEST(test_BLADE_WriteID_TwoIteration);
     RUN_TEST(test_BLADE_WriteReadState);
 
-    printf("\n\r");    
+    printf("Blade detection\n\r");    
     RUN_TEST(test_HB_BeaconsAndCallbacks_ResultOk);
     RUN_TEST(test_HB_ConsecutiveBeacons_Calibrated);
     RUN_TEST(test_HB_ConsecutiveBeacons_Uncalibrated);
