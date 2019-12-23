@@ -4,13 +4,13 @@ MKDIR = mkdir -p
 
 SRC_DIR=./src
 OBJ_DIR=./obj
-PROJECT_ROOT=../../../..
+PROJECT_ROOT=../../..
 
 TARGETLIB = $(OBJ_DIR)/libtesters.a
 UNITY_ROOT= $(PROJECT_ROOT)/Unity
 INC_DIRS  = -I$(UNITY_ROOT)/src
-SYMBOLS   = -DMOCK -DVERBO -DPROD1
-INC_FILES = -include "../Global.h" -include "../Console.h" 
+SYMBOLS   = 
+INC_FILES = 
 
 CFLAGS=-std=c99
 CFLAGS += -Wall
@@ -24,29 +24,21 @@ CFLAGS += -Wno-incompatible-pointer-types-discards-qualifiers
 
 COMP_OPTS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES)
 LINK_OPTS  = $(CFLAGS) $(SYMBOLS) $(INC_FILES) $(INC_DIRS) 
-EXTRA_OBJS = $(OBJ_DIR)/Misc.o $(OBJ_DIR)/Crc16.o $(OBJ_DIR)/unity.o
+EXTRA_OBJS = $(OBJ_DIR)/unity.o
 
-all: clean $(TARGETLIB) unit_tests
+all: clean $(TARGETLIB) tests
 
 # components
 
-# COMPONENTS=comp_A.c comp_B.c
-# COMPONENT_SRCS=$(addprefix $(SRC_DIR)/,$(COMPONENTS))
-# COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
-COMPONENT_OBJS=$(EXTRA_OBJS)
+COMPONENTS=comp_A.c comp_B.c
+COMPONENT_SRCS=$(addprefix $(SRC_DIR)/,$(COMPONENTS))
+COMPONENT_OBJS=$(addprefix $(OBJ_DIR)/,$(COMPONENTS:.c=.o))
 
-# $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-# 	$(MKDIR) ./obj
-# 	gcc -c  -o $@ $< $(COMP_OPTS)
-
-# extra objects
-
-$(OBJ_DIR)/Misc.o: ../Misc.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(MKDIR) ./obj
-	gcc -c $(COMP_OPTS) ../Misc.c -o $(OBJ_DIR)/Misc.o
+	gcc -c  -o $@ $< $(COMP_OPTS)
 
-$(OBJ_DIR)/Crc16.o: ../Crc16.c
-	gcc -c $(COMP_OPTS) ../Crc16.c -o $(OBJ_DIR)/Crc16.o
+# extra objects 
 
 $(OBJ_DIR)/unity.o: $(UNITY_ROOT)/src/unity.c
 	gcc -c $(CFLAGS) $(UNITY_ROOT)/src/unity.c -o $(OBJ_DIR)/unity.o
@@ -65,13 +57,14 @@ $(TARGET1): $(TARGET_LIB) $(EXTRA_OBJS) $($COMPONENT_OBJS)
 $(TARGET2): $(TARGET_LIB) $(EXTRA_OBJS) $($COMPONENT_OBJS)
 	gcc $(LINK_OPTS) test_B.c $(EXTRA_OBJS) $(TARGETLIB) -o $(TARGET2)
 
+
 .PHONY: clean
 clean:
 	@echo "Clean up"
 	$(CLEANUP) $(OBJ_DIR)/*
-	
-.PHONY: unit_tests
-unit_tests: $(TARGET1) $(TARGET2)
+
+.PHONY: tests
+tests: $(TARGET1) $(TARGET2)
 	@echo "Unit-tests (A, B, C, D)"
 	@echo "-----------------------"
 	$(TARGET1)
