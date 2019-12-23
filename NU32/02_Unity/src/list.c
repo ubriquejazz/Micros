@@ -1,10 +1,12 @@
-#include <stdio.h>
+/*!\name      LIST.h
+ *
+ * \brief     Blah, blah
+ *
+ * \author    Juan Gago
+ *
+ */
 
-typedef struct node {
-    int val;
-    struct node* next;
-
-} NODE_T;
+ #include "list.h"
 
 void insert_by_index(NODE_T ** head, int n) 
 {
