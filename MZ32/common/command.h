@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include "system_config.h"
 #include "system_definitions.h"
-#include "enum.h"
+#include "Global.h"
 
 typedef struct {
     char    cmd[LENGTH_CMD];

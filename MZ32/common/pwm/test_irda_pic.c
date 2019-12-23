@@ -14,9 +14,9 @@ extern uint8_t Scheduled_Message[5][MAX_NUM_OF_BYTES];
 extern uint8_t Scheduled_Channel[];
 extern uint8_t infrared_silence[];
 
-/* IRDA_QueueToSend_Beacon - INTEGRATION TEST! */
+/* IRDA_Add_Beacon - INTEGRATION TEST! */
 
-void test_IRDA_QueueToSend_Beacon_BT(void)
+void test_IRDA_Add_Beacon_BT(void)
 {
    uint8_t actual[MAX_NUM_OF_BYTES];
    uint8_t expected[MAX_NUM_OF_BYTES];
@@ -33,12 +33,12 @@ void test_IRDA_QueueToSend_Beacon_BT(void)
       sprintf(expected, CONSOLE_IR_REQ_BT, addr);
       AppendCrc(expected);
 
-      IRDA_QueueToSend_Beacon(i, 0, 'A', actual);
+      IRDA_Add_Beacon(i, 0, 'A', actual);
       TEST_ASSERT_EQUAL_STRING(expected, actual);
    }
 }
 
-void test_IRDA_QueueToSend_Beacon_BC(void)
+void test_IRDA_Add_Beacon_BC(void)
 {
    uint8_t actual[MAX_NUM_OF_BYTES];
    uint8_t expected[MAX_NUM_OF_BYTES];
@@ -55,12 +55,12 @@ void test_IRDA_QueueToSend_Beacon_BC(void)
       sprintf(expected, CONSOLE_IR_REQ_BC, addr, id);
       AppendCrc(expected);
 
-      IRDA_QueueToSend_Beacon(i, 0, 'A', actual);
+      IRDA_Add_Beacon(i, 0, 'A', actual);
       TEST_ASSERT_EQUAL_STRING(expected, actual);
     }
 }
 
-void test_IRDA_QueueToSend_BeaconAndMessage_MS(void)
+void test_IRDA_Add_BeaconAndMessage_MS(void)
 {
    uint8_t actual[MAX_NUM_OF_BYTES];
    uint8_t expected[MAX_NUM_OF_BYTES];
@@ -80,7 +80,7 @@ void test_IRDA_QueueToSend_BeaconAndMessage_MS(void)
       AppendCrc(beacon);
       sprintf(expected, "%s\r%s", beacon, infrared_silence);  
       
-      IRDA_QueueToSend_BeaconAndMessage('S', i, actual);
+      IRDA_Add_BeaconAndMessage('S', i, actual);
       TEST_ASSERT_EQUAL_STRING(expected, actual);
       
       sprintf(message, CONSOLE_IR_REQ_MS, addr, BLADE_ReadID(i), CONSOLE_EXAMPLE_COMMAND);
@@ -89,7 +89,7 @@ void test_IRDA_QueueToSend_BeaconAndMessage_MS(void)
    }
 }
 
-void test_IRDA_QueueToSend_BeaconAndMessage_MR(void)
+void test_IRDA_Add_BeaconAndMessage_MR(void)
 {
    uint8_t actual[MAX_NUM_OF_BYTES];
    uint8_t expected[MAX_NUM_OF_BYTES];
@@ -109,7 +109,7 @@ void test_IRDA_QueueToSend_BeaconAndMessage_MR(void)
       AppendCrc(beacon);
       sprintf(expected, "%s\r%s", beacon, infrared_silence);  
 
-      IRDA_QueueToSend_BeaconAndMessage('R', i, actual);
+      IRDA_Add_BeaconAndMessage('R', i, actual);
       TEST_ASSERT_EQUAL_STRING(expected, actual);
 
       sprintf(message, CONSOLE_IR_REQ_MR, addr, BLADE_ReadID(i)); 
@@ -126,11 +126,11 @@ int main(int argc, char** argv)
     UNITY_BEGIN();
 
     printf("\n\r");
-    printf("IRDA_QueueToSend_Beacon (INTEGRATION TEST!)\r\n");
-    RUN_TEST(test_IRDA_QueueToSend_Beacon_BT);
-    RUN_TEST(test_IRDA_QueueToSend_Beacon_BC);
-    RUN_TEST(test_IRDA_QueueToSend_BeaconAndMessage_MS);
-    RUN_TEST(test_IRDA_QueueToSend_BeaconAndMessage_MR);
+    printf("IRDA_Add_Beacon (INTEGRATION TEST!)\r\n");
+    RUN_TEST(test_IRDA_Add_Beacon_BT);
+    RUN_TEST(test_IRDA_Add_Beacon_BC);
+    RUN_TEST(test_IRDA_Add_BeaconAndMessage_MS);
+    RUN_TEST(test_IRDA_Add_BeaconAndMessage_MR);
     
     return UNITY_END();
 }

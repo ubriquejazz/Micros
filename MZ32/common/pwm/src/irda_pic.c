@@ -10,7 +10,10 @@
     #include "irda_pic.h"
     #include "blade.h"
     #include "pwm.h"
-    #include "miscellaneous.h"
+    #include "Blade.h"
+    #include "Crc16.h"
+    #include "Misc.h"
+
     #include "irda_2channel.h"
     #include "irda_3channel.h"
 
@@ -42,10 +45,8 @@
                 Nop();
                 break;
         }        
-        if (retVal  || (time > timeout))
-        {
-            if (time == 1 + timeout)
-            {
+        if (retVal  || (time > timeout)) {
+            if (time == 1 + timeout) {
                 appData.error_count++;
             }
             retVal = true;        
@@ -53,7 +54,7 @@
         return retVal;
     }
 
-    bool IRDA_QueueToSend(uint8_t device, char* message)
+    bool IRDA_Add_Message (uint8_t device, char* message)
     {
         bool retVal = true;            
         switch(device)
@@ -114,33 +115,29 @@ void Create_Beacon(uint8_t device, uint8_t* beacon)
 void Create_Message(char key, uint8_t device, uint8_t* message)
 {
     uint8_t addr = channel2address(device);
-    if (key  == 'R') 
-    {        
+    if (key  == 'R')  {        
         sprintf(message, CONSOLE_IR_REQ_MR, addr, BLADE_ReadID(device)); 
     }
-    else if (key == 'S') 
-    {
+    else if (key == 'S') {
         sprintf(message, CONSOLE_IR_REQ_MS, addr, BLADE_ReadID(device), CONSOLE_EXAMPLE_COMMAND);
     }
     AppendCrc(message);    
 }
 
-bool IRDA_QueueToSend_BeaconAndMessage (char key, uint8_t i, uint8_t* result)
+bool IRDA_Add_BeaconAndMessage (char key, uint8_t i, uint8_t* result)
 {
     bool retVal = false;
     uint8_t result_int [MAX_NUM_OF_BYTES];  
     uint8_t beacon[MAX_NUM_OF_BYTES];
     uint8_t addr = channel2address(i);           // device == i
-    if (BLADE_ReadCalibrated(i))
-    {   
+    if (BLADE_ReadCalibrated(i)) {   
         Create_Beacon(i, beacon);
         Create_Message(key, i, Scheduled_Message[i-1]);
         Scheduled_Channel[i-1] = 1;
         sprintf(result_int, "%s\r%s", beacon, infrared_silence);
         retVal = true;
     }
-    else // BT
-    {
+    else { // BT
         sprintf(result_int, CONSOLE_IR_REQ_BT, addr); 
         AppendCrc(result_int); 
         retVal = true;
@@ -148,35 +145,31 @@ bool IRDA_QueueToSend_BeaconAndMessage (char key, uint8_t i, uint8_t* result)
 #ifdef MOCK
     sprintf(result, "%s", result_int);
 #else
-    IRDA_QueueToSend(i, result_int);    // Step 1: Beacon
+    IRDA_Add_Message(i, result_int);    // Step 1: Beacon
 #endif
-
     return retVal;
 }
 
-bool IRDA_QueueToSend_Beacon (uint8_t i, uint8_t j, char pic_address, uint8_t* result)
+bool IRDA_Add_Beacon (uint8_t i, uint8_t j, char pic_address, uint8_t* result)
 {
     bool retVal = false;
     uint8_t result_int[MAX_NUM_OF_BYTES];    
     uint8_t addr = channel2address(i);           // device == i
-    if (BLADE_ReadCalibrated(i))
-    {   
+    if (BLADE_ReadCalibrated(i)) {   
         sprintf(result_int, CONSOLE_IR_REQ_BC, addr, BLADE_ReadID(i)); // pic_address
         AppendCrc(result_int);
         retVal = true;
     }
-    else // BT
-    {
-        sprintf(result_int, CONSOLE_IR_REQ_BT, addr); // powers[j]
+    else { // BT
+        sprintf(result_int, CONSOLE_IR_REQ_BT, addr); 
         AppendCrc(result_int);
         retVal = true;
 #ifdef MOCK
     }
     sprintf(result, "%s", result_int);
 #else
-        // IRDA_SetTxLevel_Simple(i, powers[j]); 
     }
-    IRDA_QueueToSend(i, result_int);
+    IRDA_Add_Message (i, result_int);
 #endif
     return retVal;
 }

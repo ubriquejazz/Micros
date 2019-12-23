@@ -10,16 +10,11 @@
 #ifndef MOCK
     #include "pwm_functions.h"
     #include "pwm.h"
-    #include "ir_core.h"
+    #include "Blade.h"
+    #include "Crc16.h"
+    #include "Misc.h"
 
     extern APP_DATA appData;
-
-    #ifdef DEV
-        #include "uart.h"
-        #include "command.h"
-        extern UART_DATA    uart0Data;
-        extern COMMAND_DATA commandData;
-    #endif
 
     void PWM_OC_Start(void)
     {
@@ -113,37 +108,6 @@ bool IRDA_ReadAnalog()
     return false;
 #else
     bool success = false;
-
-    if(true == DRV_ADC_SamplesAvailable(40))
-    {
-        appData.adc_buffer[0] = DRV_ADC_SamplesRead(40);
-        success = true;
-    }
-    
-    if(true == DRV_ADC_SamplesAvailable(41))
-    {
-        appData.adc_buffer[1] = DRV_ADC_SamplesRead(41);
-        success = true;
-    }
-    
-    if(true == DRV_ADC_SamplesAvailable(42))
-    {
-        appData.adc_buffer[2] = DRV_ADC_SamplesRead(42);
-        success = true;
-    }
-    
-    if(true == DRV_ADC_SamplesAvailable(7))
-    {
-        appData.adc_buffer[3] = DRV_ADC_SamplesRead(7);
-        success = true;
-    }
-    
-    if(true == DRV_ADC_SamplesAvailable(8))
-    {
-        appData.adc_buffer[4] = DRV_ADC_SamplesRead(8);
-        success = true;
-    }
-
     return success;
 #endif
 }
@@ -167,33 +131,7 @@ void IRDA_SetTxLevel_Simple(uint8_t channel, int width)
 #ifdef MOCK    
     DPRINTF("NULL\n\r");
 #else
-    switch (channel)
-    {
-        case 1:                            
-            DRV_OC0_PulseWidthSet(width);
-            break;
-        case 2:                            
-            DRV_OC1_PulseWidthSet(width);
-            break;
-        case 3:                            
-            DRV_OC2_PulseWidthSet(width);
-            break;
-        case 4:                            
-            DRV_OC3_PulseWidthSet(width);
-            break;
-        case 5:                            
-            DRV_OC4_PulseWidthSet(width);
-            break;
-        case 0:                            
-            DRV_OC0_PulseWidthSet(width);
-            DRV_OC1_PulseWidthSet(width);
-            DRV_OC2_PulseWidthSet(width);
-            DRV_OC3_PulseWidthSet(width);
-            DRV_OC4_PulseWidthSet(width);
-            break;          
-        default:
-            break;            
-    } // end switch
+    Nop();
 #endif
 }
 
@@ -203,29 +141,6 @@ void IRDA_SetTxLevel(uint8_t channel, int width, uint8_t* result)
     sprintf(result, "All the transmitters set to %d", width);
 #else
     IRDA_SetTxLevel_Simple(channel, width);
-    switch (channel)
-    {
-        case 1:                            
-            sprintf(result, "IR transmitter A set to %d", width);
-            break;
-        case 2:                            
-            sprintf(result, "IR transmitter B set to %d", width);
-            break;
-        case 3:                            
-            sprintf(result, "IR transmitter C set to %d", width);
-            break;
-        case 4:                            
-            sprintf(result, "IR transmitter D set to %d", width);
-            break;
-        case 5:                            
-            sprintf(result, "IR transmitter E set to %d", width);
-            break;
-        case 0:                            
-            sprintf(result, "All the transmitters set to %d", width);
-            break;          
-        default:
-            break;            
-    } // end switch
 #endif
 }
 
@@ -246,14 +161,12 @@ bool IRDA_Send_Message (char* command, uint8_t channel, uint8_t* result)
                 sprintf(result_verbo, "Sent: $MR%d 1234", channel); 
                 #endif
             #else 
-                if ( (appData.edge_count != 2*channel) && APP_isUptime() )
-                {
+                if ( (appData.edge_count != 2*channel) && APP_isUptime() ) {
                     appData.irMessage = 'R';
                     appData.irChannel = channel;                    
                     sprintf(result_verbo, "Sent: ! MR%d <id>", channel);
                 }
-                else
-                {
+                else {
                     sprintf(result, "Channel %d is busy", channel);
                     return true;
                 }                
@@ -268,30 +181,24 @@ bool IRDA_Send_Message (char* command, uint8_t channel, uint8_t* result)
                 sprintf(result_verbo, "Sent: $MS%d 1234 %s", channel, CONSOLE_EXAMPLE_COMMAND);
                 #endif
             #else                 
-                if ( (appData.edge_count != 2*channel) && APP_isUptime() )
-                {
+                if ( (appData.edge_count != 2*channel) && APP_isUptime() ) {
                     appData.irMessage = 'S';
                     appData.irChannel = channel;
                     sprintf(result_verbo, "Sent: ! MS%d <id> %s", channel, CONSOLE_EXAMPLE_COMMAND);
                 }
-                else
-                {
+                else {
                     sprintf(result, "Channel %d is busy", channel); 
                     return true;
                 }
             #endif
         }
-        else
-        {
+        else {
             retVal = false;
         }
     }
-    else
-    {
+    else {
         retVal = false;
     }
-
-    
 #ifdef VERBO
     sprintf(result, result_verbo);
 #else    
@@ -305,7 +212,6 @@ bool FAN_Send_Message (char* command, uint8_t address, uint8_t* result)
     uint8_t result_verbo[MAX_NUM_OF_BYTES];
     bool retVal = true;
     int i = 4; // command[] = "RMT_MR"
-
     sprintf(result, "Address %d is busy", address); 
     return retVal;
 }
@@ -319,43 +225,7 @@ void FAN_GetSpeed(uint8_t bank, uint8_t* result)
 #ifdef MOCK    
      sprintf (result, "[None] 0 0 0 0 0");
 #else
-    switch (bank)
-    {
-        case 1:
-            sprintf (result, "[B1] %d %d %d %d", 
-                    appData.fan_rpm[0], appData.fan_rpm[1],
-                    appData.fan_rpm[2], appData.fan_rpm[3]);
-            break;
-        
-        case 2:  
-            sprintf (result, "[B2] %d %d %d %d", 
-                    appData.fan_rpm[4], appData.fan_rpm[5],
-                    appData.fan_rpm[6], appData.fan_rpm[7]);
-            break;
-        
-        case 3:
-            sprintf (result, "[B3] %d %d %d %d", 
-                    appData.fan_rpm[8], appData.fan_rpm[9],
-                    appData.fan_rpm[10], appData.fan_rpm[11]);
-            break;
-        
-        case 4:
-            sprintf (result, "[B4] %d %d %d %d", 
-                    appData.fan_rpm[12], appData.fan_rpm[13],
-                    appData.fan_rpm[14], appData.fan_rpm[15]);
-            break;
-        
-        case 5:  
-            sprintf (result, "[B5] %d %d %d %d", 
-                    appData.fan_rpm[16], appData.fan_rpm[17],
-                    appData.fan_rpm[18], appData.fan_rpm[19]);
-            break;
-        
-        default:
-            sprintf (result, "[None] 0 0 0 0 0");
-            break;
-        
-    } // end switch 
+     Nop();
 #endif
 }
 
@@ -364,45 +234,7 @@ void FAN_SetSpeed(uint8_t bank, int width, uint8_t* result)
 #ifdef MOCK    
     sprintf(result, "All the banks set to %d", width);
 #else
-    switch (bank)
-    {
-        case 1:                            
-            DRV_OC0_PulseWidthSet(width);
-            sprintf(result, "Bank A set to %d", width);
-            break;
-
-        case 2:                            
-            DRV_OC2_PulseWidthSet(width);
-            sprintf(result, "Bank B set to %d", width);
-            break;
-
-        case 3:                            
-            DRV_OC1_PulseWidthSet(width);
-            sprintf(result, "Bank C set to %d", width);
-            break;
-              
-        case 4:                            
-            DRV_OC3_PulseWidthSet(width);
-            sprintf(result, "Bank D set to %d", width);
-            break;
-
-        case 5:                            
-            DRV_OC4_PulseWidthSet(width);
-            sprintf(result, "Bank E set to %d", width);
-            break;
-              
-        case 0:                            
-            DRV_OC0_PulseWidthSet(width);
-            DRV_OC1_PulseWidthSet(width);
-            DRV_OC2_PulseWidthSet(width);
-            DRV_OC3_PulseWidthSet(width);
-            DRV_OC4_PulseWidthSet(width);
-            sprintf(result, "All the banks set to %d", width);
-            break;
-
-        default:
-            break;
-    }  // end switch
+    Nop();
 #endif
 }
 
@@ -411,12 +243,10 @@ void FAN_SetSpeed(uint8_t bank, int width, uint8_t* result)
 void __Cmd_Channel_Helper (COMMAND_DATA* commandData, uint8_t* result)
 {
     int argc = commandData->argc;
-    if (argc < 2)
-    {
+    if (argc < 2) {
        sprintf(result, "%s <irda_ch>", commandData->argv[0]);
     }
-    else
-    {
+    else {
         int channel = atoi(commandData->argv[1]);
         if (channel >= 1 && channel <= 5)
             IRDA_Send_Message(commandData->argv[0], channel, result);
@@ -431,12 +261,10 @@ void __Cmd_Channel_Helper (COMMAND_DATA* commandData, uint8_t* result)
 void __Cmd_Address_Helper (COMMAND_DATA* commandData, uint8_t* result)
 {
     int argc = commandData->argc;
-    if (argc < 2)
-    {
+    if (argc < 2) {
        sprintf(result, "%s <irda_addr>", commandData->argv[0]);
     }
-    else
-    {
+    else  {
         int addr = atoi(commandData->argv[1]);
         if (addr >= 0 && addr <= 9)
             FAN_Send_Message(commandData->argv[0], addr, result);
@@ -476,15 +304,12 @@ void Cmd_Set_Power(COMMAND_DATA* commandData, uint8_t* result)
 {
     int  pulse_width;     // min 500 max 1
     int argc = commandData->argc;  
-    if (argc < 3)
-    {
+    if (argc < 3) {
        sprintf(result, "%s <irda_ch> <pwm>", commandData->argv[0]);
     }
-    else
-    {    
+    else {    
         pulse_width = atoi(commandData->argv[2]);  
-        if (pulse_width >= 0 && pulse_width <= 500)
-        {
+        if (pulse_width >= 0 && pulse_width <= 500)  {
             IRDA_SetTxLevel(atoi(commandData->argv[1]), pulse_width, result);
         }
     }
@@ -495,15 +320,12 @@ void Cmd_Set_Speed(COMMAND_DATA* commandData, uint8_t* result)
 {
     int  pulse_width;     // min 500 max 1
     int argc = commandData->argc;    
-    if (argc < 3)
-    {
+    if (argc < 3) {
        sprintf(result, "%s <bank> <pwm>", commandData->argv[0]);
     }
-    else
-    {    
+    else  {    
         pulse_width = atoi(commandData->argv[2]);  
-        if (pulse_width >= 0 && pulse_width <= 500)
-        {
+        if (pulse_width >= 0 && pulse_width <= 500) {
             FAN_SetSpeed(atoi(commandData->argv[1]), pulse_width, result);
         }
     }
@@ -515,16 +337,13 @@ void Cmd_Set_Speed(COMMAND_DATA* commandData, uint8_t* result)
 void Cmd_Get_Power(COMMAND_DATA* commandData, uint8_t* result)
 {    
     int argc = commandData->argc;   
-    if (argc < 2)
-    {
+    if (argc < 2) {
         sprintf(result, "%s <irda_ch>\r\n", commandData->argv[0]);
     }
-    else if ( IRDA_ReadAnalog() )
-    {
+    else if ( IRDA_ReadAnalog() ) {
        IRDA_Get_Analog_Channels(result);
     }
-    else
-    {
+    else {
       sprintf(result, "[ERROR] ReadAnalog command\r\n");
     }
 }
@@ -532,17 +351,18 @@ void Cmd_Get_Power(COMMAND_DATA* commandData, uint8_t* result)
 void Cmd_Get_Speed(COMMAND_DATA* commandData, uint8_t* result)
 {   
     int argc = commandData->argc;       
-    if (argc < 2)
-    {
+    if (argc < 2) {
        sprintf(result, "%s <bank>", commandData->argv[0]);
     }
-    else if ( 1 != strlen(commandData->argv[1]) )
-    {
+    else if ( 1 != strlen(commandData->argv[1]) ) {
       sprintf(result, "%s - bank should be 0:4", commandData->argv[1]);   
     }
-    else
-    {
+    else {
         FAN_GetSpeed( atoi(commandData->argv[1]), result);        
     }
     strcat(result, "\r\n");      
 }
+
+/* *****************************************************************************
+ * End of File
+ */

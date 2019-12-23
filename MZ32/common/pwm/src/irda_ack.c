@@ -10,17 +10,9 @@
     #include "callback.h"
     #include "irda_ack.h"
     #include "irda_pic.h"
-    #include "blade.h"
-    #include "functions.h"
-    #include "miscellaneous.h"
-
-    #ifdef DEV
-        #include "uart.h"
-        #include "command.h"
-        extern UART_DATA    uart0Data;
-        extern COMMAND_DATA commandData;
-    #endif
-
+    #include "Blade.h"
+    #include "Crc16.h"
+    #include "Misc.h"
 #endif
 
 extern uint8_t Scheduled_Message[5][MAX_NUM_OF_BYTES];
@@ -31,8 +23,7 @@ extern uint8_t BladeCalibrated[];
 bool __AckPreprocessor (char key, char* command, uint8_t* channel)
 {
     uint8_t len = strlen(command);
-    if ( (len==3) && (command[0] == key))
-    {
+    if ( (len==3) && (command[0] == key)) {
         *channel = command[2] - '0'; 
         return true;
     }
@@ -42,16 +33,14 @@ bool __AckPreprocessor (char key, char* command, uint8_t* channel)
 bool __BeaconPrecheck ( uint8_t addr, uint8_t device, uint16_t id, uint16_t old_id, 
                         IRDA_STATUS_BYTE status, uint8_t* result)
 {        
-    if (id == 0xFFFF)
-    {
+    if (id == 0xFFFF) {
     #ifdef VERBO
         sprintf (result, CONSOLE_ERR_ACK_ID_FFFF, addr, id);
     #endif 
         return false;
     }
     
-    if (old_id != id)
-    {
+    if (old_id != id) {
     #ifdef VERBO
         sprintf (result, CONSOLE_ERR_ACK_INVALID_ID, addr, id, old_id);
     #endif 
@@ -60,8 +49,7 @@ bool __BeaconPrecheck ( uint8_t addr, uint8_t device, uint16_t id, uint16_t old_
         return false;
     }  
     
-    if (status.bits.irdaStable == false)
-    {
+    if (status.bits.irdaStable == false) {
     #ifdef VERBO
         sprintf (result, CONSOLE_ERR_ACK_INVALID_STATUS, addr, status.irdaStatus);
     #endif 
@@ -69,7 +57,6 @@ bool __BeaconPrecheck ( uint8_t addr, uint8_t device, uint16_t id, uint16_t old_
         BLADE_Uncalibrate(device);
         return false;
     }    
-    
     return true;
 }
 
@@ -88,26 +75,20 @@ bool IRDA_UpdateTable (uint8_t addr, uint8_t device, uint16_t id, char status, u
     BLADE_WriteID (address2channel(addr), id);       
     BLADE_WriteState (address2channel(addr), new_status);
 
-    if (old_id == 0x0) 
-    {
+    if (old_id == 0x0) {
         sprintf (result, "\nTraining channel %d", addr);
         return true;
     }
-
-    if (false == __BeaconPrecheck (addr, device, id, old_id, new_status, result))
-    {
+    if (false == __BeaconPrecheck (addr, device, id, old_id, new_status, result)) {
         return false;
     }
 
     uint8_t result_verbo [MAX_NUM_OF_BYTES];
-
-    if ( (old_id == id) && new_status.bits.irdaStable && (counter<3) )
-    {
+    if ( (old_id == id) && new_status.bits.irdaStable && (counter<3) ) {
         sprintf (result_verbo, "\nIncremented %d: %d", addr, counter+1);
         retVal = true;
     }
-    else if ( (old_id == id) && new_status.bits.irdaStable ) // && counter == 3
-    {
+    else if ( (old_id == id) && new_status.bits.irdaStable ) { // && counter == 3
         sprintf (result_verbo, "\nUpdated register %d %04X", addr, id);
         BLADE_Calibrate(address2channel(addr));
         retVal = true;
@@ -130,13 +111,11 @@ bool IRDA_ConfirmID (uint8_t addr, uint8_t device, uint16_t id, char status, uin
 #endif
     uint16_t old_id = BLADE_ReadID(address2channel(addr));
     
-    if (false == __BeaconPrecheck (addr, device, id, old_id, new_status, result))
-    {
+    if (false == __BeaconPrecheck (addr, device, id, old_id, new_status, result)) {
         return false;
     }
     
     uint8_t result_verbo [MAX_NUM_OF_BYTES];
-
     if ( (id == old_id) && new_status.bits.irdaStable ) // Step 2: BC acknowledge (AC)
     {
         uint8_t i = address2channel(addr);
@@ -158,8 +137,7 @@ bool IRDA_ConfirmID (uint8_t addr, uint8_t device, uint16_t id, char status, uin
             IRDA_QueueToSend(i, Scheduled_Message[i-1]); 
         #endif
         }
-        else
-        {
+        else {
             sprintf (result_verbo, "\nAC%d: Calibrated (%04X)", addr, id);            
         }
         retVal = true;
@@ -171,25 +149,22 @@ bool IRDA_ConfirmID (uint8_t addr, uint8_t device, uint16_t id, char status, uin
     return retVal;
 }
 
-bool __AckProcessor_5argc (char* command, char* id, char* status, uint8_t device, uint8_t* result)
+bool AckProcessor_5argc (char* command, char* id, char* status, uint8_t device, uint8_t* result)
 {    
     uint16_t new_id = hexa2decimal(id);
     uint8_t address;   
     uint8_t i = 1;
     if (__AckPreprocessor(CONSOLE_IR_BEACON_ACK, command, &address))
     {
-        if (command[i] == 'T')
-        {
+        if (command[i] == 'T') {
             IRDA_UpdateTable (address, device, new_id, ascii2status(status[0]), result);  
             return true;
         }
-        else if (command[i] == 'C')
-        {
+        else if (command[i] == 'C') {
             IRDA_ConfirmID (address, device, new_id, ascii2status(status[0]), result); 
             return true;
         }
-        else if (command[i] == 'S')  // Step 4: Message ACK
-        {
+        else if (command[i] == 'S')  { // Step 4: Message ACK
             sprintf (result, "%s%s %s %s", CONSOLE_U0_REPLY_START, command, id, status);  
             return true;
         }              
@@ -199,16 +174,14 @@ bool __AckProcessor_5argc (char* command, char* id, char* status, uint8_t device
     return false;
 }
 
-bool __AckProcessor_6argc (char* command, char* id, char* status, char* tail, uint8_t* result)
+bool AckProcessor_6argc (char* command, char* id, char* status, char* tail, uint8_t* result)
 {    
     uint16_t new_id = hexa2decimal(id);
     uint8_t address; 
 
     if (__AckPreprocessor(CONSOLE_IR_BEACON_ACK, command, &address))
     {
-        if (command[1] == 'R') // Step 4: Message ACK
-        {
-
+        if (command[1] == 'R') { // Step 4: Message ACK
             sprintf (result, "%s%s %s %s %s", CONSOLE_U0_REPLY_START, command, id, status, tail);  
             return true;
         }              
@@ -222,18 +195,15 @@ bool IRDA_Uart0Message (COMMAND_DATA* commandData, uint8_t device, uint8_t* resu
 {
     bool retVal = false;
 
-    if (commandData->argc > 5) 
-    {   
-        retVal = __AckProcessor_6argc (  commandData->argv[1], commandData->argv[2], 
-                                         commandData->argv[3], commandData->argv[4], result);    
+    if (commandData->argc > 5) {   
+        retVal = AckProcessor_6argc (commandData->argv[1], commandData->argv[2], 
+                                    commandData->argv[3], commandData->argv[4], result);    
     }  
-    else if (commandData->argc == 5) 
-    {   
-        retVal = __AckProcessor_5argc (  commandData->argv[1], commandData->argv[2], 
-                                         commandData->argv[3], device, result);       
+    else if (commandData->argc == 5) {   
+        retVal = AckProcessor_5argc (commandData->argv[1], commandData->argv[2], 
+                                    commandData->argv[3], device, result);       
     }   
-    else
-    {
+    else {
         sprintf(result, "%sNACK", CONSOLE_U0_REPLY_START);  
     }
     return retVal;

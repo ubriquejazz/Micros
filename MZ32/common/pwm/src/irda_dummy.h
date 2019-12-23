@@ -1,15 +1,6 @@
 #ifndef __irda_dummy_h    /* Guard against multiple inclusion */
 #define __irda_dummy_h
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "system_config.h"
-#include "system_definitions.h"
-#include "enum.h"
-
 /*!\name      irda_dummy.h
  *
  * \brief     Master Pic emulation (dummy)
@@ -18,6 +9,15 @@
  * \author    Juan Gago
  *
  */
+
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include "system_config.h"
+#include "system_definitions.h"
+#include "Global.h"
 
 bool DUMMY_BeaconProcessor 	(char* command, uint8_t*);
 bool DUMMY_MessageProcessor (char* command, uint8_t*);
