@@ -23,7 +23,7 @@ CFLAGS += -Wno-implicit-function-declaration
 CFLAGS += -Wno-incompatible-pointer-types-discards-qualifiers
 
 COMP_FLAGS  = $(CFLAGS) $(SYMBOLS)
-LINK_FLAGS  = $(CFLAGS) $(SYMBOLS) $(INC_DIRS) 
+LINK_FLAGS  = $(CFLAGS) $(SYMBOLS) $(INC_DIRS) $(INC_FILES)
 EXTRA_OBJS = $(OBJ_DIR)/unity.o
 
 all: clean $(TARGETLIB) tests
@@ -42,7 +42,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 $(OBJ_DIR)/unity.o: $(UNITY_ROOT)/src/unity.c
 	gcc -c $(CFLAGS) $(UNITY_ROOT)/src/unity.c -o $(OBJ_DIR)/unity.o
-	
+
 # lib.a and targets
 
 TARGET1=$(OBJ_DIR)/test_A.out
