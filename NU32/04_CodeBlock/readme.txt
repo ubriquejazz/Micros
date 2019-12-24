@@ -13,7 +13,7 @@ Examples in CodeBlock (Dan)
 - Ch03: Array of pointers
 - Ch04: Save the result of the dir() command
 - Ch05: Lotto numbers & horse race
-- Ch06: Lists
+- Ch06: Linked list (unit-tested)
 
 Examples in MPLAB (NU32)
 
