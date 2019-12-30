@@ -19,22 +19,22 @@ uint8_t module_txBuff[3];
 
 bool MCP9808_Wr_Word (I2C_CLIENT*, MCP9808_ADDR addr, MCP9808_REG sensorReg, uint16_t sensorValue) 
 {
-	uint8_t buffer[3];
-	sprintf(buffer, "%02x %04x", sensorReg, sensorValue);
-	buffer[0] = (uint8_t) sensorReg;
-	buffer[1] = 0x00FF & (sensorValue << 8);
-	buffer[2] = sensorValue & 0x0FF;
-	return I2CLIENT_Wr_Block (ptr, addr, buffer, 3);
+	// uint8_t buffer[] = "0xFF 0xABCD";
+	// sscanf (buffer, "%02x %04x", sensorReg, sensorValue);
+	sensor_txBuff[0] = (uint8_t) sensorReg;
+	sensor_txBuff[1] = 0x00FF & (sensorValue << 8);
+	sensor_txBuff[2] = sensorValue & 0x0FF;
+	return I2CLIENT_Wr_Block (ptr, addr, sensor_txBuff, 3);
 }
 
 bool MCP9808_Rd_Word (I2C_CLIENT*, MCP9808_ADDR addr, MCP9808_REG sensorReg) {
-	uint8_t buffer[1];
-	buffer[0] = (uint8_t) sensorReg;
-	return I2CLIENT_Rd_Word (ptr, addr, buffer, sensor_rxBuff);
+	sensor_txBuff[0] = (uint8_t) sensorReg;
+	sensor_txBuff[1] = 0;
+	return I2CLIENT_Rd_Word (ptr, addr, sensor_txBuff, sensor_rxBuff);
 }
 
 bool RFE1600_Rd_Word (I2C_CLIENT*, RFE1600_ADDR, RFE1600_REG moduleReg) {
-	uint8_t buffer[1];
-	buffer[0] = (uint8_t) moduleReg;
-	return I2CLIENT_Rd_Word (ptr, addr, buffer, module_rxBuff);
+	module_txBuff[0] = (uint8_t) moduleReg;
+	module_txBuff[1] = 0;
+	return I2CLIENT_Rd_Word (ptr, addr, module_txBuff, module_rxBuff);
 }
