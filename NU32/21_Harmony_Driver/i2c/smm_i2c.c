@@ -1,8 +1,8 @@
 /*!\name  		smm_i2c.c
  *
- * \brief     	Defined two I2C drivers: A and B
+ * \brief     	Defined channels A and B
  *
- * \author    Juan Gago
+ * \author    	Juan Gago
  *
  */
 
@@ -15,17 +15,6 @@ I2C_DRIVER DriverA, DriverB;
 uint8_t LastMessageA[8];
 uint8_t LastMessageB[8];
 
-void SMM_I2C_Add_Prom (bool contex) {
-	I2C_CLIENT client;
-	uint8_t rxBuff[2];
-	I2CLIENT_Prom_Setup (&client, 0xA0, 0x05);
-	if (context)
-		I2CLIENT_Prom_Read (&client, rxBuff, 2);
-	else
-		I2CLIENT_Prom_Write (&client, "12", 2);
-	I2C_Add (client, &DriverA);
-}
-
 void SMM_I2C_Add_Sensor () {
 	I2C_CLIENT client;
 	MCP9808_Rd_Word (&client, 0x30, 0x05);
@@ -34,7 +23,7 @@ void SMM_I2C_Add_Sensor () {
 
 void SMM_I2C_Add_PSU () {
 	I2C_CLIENT client;
-	RFE1600_Rd_Word (&client, 0x98);
+	RFE1600_Rd_Word (&client, 0x2E, 0x98);
 	I2C_Add (client, &DriverB);
 }
 
@@ -46,7 +35,6 @@ void SMM_I2C_Initialize(){
 void SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
 {
 	uint16_t temperature;
-	uint8_t hostname[8]
 
 	I2C_CLIENT* ptra = I2C_Tasks(&DriverA, &tout_a, LastMessageA);
 	I2C_CLIENT* ptrb = I2C_Tasks(&DriverB, &tout_b, LastMessageB);
@@ -64,7 +52,7 @@ void SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
 	}
 
 	if (ptrb->state == I2C_CLIENT_DONE) {
-		if (ptrb->address == 0x2F) {
+		if (ptrb->address == 0x2E) {
 			temperature = RFE1600_Temp (LastMessageB[1], LastMessageB[0]);
 		}
 		memset(LastMessageB, 0, 8);
