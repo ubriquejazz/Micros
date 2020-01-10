@@ -23,12 +23,12 @@ int buffer_full(I2C_DRIVER* ptr) {
 
 // reads from current buffer location; assumes buffer not empty
 I2C_CLIENT* buffer_read(I2C_DRIVER* ptr) {     
-	I2C_CLIENT val = ptr->data[ptr->ridx];
+	I2C_CLIENT* client = ptr->data[ptr->ridx];
 	++ptr->ridx; // increments read index and wrap around
 	if(ptr->ridx >= MAX_I2C_CLIENTS) {  
 		ptr->ridx = 0;
 	}
-	return val;
+	return client;
 }
 
 void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr) {
@@ -84,7 +84,13 @@ I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds, uint8_t* result)
 				client = buffer_read(ptr); // first take the driver handle
 				if (client->state == I2C_CLIENT_REQ) {
 					handle = DRV_I2C_Open (ptr->index, DRV_IO_INTENT_READWRITE);
-					ptr->state = I2C_DRV_START;
+					if (handle == DRV_HANDLE_INVALID) 
+					{ 
+						ptr->state = I2C_DRV_ERROR;
+					}
+					else {
+						ptr->state = I2C_DRV_START;
+					}
 				}
 			}
 			break;
@@ -129,12 +135,14 @@ I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds, uint8_t* result)
 			if (*milliseconds > 800) {
 				DRV_I2C_Initialize ( /* module object */ );
 				handle = DRV_HANDLE_INVALID;
-				ptr->state = I2C_DRV_IDLE;
+				ptr->state = I2C_DRV_DONE;
 			}
 			break;			
 
 		default:
+		case I2C_DRV_DONE:
 		case I2C_DRV_ERROR:
+			ptr->state = I2C_DRV_IDLE;
 			break;
 	}
 	return client;

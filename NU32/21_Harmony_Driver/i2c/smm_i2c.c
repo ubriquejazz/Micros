@@ -32,30 +32,46 @@ void SMM_I2C_Initialize(){
 	I2C_Initialize(&DriverB, 1);
 }
 
-void SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
+int SMM_I2C_Tasks(uint32_t* tout_a, uint32_t* tout_b)
 {
 	uint16_t temperature;
+	I2C_CLIENT* ptra, ptrb;
+	static uint8_t count = 0;
 
-	I2C_CLIENT* ptra = I2C_Tasks(&DriverA, &tout_a, LastMessageA);
-	I2C_CLIENT* ptrb = I2C_Tasks(&DriverB, &tout_b, LastMessageB);
 	// reentrance issue: ptra and ptrb reference to the same client?
 
-	if (ptra->state == I2C_CLIENT_DONE) {
-		if (ptra->address == 0x30) {
-			temperature = MCP9808_Temp (LastMessageA[1], LastMessageA[0]);
-		}
-		else if (ptra->address == 0xA0) {
-			memcpy(hostname, LastMessageA, 8);
-		}
-		memset(LastMessageA, 0, 8);
-		ptra->state = I2C_CLIENT_NONE;
-	}
+	if (count == 0) {
 
-	if (ptrb->state == I2C_CLIENT_DONE) {
-		if (ptrb->address == 0x2E) {
-			temperature = RFE1600_Temp (LastMessageB[1], LastMessageB[0]);
+		ptra = I2C_Tasks(&DriverA, &tout_a, LastMessageA);
+		if (DriverA.state == I2C_DRV_DONE) {
+
+			if (ptra->state == I2C_CLIENT_DONE) {
+				if (ptra->address == 0x30) {
+					temperature = MCP9808_Temp (LastMessageA[1], LastMessageA[0]);
+				}
+				else if (ptra->address == 0xA0) {
+					memcpy(hostname, LastMessageA, 8);
+				}
+				memset(LastMessageA, 0, 8);
+				ptra->state = I2C_CLIENT_NONE;
+			}
+			count++;
 		}
-		memset(LastMessageB, 0, 8);
-		ptrb->state = I2C_CLIENT_NONE;
 	}
+	else {
+
+		ptrb = I2C_Tasks(&DriverB, &tout_b, LastMessageB);
+		if (DriverB.state == I2C_DRV_DONE) {
+
+			if (ptrb->state == I2C_CLIENT_DONE) {
+				if (ptrb->address == 0x2E) {
+					temperature = RFE1600_Temp (LastMessageB[1], LastMessageB[0]);
+				}
+				memset(LastMessageB, 0, 8);
+				ptrb->state = I2C_CLIENT_NONE;
+			}	
+			count = 0;
+		}
+	}
+	return 0;
 }

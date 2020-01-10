@@ -20,20 +20,21 @@ typedef volatile uint8_t * volatile buffer_t;
 
 typedef enum {	
 	I2C_DRV_IDLE=0, 
-	I2C_DRV_START, 
+	I2C_DRV_START, 			// open (handle)
 	I2C_DRV_WRITE, 
-	I2C_DRV_CLOSE,
-	I2C_DRV_INIT, 
-	I2C_DRV_ERROR,
+	I2C_DRV_CLOSE,			// close and deinit
+	I2C_DRV_INIT, 			// initialize again
+	I2C_DRV_DONE,
+	I2C_DRV_ERROR,			// handle invalid
 	
 } I2C_DRV_STATE;
 
 typedef enum {
 	I2C_CLIENT_NONE=0, 
-	I2C_CLIENT_DONE, 
 	I2C_CLIENT_REQ, 
-	I2C_CLIENT_ERROR, 
-	I2C_CLIENT_TIMEOUT
+	I2C_CLIENT_DONE, 		// Complete
+	I2C_CLIENT_ERROR, 		// Error
+	I2C_CLIENT_TIMEOUT		// Pending
 } I2C_CLIENT_STATE;
 
 /* Driver & Clients */
