@@ -1,26 +1,25 @@
+/*!\name      spi_ram.c
+ *
+ * \brief     Demonstrates spi by accessing external ram chip (23K256)
+ *            Only uses the SRAM's sequential mode (PIC is the master)
+ *
+ *            SDO4 -> SI (pin F5 -> pin 5)       |     Additional SRAM connections
+ *            SDI4 -> SO (pin F4 -> pin 2)       |     Vss  (Pin 4) -> ground
+ *            SCK4 -> SCK(pin B14 -> pin 6)      |     Vcc  (Pin 8) -> 3.3 V
+ *            SS4  -> CS (pin B8 -> pin 1)       |     Hold (Pin 7) -> 3.3 V (not used)
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"       // constants, funcs for startup and UART
-// Demonstrates spi by accessing external ram
-// PIC is the master, ram is the slave
-// Uses microchip 23K256 ram chip (see the data sheet for protocol details)
-// SDO4 -> SI (pin F5 -> pin 5)
-// SDI4 -> SO (pin F4 -> pin 2)
-// SCK4 -> SCK (pin B14 -> pin 6)
-// SS4 -> CS (pin B8 -> pin 1)
-// Additional SRAM connections
-// Vss (Pin 4) -> ground
-// Vcc (Pin 8) -> 3.3 V
-// Hold (pin 7) -> 3.3 V (we don't use the hold function)
-// 
-// Only uses the SRAM's sequential mode
-//
+
 #define CS LATBbits.LATB8       // chip select pin
 
 // send a byte via spi and return the response
 unsigned char spi_io(unsigned char o) {
   SPI4BUF = o;
-  while(!SPI4STATbits.SPIRBF) { // wait to receive the byte
-    ;
-  }
+  while(!SPI4STATbits.SPIRBF); // wait to receive the byte
   return SPI4BUF;
 }
 
@@ -34,10 +33,9 @@ void ram_init() {
   CS = 1;
 
   // Master - SPI4, pins are: SDI4(F4), SDO4(F5), SCK4(F13).  
-  // we manually control SS4 as a digital output (F12)
+  // We manually control SS4 as a digital output (F12)
   // since the pic is just starting, we know that spi is off. We rely on defaults here
  
-  // setup spi4
   SPI4CON = 0;              // turn off the spi module and reset it
   SPI4BUF;                  // clear the rx buffer by reading from it
   SPI4BRG = 0x3;            // baud rate to 10 MHz [SPI4BRG = (80000000/(2*desired))-1]
@@ -105,8 +103,6 @@ int main(void) {
   sprintf(buf,"Read \"%s\" from ram at address 0x%x\r\n", read, addr1);
   NU32_WriteUART3(buf);
 
-  while(1) {
-    ;
-  }
+  while(1);
   return 0;
 }

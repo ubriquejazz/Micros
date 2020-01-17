@@ -40,6 +40,7 @@ typedef enum {
 /* Driver & Clients */
 
 typedef struct {
+	I2C_DRIVER*			base;
 	uint8_t 			address;
     buffer_t			write, read;
     uint8_t				wlen, rlen;
@@ -47,17 +48,24 @@ typedef struct {
 } I2C_CLIENT;
 
 typedef struct {
-	I2C_DRV_STATE		state;
-	uint8_t				index;
-    uint32_t     		error_count;
-    uint8_t				widx, ridx;
-    I2C_CLIENT			data[MAX_I2C_CLIENTS];
+	I2C_DRV_STATE			state;
+	uint8_t					index;
+    uint32_t     			error_count;
+    uint8_t					widx, ridx;
+    I2C_CLIENT				data[MAX_I2C_CLIENTS];
+	DRV_HANDLE 				handle;
+	DRV_I2C_BUFFER_HANDLE 	tx_handle;
+	DRV_I2C_BUFFER_HANDLE	rx_handle;
+
 } I2C_DRIVER;
 
 /* Application Initialization and State Machine Functions */
 
 void		I2C_Initialize 	(I2C_DRIVER*, uint8_t);
-bool		I2C_Add 		(I2C_CLIENT,  I2C_DRIVER*);
-I2C_CLIENT* I2C_Tasks 		(I2C_DRIVER*, uint32_t*, uint8_t*);
+bool		I2C_Add 		(I2C_CLIENT*, I2C_DRIVER*);
+I2C_CLIENT* I2C_Pop			(I2C_DRIVER*);
+I2C_CLIENT* I2C_Get			(I2C_DRIVER*);
+
+bool		I2C_Tasks 		(I2C_CLIENT*, uint32_t*, uint8_t*);
 
 #endif

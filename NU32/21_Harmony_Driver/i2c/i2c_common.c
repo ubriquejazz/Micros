@@ -8,142 +8,119 @@
  
 #include "i2c_common.h"
 
-DRV_HANDLE handle;
-DRV_I2C_BUFFER_HANDLE txbuff_handle;
-
-int buffer_empty(I2C_DRIVER* ptr) {    
+int buffer_empty(I2C_DRIVER* drv) {    
   	// return true if the buffer is empty (read = write)
-  	return ptr->widx == ptr->ridx; 
+  	return drv->widx == drv->ridx; 
 }
 
-int buffer_full(I2C_DRIVER* ptr) {     
+int buffer_full(I2C_DRIVER* drv) {     
 	// return true if the buffer is full.  
-  	return (ptr->widx + 1) % MAX_I2C_CLIENTS == ptr->ridx; 
+  	return (drv->widx + 1) % MAX_I2C_CLIENTS == drv->ridx; 
 }
 
 // reads from current buffer location; assumes buffer not empty
-I2C_CLIENT* buffer_read(I2C_DRIVER* ptr) {     
-	I2C_CLIENT* client = ptr->data[ptr->ridx];
-	++ptr->ridx; // increments read index and wrap around
-	if(ptr->ridx >= MAX_I2C_CLIENTS) {  
-		ptr->ridx = 0;
+I2C_CLIENT* buffer_read (I2C_DRIVER* drv) {     
+	I2C_CLIENT* client = drv->data[drv->ridx];
+	++drv->ridx; // increments read index and wrap around
+	if(drv->ridx >= MAX_I2C_CLIENTS) {  
+		drv->ridx = 0;
 	}
 	return client;
 }
 
-void buffer_write(I2C_CLIENT client, I2C_DRIVER* ptr) {
+void buffer_write (I2C_CLIENT client, I2C_DRIVER* drv) {
 	// add an element to the buffer; assumes buffer not full 
-	ptr->data[ptr->widx] = client;
-	++ptr->widx; // increment the write index and wrap around if necessary
-	if(ptr->widx >= MAX_I2C_CLIENTS) {  
-		ptr->widx = 0;
+	drv->data[drv->widx] = client;
+	++drv->widx; // increment the write index and wrap around if necessary
+	if(drv->widx >= MAX_I2C_CLIENTS) {  
+		drv->widx = 0;
 	}
 }
 
-bool I2C_Add (I2C_CLIENT client, I2C_DRIVER* ptr) {
+bool I2C_Add (I2C_CLIENT* client, I2C_DRIVER* drv) {
 	// if the buffer is full the data is lost
-	if(buffer_full(ptr))        
+	if(buffer_full(drv))        
 		return false;
 	
-	buffer_write(client, ptr);
+	buffer_write(*client, drv);
+	client->base = drv;
 	return true;
 }
 
-int8_t I2C_GetStatus (DRV_I2C_BUFFER_HANDLE buffer_handle)
+I2C_CLIENT* I2C_Get (I2C_DRIVER* drv) {  
+	if (buffer_empty(drv)) {
+		return NULL;
+	}
+	return drv->data[drv->ridx];
+}
+
+I2C_CLIENT* I2C_Pop (I2C_DRIVER* drv) {  
+	if (buffer_empty(drv)) {
+		return NULL;
+	}
+	return buffer_read (drv);
+}
+
+DRV_I2C_BUFFER_EVENT I2C_GetStatus (I2C_CLIENT* client)
 {
-	DRV_I2C_BUFFER_EVENT volatile event_handle;
-	/* handle is global*/
+	I2C_DRIVER* drv; /* handle is global*/
 	event_handle = DRV_I2C_TransferStatusGet (handle, buffer_handle);
 	return event_handle;
 }
 
 /* State Machine */
 
-void I2C_Initialize (I2C_DRIVER* ptr, uint8_t index)
+void I2C_Initialize (I2C_DRIVER* drv, uint8_t index)
 {
 	int i; 
 	for (i=0; i<MAX_I2C_CLIENTS; i++)
 	{
-		ptr->data[i].state = I2C_CLIENT_NONE;
+		drv->data[i].state = I2C_CLIENT_NONE;
 	}
-	ptr->index = index;
-	ptr->state = I2C_DRV_IDLE;
-	ptr->widx = 0;
-	ptr->ridx = 0;
+	drv->index = index;
+	drv->handle = DRV_HANDLE_INVALID;
+
+	drv->tx_handle = NULL;
+	drv->rx_handle = NULL;
+
+	drv->state = I2C_DRV_IDLE;
+	drv->widx = 0;
+	drv->ridx = 0;
 }
 
-I2C_CLIENT* I2C_Tasks (I2C_DRIVER* ptr, uint32_t* milliseconds, uint8_t* result)
+bool I2C_Tasks (I2C_CLIENT* client, uint32_t* milliseconds, uint8_t* result)
 {   
-    static I2C_CLIENT* client;
     DRV_I2C_BUFFER_EVENT error_code;
+	I2C_DRIVER* drv; /* handle is global*/
 
-	switch(ptr->state)
-	{	
-		case I2C_DRV_IDLE:
-			if (!buffer_empty(ptr)) {
-				client = buffer_read(ptr); // first take the driver handle
+    if(client)
+    {
+    	drv = client->base;
+	    switch(drv->state)
+		{	
+			case I2C_DRV_IDLE:
 				if (client->state == I2C_CLIENT_REQ) {
 					handle = DRV_I2C_Open (ptr->index, DRV_IO_INTENT_READWRITE);
-					if (handle == DRV_HANDLE_INVALID) 
-					{ 
+					if (handle == DRV_HANDLE_INVALID) { 
 						ptr->state = I2C_DRV_ERROR;
 					}
 					else {
 						ptr->state = I2C_DRV_START;
 					}
 				}
-			}
-			break;
+				else{
 
-		case I2C_DRV_START: // Transmit with buffer handle
+				}
+				break
 
-			txbuff_handle = DRV_I2C_Transmit (handle, client->address, client->write, client->wlen, NULL);
-			if (txbuff_handle != NULL) {
-				*milliseconds = 0;
-				ptr->state = I2C_DRV_WRITE;
-			}
-			break;		
-
-		case I2C_DRV_WRITE:
-
-			error_code = I2C_GetStatus(txbuff_handle);
-			if (error_code == DRV_I2C_BUFFER_EVENT_ERROR) {
-				printLog("__ERR %d I2C%d Write /r/n", ++ptr->error_count, ptr->index);
-				client->state = I2C_CLIENT_ERROR;
-				ptr->state = I2C_DRV_CLOSE;
-			}
-			else if (error_code == DRV_I2C_BUFFER_EVENT_COMPLETE) {
-				client->state = I2C_CLIENT_DONE;
-				ptr->state = I2C_DRV_CLOSE;
-			}
-			else if (*milliseconds > TIMEOUT_WRITE_MS) {
-				client->state = I2C_CLIENT_TIMEOUT;
-				ptr->state = I2C_DRV_CLOSE;
-			}
-			break;
-
-		case I2C_DRV_CLOSE:
-
-			DRV_I2C_Close (ptr->index);
-			DRV_I2C_Deinitialize ( /* module object */ );
-			*milliseconds = 0;
-			ptr->state = I2C_DRV_INIT;
-			break;
-
-		case I2C_DRV_INIT:
-
-			if (*milliseconds > 800) {
-				DRV_I2C_Initialize ( /* module object */ );
-				handle = DRV_HANDLE_INVALID;
-				ptr->state = I2C_DRV_DONE;
-			}
-			break;			
-
-		default:
-		case I2C_DRV_DONE:
-		case I2C_DRV_ERROR:
-			ptr->state = I2C_DRV_IDLE;
-			break;
-	}
-	return client;
+			default:
+			case I2C_DRV_DONE:
+			case I2C_DRV_ERROR:
+				drv->state = I2C_DRV_IDLE;
+				break;
+		}
+    }	
+	return true;
 }
+
+
