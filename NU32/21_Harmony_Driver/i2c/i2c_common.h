@@ -16,7 +16,16 @@
 // buffer pointer type.  The buffer is shared by an ISR and mainline code.
 // the pointer to the buffer is also shared by an ISR and mainline code.
 // Hence the double volatile qualification
-typedef volatile uint8_t * volatile buffer_t;
+typedef volatile uint8_t* volatile buffer_t;
+
+typedef uint32_t object_t;
+typedef struct NODE node_t;
+
+struct NODE {
+	node_t*		self;
+	node_t*		owner;
+	object_t 	data;
+};
 
 typedef enum {	
 	I2C_DRV_IDLE=0, 
@@ -32,7 +41,8 @@ typedef enum {
 typedef enum {
 	I2C_CLIENT_NONE=0, 
 	I2C_CLIENT_REQ, 
-	I2C_CLIENT_DONE, 		// Complete
+	I2C_CLIENT_OK,			// Complete
+	I2C_CLIENT_USED, 		// Used
 	I2C_CLIENT_ERROR, 		// Error
 	I2C_CLIENT_TIMEOUT		// Pending
 } I2C_CLIENT_STATE;
@@ -40,24 +50,30 @@ typedef enum {
 /* Driver & Clients */
 
 typedef struct {
-	I2C_DRIVER*			base;
-	uint8_t 			address;
-    buffer_t			write, read;
-    uint8_t				wlen, rlen;
-    I2C_CLIENT_STATE	state;
+	node_t					base;
+	uint8_t 				address;
+    buffer_t				write, read;
+    uint8_t					wlen, rlen;
+    I2C_CLIENT_STATE		state;
 } I2C_CLIENT;
 
 typedef struct {
+	node_t					base;			
 	I2C_DRV_STATE			state;
 	uint8_t					index;
     uint32_t     			error_count;
-    uint8_t					widx, ridx;
-    I2C_CLIENT				data[MAX_I2C_CLIENTS];
 	DRV_HANDLE 				handle;
 	DRV_I2C_BUFFER_HANDLE 	tx_handle;
 	DRV_I2C_BUFFER_HANDLE	rx_handle;
 
 } I2C_DRIVER;
+
+typedef struct {
+	uint8_t					widx, ridx;
+	I2C_CLIENT				users[MAX_I2C_CLIENTS];
+	I2C_DRIVER				drv;
+} I2C_BUS;
+
 
 /* Application Initialization and State Machine Functions */
 
