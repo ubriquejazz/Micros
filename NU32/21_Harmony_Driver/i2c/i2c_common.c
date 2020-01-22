@@ -37,14 +37,14 @@ void buffer_write (I2C_CLIENT client, I2C_OBJECT* bus) {
 	}
 }
 
-bool I2C_Add (I2C_CLIENT* client, I2C_OBJECT* bus) {
+uint8_t I2C_Add (I2C_CLIENT* client, I2C_OBJECT* bus) {
 	// if the buffer is full the data is lost
 	if(buffer_full(bus))        
 		return false;
 	
 	buffer_write(*client, bus);
 	(client->base).owner = (node_t*) bus;
-	return true;
+	return bus->wdix;
 }
 
 I2C_CLIENT* I2C_Get (I2C_OBJECT* bus) {  

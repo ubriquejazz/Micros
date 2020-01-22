@@ -28,12 +28,36 @@ void SMM_I2C_Add_Sensor () {
 void SMM_I2C_Add_PSU () {
 	I2C_CLIENT client;
 	RFE1600_Rd_Word (&client, 0x2E, 0x98);
-	I2C_Add (&client, &BusB);
+	uint8_t index = I2C_Add (&client, &BusB);
+	while (BusB.clients[index].state != I2C_CLIENT_COMPLETE);
 }
 
 void SMM_I2C_Initialize(){
 	I2C_Initialize (&BusA, 0);
 	I2C_Initialize (&BusB, 1);
+}
+
+int SMM_I2C_Client_Tasks (I2C_CLIENT* client) {
+
+	I2C_OBJECT* bus = (I2C_OBJECT*) (client->base).owner;
+	static uint8_t index;
+
+    switch( state )
+	{	
+		case CLIENT_INIT:
+			index = I2C_Add (&client, &BusB);
+			state = CLIENT_REQUESTED;
+			break;
+
+		case CLIENT_REQUESTED:
+			if (bus->clients[index].state != I2C_CLIENT_USED)
+				state = CLIENT_DONE;
+			break
+
+		case CLIENt_DONE:
+			break;
+	}
+	return retVal;
 }
 
 int SMM_I2C_Tasks ()
