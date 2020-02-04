@@ -16,15 +16,13 @@
 #define PAGE_IN_USE_INDEX  (PAGE_WORDS-1) // the password is at the last index of buffer
 
 int page_exists() {  // valid flash page is allocated if password is at the right index
-  return (flash_read_word(PAGE_IN_USE_INDEX) == PAGE_IN_USE_PWD);
+  return (flash_read_word(PAGE_IN_USE_INDEX) == 0xdeadbeef);
 }
 
 // returns the index where the next word should be written
 unsigned int next_page_index() { 
   unsigned int count = 0;
-
-  while ((flash_read_word(count) != 0xFFFFFFFF)
-          && (count < PAGE_IN_USE_INDEX)) {  
+  while ((flash_read_word(count) != 0xFFFFFFFF) && (count < PAGE_IN_USE_INDEX)) {  
     count++;
   }
   return count;
@@ -38,7 +36,7 @@ int page_full() {
 // erase page and write the password indicating a flash page is available
 void make_page() { 
   flash_erase();
-  flash_write_word(PAGE_IN_USE_INDEX,PAGE_IN_USE_PWD);
+  flash_write_word(PAGE_IN_USE_INDEX,0xdeadbeef);
 }
 
 void add_new_word() { // add a four-byte word at the next_page_index if page is not full
