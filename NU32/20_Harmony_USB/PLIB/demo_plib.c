@@ -12,7 +12,8 @@
 #include <peripheral/peripheral.h>    // harmony peripheral library
 #include <sys/attribs.h>              // defines the __ISR macro
 
-void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {  
+void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) 
+{  
   // toggle LATF0 (LED1) and LATF1 (LED2)
   PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_0); 
   PLIB_PORTS_PinToggle(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_1); 
@@ -20,14 +21,14 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {
   PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_TIMER_1); 
 }
 
-int main(void) {
+int main(void) 
+{
   // F0 and F1 are  is output (LED1 and LED2)
   PLIB_PORTS_PinDirectionOutputSet(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_0); 
   PLIB_PORTS_PinDirectionOutputSet(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_1); 
 
   // turn LED1 on by clearing F0 to zero
   PLIB_PORTS_PinClear(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_0); 
-
   // turn off LED2 by setting F1 to one
   PLIB_PORTS_PinSet(PORTS_ID_0, PORT_CHANNEL_F, PORTS_BIT_POS_1);   
   
@@ -35,7 +36,6 @@ int main(void) {
   PLIB_TMR_Counter16BitSet(TMR_ID_1,0);                       // set up TMR1: TMR1 = 0
   PLIB_TMR_PrescaleSelect(TMR_ID_1, TMR_PRESCALE_VALUE_256);  // 1:256 prescaler
 
-  // set up the timer interrupts
   // clear the interrupt flag
   PLIB_INT_SourceFlagClear(INT_ID_0, INT_SOURCE_TIMER_1); 
  
@@ -47,8 +47,10 @@ int main(void) {
 
   // start the timer
   PLIB_TMR_Start(TMR_ID_1);
+
   // enable interrupts
   PLIB_INT_Enable(INT_ID_0);
+
   while(1);
   return 0;
 }

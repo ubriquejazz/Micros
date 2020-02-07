@@ -1,16 +1,25 @@
+/*!\name      TMR_5Hz.c
+ *
+ * \brief     An interrupt is triggered every 16 million cycles (80 MHz)
+ *            16,000,000 = (PR1+1) * 256
+ *
+ * \author    Juan Gago
+ *
+ */
 #include "NU32.h"          // constants, functions for startup and UART
 
-void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) {  // INT step 1: the ISR
+void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1ISR(void) 
+{ 
   LATFINV = 0x1;                  // toggle RF0 (LED1)
   IFS0bits.T1IF = 0;              // clear interrupt flag
 }
 
-int main(void) {
+int main(void) 
+{
   NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
 
   __builtin_disable_interrupts(); // INT step 2: disable interrupts at CPU
-                                  // INT step 3: setup peripheral
-  PR1 = 62499;                    //             set period register
+  PR1 = 62499;                    // INT step 3: setup period register
   TMR1 = 0;                       //             initialize count to 0
   T1CONbits.TCKPS = 3;            //             set prescaler to 256
   T1CONbits.TGATE = 0;            //             not gated input (the default)

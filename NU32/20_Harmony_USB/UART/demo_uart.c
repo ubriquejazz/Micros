@@ -46,11 +46,26 @@ const static DRV_USART_INIT uart_init = {       // initialize struct with driver
                                                 // remaining fields are not needed here
 };
 
+void SYS_Initialize(void)
+{
+  // remap UTX3 to pin RB0
+  //PLIB_PORTS_RemapInput();
+  //PLIB_PORTS_RemapOuput()
+
+  // initialize the LED pins as outputs
+  PLIB_PORTS_PinDirectionOutputSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED1_POS); 
+  PLIB_PORTS_PinDirectionOutputSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED2_POS); 
+  PLIB_PORTS_PinClear(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED1_POS); // turn on LED1 
+  PLIB_PORTS_PinSet(PORTS_ID_0, NU32_LED_CHANNEL, NU32_LED2_POS);   // turn off LED2   
+}
+
 int main(void) 
 {
   DRV_HANDLE uart_handle;
   char buffer[BUF_SIZE]; 
+
   APP_STATE state = APP_STATE_QUERY;  // initial state of our FSM will ask user for text
+  SYS_Initialize();
   
   // Initialize the UART.
   uart_module = DRV_USART_Initialize(DRV_USART_INDEX_0,(SYS_MODULE_INIT*) &uart_init);
@@ -59,7 +74,8 @@ int main(void)
   uart_handle = DRV_USART_Open(
       uart_module, DRV_IO_INTENT_READWRITE | DRV_IO_INTENT_NONBLOCKING);
   
-  while (1) {
+  while (1) 
+  {
     switch(state) {
       case APP_STATE_QUERY:
         if(WriteUart(uart_handle,"\r\nWhat do you want? ")) { 

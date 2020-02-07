@@ -1,11 +1,30 @@
+/*!\name      DIO_sample.c
+ *
+ * \brief     RB0, RB1 digital inputs with pull-ups
+ *            RF3 digital input with pull-up resist
+ *            RB2, RB3 digital inputs
+ *            RB4, RB5 buffered digital ouptus
+ *            RB6, RB7 open-drain digital outputs
+ *            AN8-AN15 analog inputs
+ *            
+ * CN enabled on RB0 (CN2), RF4(CN17), RF5 (CN18)
+ * ISR toggles one LED to indiate that a change has
+ * been noticed on pin RB0, RF4 or RF5 
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // constants, funcs for startup and UART
 
 volatile unsigned int oldB = 0, oldF = 0, newB = 0, newF = 0; // save port values
 
-void __ISR(_CHANGE_NOTICE_VECTOR, IPL3SOFT) CNISR(void) { // INT step 1
+void __ISR(_CHANGE_NOTICE_VECTOR, IPL3SOFT) CNISR(void) 
+{ 
   newB = PORTB;           // since pins on port B and F are being monitored 
   newF = PORTF;           // by CN, must read both to allow continued functioning
-                          // ... do something here with oldB, oldF, newB, newF ...
+  // ... do something here with  
+  // ... oldB, oldF, newB, newF
   oldB = newB;            // save the current values for future use
   oldF = newF;
   LATBINV = 0xF0;         // toggle buffered RB4, RB5 and open-drain RB6, RB7
@@ -13,7 +32,8 @@ void __ISR(_CHANGE_NOTICE_VECTOR, IPL3SOFT) CNISR(void) { // INT step 1
   IFS1bits.CNIF = 0;      // clear the interrupt flag
 }
 
-int main(void) {
+int main(void) 
+{
   NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
 
   AD1PCFG = 0x00FF;       // set B8-B15 as analog in, B0-B7 as digital pins
