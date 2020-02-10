@@ -5,7 +5,7 @@
  * \author    Juan Gago
  *
  */
-
+#include "cdc.h"
 #include "system_config.h"
 #include "system_definitions.h"
 #include <sys/attribs.h>

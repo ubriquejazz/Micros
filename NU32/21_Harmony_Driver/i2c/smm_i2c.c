@@ -8,109 +8,45 @@
 
 #include <stdio.h>
 #include "clients.h"
-#include "smm_i2c.h"
 #include "i2client_common.h"
 
-I2C_OBJECT BusA, BusB;
+I2C_DRIVER BusA;
+I2C_CLIENT client;
 
-uint8_t LastMessageA[8];
-uint8_t LastMessageB[8];
-uint32_t tout_a, tout_b;
-
-I2C_CLIENT* ptra = NULL, ptrb = NULL;
-
-void SMM_I2C_Add_Sensor () {
-	I2C_CLIENT client;
-	MCP9808_Rd_Word (&client, 0x30, 0x05);
-	I2C_Add (&client, &BusA);
-}
-
-void SMM_I2C_Add_PSU () {
-	I2C_CLIENT client;
-	RFE1600_Rd_Word (&client, 0x2E, 0x98);
-	uint8_t index = I2C_Add (&client, &BusB);
-	while (BusB.clients[index].state != I2C_CLIENT_COMPLETE);
-}
-
-void SMM_I2C_Initialize(){
-	I2C_Initialize (&BusA, 0);
-	I2C_Initialize (&BusB, 1);
-}
-
-int SMM_I2C_Client_Tasks (I2C_CLIENT* client) {
-
-	I2C_OBJECT* bus = (I2C_OBJECT*) (client->base).owner;
-	static uint8_t index;
-
-    switch( state )
-	{	
-		case CLIENT_INIT:
-			index = I2C_Add (&client, &BusB);
-			state = CLIENT_REQUESTED;
-			break;
-
-		case CLIENT_REQUESTED:
-			if (bus->clients[index].state != I2C_CLIENT_USED)
-				state = CLIENT_DONE;
-			break
-
-		case CLIENt_DONE:
-			break;
-	}
-	return retVal;
-}
-
-int SMM_I2C_Tasks ()
+void APP_Tasks(void) 
 {
 	uint16_t temperature;
+	static uint32_t tout_a, tout_b;
 
-	if ( ptra && (ptra->state != I2C_CLIENT_NONE) ) {
-		if (ptra->state == I2C_CLIENT_REQ) {
-			I2C_Tasks(ptra, &tout_a, LastMessageA);
-		}
-		else if (ptra->state == I2C_CLIENT_COMPLETE) {
-			/* Process */
-			if (ptra->address == 0x30) {
-				temperature = MCP9808_Temp (LastMessageA[1], LastMessageA[0]);
+	switch(appdata.state) 
+	{
+		case APP_STATE_INIT:
+			RFE1600_Rd_Word (&client, 0x2E, 0x98);
+			if (I2C_Initialize (&BusA, &client,1)) {
+				appdata.state = APP_STATE_OPENING;		// BusA.state = I2C_OPEN_INIT;
 			}
-			else if (ptra->address == 0xA0) {
-				memcpy(hostname, LastMessageA, 8);
+			break;
+		  
+		case APP_STATE_OPENING:
+			if (I2C_OpenDriver (&BusA, &tout_a)) {
+				appdata.state = APP_STATE_PENDING;		// BusA.state = I2C_OPEN_DONE;
 			}
-			memset(LastMessageA, 0, 8);
-			ptra->state = I2C_CLIENT_USED;
-		}
-		else {	// ERROR or TIMEOUT
-			I2C_Tasks(ptra, &tout_a, LastMessageA);
-			if (BusA.drv.state == I2C_DRV_DONE) {
-				ptra->state = I2C_CLIENT_NONE;
-				BusA.drv.state = I2C_DRV_IDLE;
+		  	break;
+
+		case APP_STATE_PENDING:
+			if (I2C_IsComplete (&BusA, &tout_a)) {
+				temperature = RFE1600_Temp (client.read[1], client.read[0]);
+				appdata.state = APP_STATE_CLOSING;		// BusA.state = I2C_CLOSE_INIT;
 			}
-		}
+		  	break;
+
+		case APP_STATE_CLOSING:
+			if (I2C_CloseDriver (&BusA, &tout_a)) {
+				appdata.state = APP_STATE_WAIT;			// BusA.state = I2C_CLOSE_DONE;
+			}
+		  	break;
+
+		default:
+		  	;// logic error, impossible state!
 	}
-
-	if ( ptrb && (ptrb->state != I2C_CLIENT_NONE) ) {
-		if (ptrb->state == I2C_CLIENT_REQ) {
-			I2C_Tasks(ptrb, &tout_b, LastMessageB); 
-		}
-		else if (ptrb->state == I2C_CLIENT_COMPLETE) {
-			/* Process */
-			if (ptrb->address == 0x2E) {
-				temperature = RFE1600_Temp (LastMessageB[1], LastMessageB[0]);
-			}
-			memset(LastMessageB, 0, 8);
-			ptrb->state = I2C_CLIENT_USED;
-		}
-		else {	// ERROR or TIMEOUT
-			I2C_Tasks(ptrb, &tout_b, LastMessageB); 
-			if (BusB.drv.state == I2C_DRV_DONE) {
-				ptrb->state = I2C_CLIENT_NONE;
-				BusB.drv.state = I2C_DRV_IDLE;
-			}
-		}
-	}
-
-	// reentrance issue: ptra and ptrb reference to the same client?
-	ptra = I2C_Get (&BusA);
-	ptrb = I2C_Get (&BusB);
-	return 0;
 }
