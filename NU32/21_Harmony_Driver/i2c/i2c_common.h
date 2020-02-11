@@ -13,27 +13,26 @@
 // the pointer to the buffer is also shared by an ISR and mainline code.
 // Hence the double volatile qualification
 typedef volatile uint8_t* volatile buffer_t;
-typedef struct NODE node_t;
-
-struct NODE {
-       node_t*         self;
-       node_t*         owner;
-       uint32_t        data;
-};
 
 /* States */
 
 typedef enum {	
-	I2C_OPEN_INIT=0,
-	I2C_OPEN_OPEN,		// open (handle)
-	I2C_OPEN_START,		// write 
-	I2C_OPEN_RESTART,	// write and read
-	I2C_OPEN_DONE,		// first part ending
-	I2C_CLOSE_INIT,		// second part begin
-	I2C_CLOSE_CLOSE,	// close and deinit
-	I2C_CLOSE_DONE
-	
-} I2C_DRV_STATE;
+	I2C_OPEN_IDLE,
+	I2C_OPEN_INIT,		// --> OpenDriver()
+	I2C_OPEN_CHECK,		//   * drv_init(index)
+	I2C_OPEN_OPEN,		//   * drv_open(handle)
+	I2C_OPEN_START,		//   * drv_transmit()
+	I2C_OPEN_RESTART,	//   * drv_transmitthenreceive()
+	I2C_OPEN_DONE,		// <-- OpenDriver()
+} I2C_OPEN_STATE;
+
+typedef enum {	
+	I2C_CLOSE_IDLE=0,
+	I2C_CLOSE_INIT,		// --> CloseDriver()
+	I2C_CLOSE_CLOSE,	//   * drv_close(handle) 
+						//   * drv_deinit(index)
+	I2C_CLOSE_DONE		// <-- CloseDriver()
+} I2C_CLOSE_STATE;
 
 /* Driver & Clients */
 
@@ -41,16 +40,15 @@ typedef struct {
 	uint8_t 				address;
     buffer_t				write, read;
     uint8_t					wlen, rlen;
-
 } I2C_CLIENT;
 
 typedef struct {		
 	uint8_t					index;
 	DRV_HANDLE 				handle;
 	DRV_I2C_BUFFER_HANDLE 	buffer;
-	I2C_DRV_STATE			state;
+	I2C_OPEN_STATE			state0;
+	I2C_CLOSE_STATE			state1;
 	I2C_CLIENT*				client;
-
 } I2C_DRIVER;
 
 /* Application Initialization and State Machine Functions */
