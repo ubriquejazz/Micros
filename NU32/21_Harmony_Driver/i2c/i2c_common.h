@@ -9,6 +9,8 @@
  *
  */
 
+#define TIMEOUT_I2C_MS    100
+
 // buffer pointer type.  The buffer is shared by an ISR and mainline code.
 // the pointer to the buffer is also shared by an ISR and mainline code.
 // Hence the double volatile qualification
