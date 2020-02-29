@@ -1,11 +1,13 @@
 #ifndef _SENSOR_APP_H
 #define _SENSOR_APP_H
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Included Files
-// *****************************************************************************
-// *****************************************************************************
+/*!\name      sensor_app.h
+ *
+ * \brief     Sensor Application
+ *
+ * \author    Juan Gago
+ *
+ */
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -13,6 +15,7 @@
 #include <stdlib.h>
 #include "system_config.h"
 #include "system_definitions.h"
+#include "b_hanlde.h"
 
 #define TEMPERATURE_READ_PERIOD                                     500
 
@@ -38,18 +41,11 @@ typedef enum
   SENSOR_APP_STATE_ERROR,
 } SENSOR_APP_STATES;
 
-typedef enum
-{
-  SENSOR_APP_SPI_BUFFER_STATUS_COMPLETE = 0,
-  SENSOR_APP_SPI_BUFFER_STATUS_ERROR,
-  SENSOR_APP_SPI_BUFFER_STATUS_INVALID,
-} SENSOR_APP_SPI_BUFFER_STATUS;
-
 typedef struct
 {
   uint8_t                             wrBuffer[10];
   uint8_t                             nBytes;
-  SENSOR_APP_SPI_BUFFER_STATUS	    bufferStatus;
+  BUFFER_STATUS	                      bufferStatus;
   DRV_SPI_BUFFER_HANDLE               bufferHandle;
 } SENSOR_APP_SPI_WR_REQ;
 
@@ -59,7 +55,7 @@ typedef struct
   uint8_t                             nWrBytes;
   uint8_t                             rdBuffer[10];
   uint8_t                             nRdBytes;
-  SENSOR_APP_SPI_BUFFER_STATUS	    bufferStatus;
+  BUFFER_STATUS	                      bufferStatus;
   DRV_SPI_BUFFER_HANDLE               bufferHandle;
 } SENSOR_APP_SPI_WR_RD_REQ;
 
@@ -68,15 +64,22 @@ typedef struct
   /* The application's current state */
   SENSOR_APP_STATES           state;
   DRV_HANDLE                  handle;
-  SENSOR_APP_SPI_WR_REQ       sensorControlData;
-  SENSOR_APP_SPI_WR_RD_REQ    calibrationData;
-  SENSOR_APP_SPI_WR_RD_REQ    temperatureData;
   uint8_t                     sensorCalibValues[6];
   volatile bool               readTemperatureReq;
   float                       temperature;
 
-	/* Un-comment below line of code for Lab 3 ---------> (Lab 3_1) */
-  SemaphoreHandle_t 	xSemaphore;
+  /* control data: write oversampling */
+  SENSOR_APP_SPI_WR_REQ       sensorControlData;
+
+  /* read calibration data */
+  SENSOR_APP_SPI_WR_RD_REQ    calibrationData;
+
+  /* temperature meas. */
+  SENSOR_APP_SPI_WR_RD_REQ    temperatureData;
+
+	/* Un-comment below line of code for Lab 3 */
+  // SemaphoreHandle_t 	xSemaphore;
+  
 } SENSOR_APP_DATA;
 
 

@@ -3,9 +3,6 @@
 
 FRAM_APP_DATA fram_appData;
 
-/* Buffer to print temperature logs to console */
-static uint8_t temperatureLogBuffer[MAX_TEMPERATURE_LOGS * sizeof(float)] __attribute__ ((aligned (4))) = {0};
-
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Callback Functions
@@ -19,9 +16,8 @@ static void FRAM_APP_OpStartingHandler(
     void* context
 )
 {
-	/* Chip Select FRAM here ----------> (Step #3) */
+	/* Chip Select FRAM */
     FRAM_CSOn();
-
 }
 
 /* Application's SPI Instance 1 Operation Ending Callback */
@@ -33,7 +29,6 @@ static void FRAM_APP_OpEndingHandler(
 {
 	/* De-select FRAM */
     FRAM_CSOff();
-
 }
 
 /* Application's SPI Instance 1 Buffer Event Callback */
@@ -46,53 +41,45 @@ static void FRAM_APP_BufferEventHandler(
     switch(event)
     {
         case DRV_SPI_BUFFER_EVENT_COMPLETE:
-            if (context)
-            {
-				/* Copy the buffer status here ----------> (Step #6) */
-                *((FRAM_APP_SPI_BUFFER_STATUS*)context) = FRAM_APP_SPI_BUFFER_STATUS_COMPLETE;
-
+            if (context) {
+                *((BUFFER_STATUS*)context) = BUFFER_STATUS_COMPLETE;
             }
             break;
 
         case DRV_SPI_BUFFER_EVENT_ERROR:
         default:
-            if (context)
-            {
-                *((FRAM_APP_SPI_BUFFER_STATUS*)context) = FRAM_APP_SPI_BUFFER_STATUS_ERROR;
+            if (context) {
+                *((BUFFER_STATUS*)context) = BUFFER_STATUS_ERROR;
             }
             break;
     }
 }
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Local Functions
-// *****************************************************************************
-// *****************************************************************************
+/* Buffer to print temperature logs to console */
+static uint8_t temperatureLogBuffer[MAX_TEMPERATURE_LOGS * sizeof(float)] __attribute__ ((aligned (4))) = {0};
 
 /* Application function to print temperature to console */
 static void FRAM_APP_PrintTemperatureToConsole(uint8_t* const pBuffer)
 {
     uint8_t i = 0;
-
     for (i = 0; i < MAX_TEMPERATURE_LOGS * sizeof(float); i++)
     {
         temperatureLogBuffer[i] = pBuffer[i];
     }
-
     SYS_PRINT("\nFRAM Readout:\r\n");
 
     /* Print the logs with the oldest log first and the latest log in the end*/
     for (i = fram_appData.wrIndex; i < MAX_TEMPERATURE_LOGS; i++)
     {
-        SYS_PRINT("%.2f\r\n", *((float*)&temperatureLogBuffer[i*4]));
+        uint8_t* ptr = &temperatureLogBuffer[i*4];
+        SYS_PRINT("%.2f\r\n", *((float*)ptr));
     }
-
     if (fram_appData.wrIndex > 0)
     {
         for (i = 0; i < fram_appData.wrIndex; i++)
         {
-            SYS_PRINT("%.2f\r\n", *((float*)&temperatureLogBuffer[i*4]));
+            uint8_t* ptr = &temperatureLogBuffer[i*4];
+            SYS_PRINT("%.2f\r\n", *((float*)ptr));
         }
     }
 }
@@ -121,37 +108,32 @@ static uint16_t FRAM_APP_GetNextFramAddrToWrite(void)
 }
 
 /* Application function to write enable the FRAM */
-
-static void FRAM_APP_WriteEnable(void)
+static bool FRAM_APP_WriteEnable(void)
 {
     DRV_SPI_BUFFER_HANDLE handle;
 
     fram_appData.framWriteEnableData.wrBuffer[0] = FRAM_CMD_WREN;
     fram_appData.framWriteEnableData.nBytes = 1;
-    fram_appData.framWriteEnableData.bufferStatus = FRAM_APP_SPI_BUFFER_STATUS_INVALID;
+    fram_appData.framWriteEnableData.bufferStatus = BUFFER_STATUS_INVALID;
 
     handle = DRV_SPI_BufferAddWrite2(
-        fram_appData.handle,
-        (void*)fram_appData.framWriteEnableData.wrBuffer,
-        fram_appData.framWriteEnableData.nBytes,
-        FRAM_APP_BufferEventHandler,
-        (void*)&fram_appData.framWriteEnableData.bufferStatus,
-        &fram_appData.framWriteEnableData.bufferHandle
+                fram_appData.handle,
+        (void*) fram_appData.framWriteEnableData.wrBuffer,
+                fram_appData.framWriteEnableData.nBytes,
+                FRAM_APP_BufferEventHandler,
+        (void*) &fram_appData.framWriteEnableData.bufferStatus,
+                &fram_appData.framWriteEnableData.bufferHandle
     );
 
     if (DRV_SPI_BUFFER_HANDLE_INVALID == handle)
     {
-        //Handle error condition
+        return false; //Handle error condition
     }
+    return true;
 }
 
 /* Application function to write to FRAM */
-
-static void FRAM_APP_Write(
-    uint16_t startAddr,
-    const uint8_t* pWrBuffer,
-    uint8_t nWrBytes
-)
+static bool FRAM_APP_Write(uint16_t startAddr, const uint8_t* pWrBuffer, uint8_t nWrBytes)
 {
     uint8_t i;
     DRV_SPI_BUFFER_HANDLE handle;
@@ -169,59 +151,56 @@ static void FRAM_APP_Write(
     }
 
     fram_appData.framWriteData.nBytes = 3 + nWrBytes;
-    fram_appData.framWriteData.bufferStatus = FRAM_APP_SPI_BUFFER_STATUS_INVALID;
+    fram_appData.framWriteData.bufferStatus = BUFFER_STATUS_INVALID;
 
     handle = DRV_SPI_BufferAddWrite2(
-        fram_appData.handle,
-        (void*)fram_appData.framWriteData.wrBuffer,
-        fram_appData.framWriteData.nBytes,
-        FRAM_APP_BufferEventHandler,
-        (void*)&fram_appData.framWriteData.bufferStatus,
-        &fram_appData.framWriteData.bufferHandle
+                fram_appData.handle,
+        (void*) fram_appData.framWriteData.wrBuffer,
+                fram_appData.framWriteData.nBytes,
+                FRAM_APP_BufferEventHandler,
+        (void*) &fram_appData.framWriteData.bufferStatus,
+                &fram_appData.framWriteData.bufferHandle
     );
 
     if (DRV_SPI_BUFFER_HANDLE_INVALID == handle)
     {
-        //Handle error condition
+        return false; //Handle error condition
     }
+    return true;
 }
 
 /* Application function to read from FRAM */
-
-static void FRAM_APP_Read(uint16_t startAddr, uint8_t nRdBytes)
+static bool FRAM_APP_Read(uint16_t startAddr, uint8_t nRdBytes)
 {
     DRV_SPI_BUFFER_HANDLE handle;
 
     fram_appData.framReadData.wrBuffer[0] = FRAM_CMD_READ;
     fram_appData.framReadData.wrBuffer[1] = (uint8_t)(startAddr >> 8);
     fram_appData.framReadData.wrBuffer[2] = (uint8_t)(startAddr);
-
     fram_appData.framReadData.nWrBytes = 3;
 
-    /*
-     * Number of bytes to read must include the dummy bytes received during the
-       write operation.
-     */
+    /* Number of bytes to read must include the dummy bytes received during the
+       write operation. */
     fram_appData.framReadData.nRdBytes = 3 + nRdBytes;
-    fram_appData.framReadData.bufferStatus = FRAM_APP_SPI_BUFFER_STATUS_INVALID;
+    fram_appData.framReadData.bufferStatus = BUFFER_STATUS_INVALID;
 
     handle = DRV_SPI_BufferAddWriteRead2(
-        fram_appData.handle,
-        (void*)fram_appData.framReadData.wrBuffer,
-        fram_appData.framReadData.nWrBytes,
-        (void*)fram_appData.framReadData.rdBuffer,
-        fram_appData.framReadData.nRdBytes,
-        FRAM_APP_BufferEventHandler,
-        (void*)&fram_appData.framReadData.bufferStatus,
-        &fram_appData.framReadData.bufferHandle
+                fram_appData.handle,
+        (void*) fram_appData.framReadData.wrBuffer,
+                fram_appData.framReadData.nWrBytes,
+        (void*) fram_appData.framReadData.rdBuffer,
+                fram_appData.framReadData.nRdBytes,
+                FRAM_APP_BufferEventHandler,
+        (void*) &fram_appData.framReadData.bufferStatus,
+                &fram_appData.framReadData.bufferHandle
     );
 
     if (DRV_SPI_BUFFER_HANDLE_INVALID == handle)
     {
-        //Handle error condition
+        return false; //Handle error condition
     }
+    return true;
 }
-
 
 // *****************************************************************************
 // *****************************************************************************
@@ -233,152 +212,123 @@ void FRAM_APP_Initialize ( void )
 {
     /* Place the App state machine in its initial state. */
     fram_appData.state = FRAM_APP_STATE_INIT;
-
     fram_appData.keyValue = 0;
-
     fram_appData.isWriteReq = false;
-
     fram_appData.wrIndex = 0;
 }
 
 void FRAM_APP_Tasks ( void )
 {
-    /* Check the application's current state. */
     switch ( fram_appData.state )
     {
         /* Application's initial state. */
         case FRAM_APP_STATE_INIT:
-        {
-            DRV_SPI_CLIENT_DATA clientData = {0};
 
-
-			/* Open SPI driver (Instance 1, SPI ID 1) here ----------> (Step #1) */
-            fram_appData.handle = DRV_SPI_Open( DRV_SPI_INDEX_1, DRV_IO_INTENT_READWRITE);
-
-
+			/* Open SPI driver (Instance 1, SPI ID 1) here  */
+            fram_appData.handle = DRV_SPI_Open (DRV_SPI_INDEX_1, DRV_IO_INTENT_READWRITE);
 
 			if (DRV_HANDLE_INVALID != fram_appData.handle)
 			{
-
 				/* Set up client event handlers for operation starting and ending events*/
-
-				//clientData.baudRate = DRV_SPI_BAUD_RATE_IDX1;
+                DRV_SPI_CLIENT_DATA clientData = {0};
 				clientData.operationStarting = FRAM_APP_OpStartingHandler;
+                //clientData.baudRate = DRV_SPI_BAUD_RATE_IDX1;
 				clientData.operationEnded = FRAM_APP_OpEndingHandler;
-
-				/* Set client configuration here ---------> (Step #2) */
-                DRV_SPI_ClientConfigure(
-                    fram_appData.handle,
-                    &clientData
-                );
-
-
-
-
+                DRV_SPI_ClientConfigure (fram_appData.handle, &clientData);
 
                 /* Clear the FRAM temperature log memory locations */
-                FRAM_APP_Write(
-                    TEMPERATURE_LOG_START_ADDR,
-                    temperatureLogBuffer,
-                    sizeof(temperatureLogBuffer)
-                 );
-
-				fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ_STATUS;
+                FRAM_APP_Write(TEMPERATURE_LOG_START_ADDR, 
+                    temperatureLogBuffer, sizeof(temperatureLogBuffer));
+                
+				fram_appData.state = FRAM_APP_STATE_WRITE_REQ_STATUS;
 			}
 			else
 			{
 				fram_appData.state = FRAM_APP_STATE_ERROR;
             }
             break;
-        }
 
-        case FRAM_APP_STATE_CHECK_WRITE_REQ:
-		{
-			float temperatureVal;
-            uint16_t framAddr;
+        case FRAM_APP_STATE_WRITE_REQ:
 
-			if (true == fram_appData.isWriteReq)
+			if (fram_appData.isWriteReq)
 			{
-				fram_appData.isWriteReq = false;
+                /* Next FRAM address to write temperature to */
+				uint16_t framAddr = FRAM_APP_GetNextFramAddrToWrite();
+				/* Get Temperature and write to FRAM here */
+                float temp = SENSOR_APP_GetTemperature();
 
-                framAddr = FRAM_APP_GetNextFramAddrToWrite();
-
-				/* Get Temperature and write to FRAM here ---------> (Step #4)*/
-
-                temperatureVal = SENSOR_APP_GetTemperature();
-                FRAM_APP_Write(framAddr, (uint8_t*)&temperatureVal, sizeof(temperatureVal));
-
-
-
-				fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ_STATUS;
+                if (FRAM_APP_Write (framAddr, (uint8_t*)&temp, sizeof(temp)) == false) 
+                {
+                    fram_appData.state = FRAM_APP_STATE_ERROR;
+                }
+                else 
+                {
+                    fram_appData.state = FRAM_APP_STATE_WRITE_REQ_STATUS;
+                }
+                fram_appData.isWriteReq = false;
 			}
             else
             {
-                fram_appData.state = FRAM_APP_STATE_CHECK_READ_REQ;
+                fram_appData.state = FRAM_APP_STATE_READ_REQ;
             }
-        }
-        break;
+            break;
 
-        case FRAM_APP_STATE_CHECK_READ_REQ:
+        case FRAM_APP_STATE_READ_REQ:
+
             if (SYS_STATUS_READY == SYS_CONSOLE_Status(sysObj.sysConsole0))
 			{
 				if (0x0d == fram_appData.keyValue)
 				{
-					/* Read back saved temperature value from FRAM here ---------> (Step #5) */
-
-                    FRAM_APP_Read(TEMPERATURE_LOG_START_ADDR, MAX_TEMPERATURE_LOGS * sizeof(float));
-
-					fram_appData.state = FRAM_APP_STATE_CHECK_READ_REQ_STATUS;
+					/* Read back saved temperature value from FRAM here */
+                    if (FRAM_APP_Read(TEMPERATURE_LOG_START_ADDR, MAX_TEMPERATURE_LOGS * sizeof(float)) == false)
+                    {
+                        fram_appData.state = FRAM_APP_STATE_ERROR;
+                    }
+                    else
+                    {
+					   fram_appData.state = FRAM_APP_STATE_READ_REQ_STATUS;
+                    }
 				}
                 else
                 {
-                    fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ;
+                    fram_appData.state = FRAM_APP_STATE_WRITE_REQ;
                 }
-
                 SYS_CONSOLE_Read( SYS_CONSOLE_INDEX_0, 0, &fram_appData.keyValue, 1 );
             }
             else
             {
-                fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ;
+                fram_appData.state = FRAM_APP_STATE_WRITE_REQ;
             }
-
             break;
 
-        case FRAM_APP_STATE_CHECK_WRITE_REQ_STATUS:
+        case FRAM_APP_STATE_WRITE_REQ_STATUS:
 
 			/* Check the buffer status which is updated in the registered callback */
-			if (FRAM_APP_SPI_BUFFER_STATUS_COMPLETE == fram_appData.framWriteData.bufferStatus
-				&& FRAM_APP_SPI_BUFFER_STATUS_COMPLETE == fram_appData.framWriteEnableData.bufferStatus
-			)
-			{
-				fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ;
+			if (BUFFER_STATUS_COMPLETE == fram_appData.framWriteData.bufferStatus
+			&&  BUFFER_STATUS_COMPLETE == fram_appData.framWriteEnableData.bufferStatus) 
+            {
+				fram_appData.state = FRAM_APP_STATE_WRITE_REQ;
 			}
             break;
 
-		case FRAM_APP_STATE_CHECK_READ_REQ_STATUS:
+		case FRAM_APP_STATE_READ_REQ_STATUS:
 
 			/* Check the buffer status which is updated in the registered callback */
-			if (FRAM_APP_SPI_BUFFER_STATUS_COMPLETE == fram_appData.framReadData.bufferStatus)
+			if (BUFFER_STATUS_COMPLETE == fram_appData.framReadData.bufferStatus)
 			{
 				/* Print read value to console here ---------> (Step #7) */
-
-                FRAM_APP_PrintTemperatureToConsole((uint8_t*)&fram_appData.framReadData.rdBuffer[3]);
-
-                fram_appData.state = FRAM_APP_STATE_CHECK_WRITE_REQ;
+                FRAM_APP_PrintTemperatureToConsole ((uint8_t*)&fram_appData.framReadData.rdBuffer[3]);
+                fram_appData.state = FRAM_APP_STATE_WRITE_REQ;
 			}
             break;
 
         /* The default state should never be executed. */
         case FRAM_APP_STATE_ERROR:
 		default:
-		{
 			SYS_PRINT("FRAM App Error\r\n");
 			break;
-        }
     }
 }
-
-
 
 /*******************************************************************************
  End of File

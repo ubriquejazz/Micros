@@ -1,39 +1,41 @@
 #ifndef _FRAM_APP_H
 #define _FRAM_APP_H
 
+/*!\name      fram_app.h
+ *
+ * \brief     RAM Application
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include "system_config.h"
 #include "system_definitions.h"
+#include "b_hanlde.h"
 
 /* FRAM Command definitions */
-#define FRAM_CMD_WREN               0x06
-#define FRAM_CMD_WRITE              0x02
-#define FRAM_CMD_READ               0x03
+#define FRAM_CMD_WREN                       0x06
+#define FRAM_CMD_WRITE                      0x02
+#define FRAM_CMD_READ                       0x03
 
 /* FRAM address to write temperature value to */
-#define TEMPERATURE_LOG_START_ADDR         0x0000
-#define MAX_TEMPERATURE_LOGS               10
+#define TEMPERATURE_LOG_START_ADDR          0x0000
+#define MAX_TEMPERATURE_LOGS                10
 
 typedef enum
 {
   /* Application's state machine's initial state. */
   FRAM_APP_STATE_INIT=0,
-  FRAM_APP_STATE_CHECK_WRITE_REQ,
-  FRAM_APP_STATE_CHECK_READ_REQ,
-  FRAM_APP_STATE_CHECK_WRITE_REQ_STATUS,
-  FRAM_APP_STATE_CHECK_READ_REQ_STATUS,
+  FRAM_APP_STATE_WRITE_REQ,
+  FRAM_APP_STATE_READ_REQ,
+  FRAM_APP_STATE_WRITE_REQ_STATUS,
+  FRAM_APP_STATE_READ_REQ_STATUS,
   FRAM_APP_STATE_ERROR,
-  } FRAM_APP_STATES;
-
-typedef enum
-{
-  FRAM_APP_SPI_BUFFER_STATUS_COMPLETE = 0,
-  FRAM_APP_SPI_BUFFER_STATUS_ERROR,
-  FRAM_APP_SPI_BUFFER_STATUS_INVALID,
-}FRAM_APP_SPI_BUFFER_STATUS;  
+} FRAM_APP_STATES;
 
 typedef struct
 {
@@ -49,7 +51,7 @@ typedef struct
   uint8_t                             nWrBytes;
   uint8_t                             rdBuffer[50];
   uint8_t                             nRdBytes;
-  FRAM_APP_SPI_BUFFER_STATUS          bufferStatus;
+  BUFFER_STATUS                       bufferStatus;
   DRV_SPI_BUFFER_HANDLE               bufferHandle;
 } FRAM_APP_SPI_WR_RD_REQ;
 
@@ -58,17 +60,20 @@ typedef struct
     /* The application's current state */
     FRAM_APP_STATES         state;
     DRV_HANDLE              handle;
-    /* Data structure to hold SPI request to enable FRAM writes */
-    FRAM_APP_SPI_WR_REQ     framWriteEnableData;
-    /* Data structure to hold SPI request to write to FRAM */
-    FRAM_APP_SPI_WR_REQ     framWriteData;
-    /* Data structure to hold SPI request to read from FRAM */
-    FRAM_APP_SPI_WR_RD_REQ  framReadData;
     uint8_t                 keyValue;
     bool                    isWriteReq;
     uint8_t                 wrIndex;
-} FRAM_APP_DATA;
 
+    /* Data structure to hold SPI request to enable FRAM writes */
+    FRAM_APP_SPI_WR_REQ     framWriteEnableData;
+
+    /* Data structure to hold SPI request to write to FRAM */
+    FRAM_APP_SPI_WR_REQ     framWriteData;
+
+    /* Data structure to hold SPI request to read from FRAM */
+    FRAM_APP_SPI_WR_RD_REQ  framReadData;
+
+} FRAM_APP_DATA;
 
 // *****************************************************************************
 // *****************************************************************************
