@@ -233,15 +233,19 @@ void SENSOR_APP_Tasks ( void )
             break;
         
 
-        case SENSOR_APP_STATE_SENSOR_INIT:  //Queue up multiple SPI requests to initialize the sensor
+        case SENSOR_APP_STATE_SENSOR_INIT:  
+
+            /* Queue up multiple SPI requests to initialize the sensor */
     
             if (SENSOR_APP_ReadCalibration() == false)
             {
                 sensor_appData.state = SENSOR_APP_STATE_ERROR;
+                break;
             }
             if (SENSOR_APP_WriteOversampling() == false)
             {
                 sensor_appData.state = SENSOR_APP_STATE_ERROR;
+                break;
             }
             sensor_appData.state = SENSOR_APP_STATE_WAIT_INIT_COMPLETE;
             break;
@@ -275,8 +279,10 @@ void SENSOR_APP_Tasks ( void )
                 if (SENSOR_APP_Read() == false) {
                     sensor_appData.state = SENSOR_APP_STATE_ERROR;
                 }
+                else {
+                    sensor_appData.state = SENSOR_APP_STATE_WAIT_MEAS_COMPLETE;
+                }
 				sensor_appData.readTemperatureReq = false;
-				sensor_appData.state = SENSOR_APP_STATE_WAIT_MEAS_COMPLETE;
             }
 			break;
 
