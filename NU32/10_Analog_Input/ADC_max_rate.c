@@ -1,32 +1,35 @@
-// ADC_max_rate.c
-//
-// This program reads from a single analog input, AN2, at the maximum speed
-// that fits the PIC32 Electrical Characteristics and the 80 MHz PBCLK
-// (Tpb = 12.5 ns).  The input to AN2 is a 5 kHz 25% duty cycle PWM from
-// OC1.  The results of 1000 analog input reads is sent to the user's 
-// terminal.  An LED on the NU32 also toggles every 8 million samples.
-//
-// RB1/VREF- must be connected to ground and RB0/VREF+ connected to 3.3 V.
-//
+/*!\name      adc_max_rate.h
+ *
+ * \brief     This program reads from a single analog input, AN2, at the maximum speed
+ *            that fits the PIC32 Electrical Characteristics and the 80 MHz PBCLK
+ *            (Tpb = 12.5 ns).  The input to AN2 is a 5 kHz 25% duty cycle PWM from
+ *            OC1.  The results of 1000 analog input reads is sent to the user's 
+ *            terminal.  An LED on the NU32 also toggles every 8 million samples.
+ *            
+ *            RB1/VREF- must be connected to ground and RB0/VREF+ connected to 3.3 V.
+ *            
+ * \author    Juan Gago
+ *
+ */
 
 #include "NU32.h"                    // constants, functions for startup and UART
 
-#define NUM_ISRS 125                 // the number of 8-sample ISR results to be printed
-#define NUM_SAMPS (NUM_ISRS*8)       // the number of samples stored
-#define LED_TOGGLE 1000000           // toggle the LED every 1M ISRs (8M samples)
+#define NUM_ISRS    125             // the number of 8-sample ISR results to be printed
+#define NUM_SAMPS   (NUM_ISRS*8)    // the number of samples stored 1000
+#define LED_TOGGLE  1000000         // toggle the LED every 1M ISRs (8M samples)
                                             
 // these variables are static because they are not needed outside this C file
 // volatile because they are written to by ISR, read in main
-                                            
 static volatile int storing = 1;   // if 1, currently storing data to print; if 0, done
+
 static volatile unsigned int trace[NUM_SAMPS];   // array of stored analog inputs
 static volatile unsigned int isr_time[NUM_ISRS]; // time of ISRs from Timer45
 
-void __ISR(_ADC_VECTOR, IPL6SRS) ADCHandler(void) { // interrupt every 8 samples
-  static unsigned int isr_counter = 0; // the number of times the isr has been called
-                                       // "static" means the variable maintains its value
-                                       // in between function (ISR) calls 
+void __ISR(_ADC_VECTOR, IPL6SRS) ADCHandler(void) 
+{
+  // these variable maintains its value in between function (ISR) calls (static)
   static unsigned int sample_num = 0;  // current analog input sample number
+  static unsigned int isr_counter = 0; // the number of times the isr has been called
 
   if (isr_counter <= NUM_ISRS) {
     isr_time[isr_counter] = TMR4;      // keep track of Timer45 time the ISR is entered
@@ -60,15 +63,12 @@ void __ISR(_ADC_VECTOR, IPL6SRS) ADCHandler(void) { // interrupt every 8 samples
     LATFINV = 0x02;
     isr_counter = 0;                   // reset ISR counter
   }
-
   IFS1bits.AD1IF = 0;                  // clear interrupt flag
 }
 
-int main(void) {
-  int i = 0, j = 0, ind = 0;      // variables used for indexing
-  float tot_time = 0.0;           // time between 8 samples
+int main(void) 
+{
   char msg[100] ={};              // buffer for writing messages to uart
-  unsigned int prev_time = 0;     // used for calculating time differences
 
   NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
 
@@ -93,7 +93,7 @@ int main(void) {
   AD1CON3bits.SAMC = 2;           //        sample for 2 Tad 
   AD1CON3bits.ADCS = 2;           //        Tad = 6*Tpb
   AD1CON2bits.VCFG = 3;           //        external Vref+ and Vref- for VREFH and VREFL
-  AD1CON2bits.SMPI = 7;           //        interrupt after every 8th conversion
+  AD1CON2bits.SMPI = 7;           //        interrupt after every 8th conversion (8 samples)
   AD1CON2bits.BUFM = 1;           //        adc buffer is two 8-word buffers
   AD1CON1bits.FORM = 0b100;       //        unsigned 32 bit integer output
   AD1CON1bits.ASAM = 1;           //        autosampling begins after conversion
@@ -105,27 +105,30 @@ int main(void) {
   __builtin_enable_interrupts();  // INT step 7: enable interrupts at CPU
 
   TMR4 = 0;                       // start timer 4 from zero
-  while(storing) {
-    ;                             // wait until first NUM_SAMPS samples taken
-  }
+  while(storing);                 // wait until first NUM_SAMPS samples taken
   IEC1bits.AD1IE = 0;             // disable ADC interrupt
 
   sprintf(msg,"Values of %d analog reads\r\n",NUM_SAMPS);
   NU32_WriteUART3(msg);
   NU32_WriteUART3("Sample #   Value   Voltage   Time");
-    
-  for (i = 0; i < NUM_ISRS; ++i) {// write out NUM_SAMPS analog samples 
+
+  float tot_time = 0.0;           // time between 8 samples
+  unsigned int prev_time = 0;     // used for calculating time differences
+  int i, j, ind;
+  for (i = 0; i < NUM_ISRS; ++i) // write out NUM_SAMPS analog samples 
+  {
     for (j = 0; j < 8; ++j) {
       ind = i * 8 + j;            // compute the index of the current sample
       sprintf(msg,"\r\n%5d %10d %9.3f ", ind, trace[ind], trace[ind]*3.3/1024);
       NU32_WriteUART3(msg);
     }
-    tot_time = (isr_time[i] - prev_time) *0.0125; // total time elapsed, in microseconds
+    tot_time = (isr_time[i] - prev_time) * 0.0125; // total time elapsed, in microseconds
     sprintf(msg,"%9.4f us; %d timer counts; %6.4f us/read for last 8 reads",
         tot_time, isr_time[i]-prev_time,tot_time/8.0);
     NU32_WriteUART3(msg);
     prev_time = isr_time[i];
   }
+
   NU32_WriteUART3("\r\n");
   IEC1bits.AD1IE = 1;         // enable ADC interrupt. won't print the information again,
                               // but you can see the light blinking

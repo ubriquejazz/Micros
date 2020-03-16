@@ -1,25 +1,34 @@
+/*!\name      adc_read2.h
+ *
+ * \brief     Manual sampling and conversion.
+ *            Read inputs AN14, AN15 every 500 ms
+ *            Log the time that the conversion take (less than 5us)
+ *            Tad = 6 * Tpb = 75ns; T = 250 ns (SAMPLE_TIME)
+ *            
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"          // constants, functions for startup and UART
 
-#define VOLTS_PER_COUNT (3.3/1024)
-#define CORE_TICK_TIME 25    // nanoseconds between core ticks
-#define SAMPLE_TIME 10       // 10 core timer ticks = 250 ns
-#define DELAY_TICKS 20000000 // delay 1/2 sec, 20 M core ticks, between messages
+#define VOLTS_PER_COUNT   (3.3/1024)
+#define CORE_TICK_TIME    25        // nanoseconds between core ticks
+#define SAMPLE_TIME       10        // 10 core timer ticks = 250 ns
+#define DELAY_TICKS       20000000  // 20M core ticks, between messages
 
-unsigned int adc_sample_convert(int pin) { // sample & convert the value on the given 
-                                           // adc pin the pin should be configured as an 
-                                           // analog input in AD1PCFG
+// sample & convert the value on the given adc pin 
+// the pin should be configured as an analog input in AD1PCFG
+unsigned int adc_sample_convert(int pin) 
+{
     unsigned int elapsed = 0, finish_time = 0;
     AD1CHSbits.CH0SA = pin;                // connect chosen pin to MUXA for sampling
     AD1CON1bits.SAMP = 1;                  // start sampling
     elapsed = _CP0_GET_COUNT();
     finish_time = elapsed + SAMPLE_TIME;
-    while (_CP0_GET_COUNT() < finish_time) { 
-      ;                                   // sample for more than 250 ns
-    }
+    while (_CP0_GET_COUNT() < finish_time); // sample for more than 250 ns
+
     AD1CON1bits.SAMP = 0;                 // stop sampling and start converting
-    while (!AD1CON1bits.DONE) {
-      ;                                   // wait for the conversion process to finish
-    }
+    while (!AD1CON1bits.DONE);            // wait for the conversion process to finish
     return ADC1BUF0;                      // read the buffer with the result
 }
 
@@ -27,7 +36,7 @@ int main(void) {
   unsigned int sample14 = 0, sample15 = 0, elapsed = 0;
   char msg[100] = {};
 
-  NU32_Startup();                 // cache on, interrupts on, LED/button init, UART init
+  NU32_Startup();         // cache on, interrupts on, LED/button init, UART init
   AD1PCFGbits.PCFG14 = 0;                 // AN14 is an adc pin
   AD1PCFGbits.PCFG15 = 0;                 // AN15 is an adc pin
   AD1CON3bits.ADCS = 2;                   // ADC clock period is Tad = 2*(ADCS+1)*Tpb =
@@ -45,10 +54,8 @@ int main(void) {
                  sample14, sample14 * VOLTS_PER_COUNT, 
                  sample15, sample15 * VOLTS_PER_COUNT);
     NU32_WriteUART3(msg);
-    _CP0_SET_COUNT(0);                    // delay to prevent a flood of messages
-    while(_CP0_GET_COUNT() < DELAY_TICKS) { 
-      ;
-    }
+    _CP0_SET_COUNT(0);                    
+    while(_CP0_GET_COUNT() < DELAY_TICKS);  // delay to prevent a flood of messages
   }
   return 0;
 }
