@@ -1,14 +1,12 @@
-#include <string.h>
-#include <stdbool.h>
-#include <stdio.h>
+#include "libreria.h"
 
 //***********************************************************************************
 //ENTRADAS: val(valiable cuyo bit queremos testear),
-//          bit(valor hexadecimal indicando con un '1 en la posición del bit que 
+//          bit(valor hexadecimal indicando con un '1 en la posiciï¿½n del bit que 
 //              queremos testear).
 //SALIDAS: boleana
-//FUNCIÓN: Testea el 'bit' indicado a la entrada de la variable 'val'. Resultará falso
-// si el bit es '0', y será true cuando bit sea '1'.
+//FUNCIï¿½N: Testea el 'bit' indicado a la entrada de la variable 'val'. Resultarï¿½ falso
+// si el bit es '0', y serï¿½ true cuando bit sea '1'.
 bool bitest(unsigned char val, unsigned char bit)
 {
  return(val & bit);
@@ -17,14 +15,14 @@ bool bitest(unsigned char val, unsigned char bit)
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Inicializa todos los puertos del Micro.
+//FUNCIï¿½N: Inicializa todos los puertos del Micro.
 void Init_Ports(void)
 {
   P1SEL = 0x08;         //P1.3 en modo TA2 para CAUDAL.
   P1DIR = 0x87;         //7, 2, 1 y 0 de salida
   P1OUT = 0;
-  P1IE  = 0x70;         //Habilitación de interrupción.
-  P1IES = 0x70;         //Interrupción por flanco de bajada
+  P1IE  = 0x70;         //Habilitaciï¿½n de interrupciï¿½n.
+  P1IES = 0x70;         //Interrupciï¿½n por flanco de bajada
   
   LCD_SEL = 0x08;      
   LCD_OUT = 0x02;   //R/W en modo lectura.
@@ -37,24 +35,24 @@ void Init_Ports(void)
   OPTO_SEL = 0;            //Optos
   OPTO_DIR = 0;            //Entradas
 
-  RELE_SEL = 0;            //Relés
+  RELE_SEL = 0;            //Relï¿½s
   RELE_DIR = 0xFF;         //Salidas
   RELE_OUT = 0; 
     
   P6SEL = 0x40;  
   P6DIR |= 0xBF;       
-  P6OUT = 0xFF;         //Se apagarán los leds de teclado
+  P6OUT = 0xFF;         //Se apagarï¿½n los leds de teclado
 }
 
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Para el Watchdog y activa los dos ociladores del sistema, configurando
-// ACLK = LFXT1 = 32768 y MCLK = XT2 = 8MHz, y si éste fallara, automáticamente 
+//FUNCIï¿½N: Para el Watchdog y activa los dos ociladores del sistema, configurando
+// ACLK = LFXT1 = 32768 y MCLK = XT2 = 8MHz, y si ï¿½ste fallara, automï¿½ticamente 
 // MCLK = DCO = 8MHz. 
 void Init_Osc(void)
 {
-  WDTCTL = WDT_ADLY_16; 	// interrumpirá al pulsar una tecla, y después cada 16mseg.
+  WDTCTL = WDT_ADLY_16; 	// interrumpirï¿½ al pulsar una tecla, y despuï¿½s cada 16mseg.
   BCSCTL1 &= ~XT2OFF; 		// XT2 = 8MHz on.
   _BIC_SR(OSCOFF); 		// turn on LFXT1 oscillator = ACLK.
 
@@ -66,14 +64,14 @@ void Init_Osc(void)
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Inicialización del Comparador A para el testeo del pin BAT SUP. Comparamos
-// con Vref = 0.5*Vcc = 1.65. Habilita el Filtro para aumentar la exactitud y resolución 
-// del resultado de la comparación.
+//FUNCIï¿½N: Inicializaciï¿½n del Comparador A para el testeo del pin BAT SUP. Comparamos
+// con Vref = 0.5*Vcc = 1.65. Habilita el Filtro para aumentar la exactitud y resoluciï¿½n 
+// del resultado de la comparaciï¿½n.
 void Init_COMP(void)
 {
- CACTL1 = CAREF_2 + CARSEL + CAON + CAIES + CAIE;  //Vref = 0.5*Vcc, interrupción 
+ CACTL1 = CAREF_2 + CARSEL + CAON + CAIES + CAIE;  //Vref = 0.5*Vcc, interrupciï¿½n 
                                                    //cuando flanco de bajada de CAOUT
- CACTL2 = P2CA0 +CAF;        //selección de CA0(P2.3), habilita el filtro de salida.
+ CACTL2 = P2CA0 +CAF;        //selecciï¿½n de CA0(P2.3), habilita el filtro de salida.
  CAPD = 0xF7;                //Todos los pines deshabilitados, menos CA0 = P2.3
  _EINT();
 }
@@ -83,13 +81,13 @@ void Init_COMP(void)
 //*********************************************************************************//
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Configuración del Convertidor Analógico Digital para decodificar el valor
+//FUNCIï¿½N: Configuraciï¿½n del Convertidor Analï¿½gico Digital para decodificar el valor
 // suministrado por el sensor de Nivel. Usando el reloj ADC12OSC = 5MHz y 
-// habilitando la conversión de tal manera que Ts = 1muestra/seg.
+// habilitando la conversiï¿½n de tal manera que Ts = 1muestra/seg.
 void Init_CAD(void)
 {
  ADC12MCTL0 = SREF_0 + INCH_6;  // Vref+ = AVcc y Vref- = AVss. A6
- ADC12CTL0 = ADC12ON + SHT0_15; // configuración del sampling time a 1024*ADC12OSC
+ ADC12CTL0 = ADC12ON + SHT0_15; // configuraciï¿½n del sampling time a 1024*ADC12OSC
  ADC12CTL1 |= SHP;              // usa el sampling timer. Modo de Pulso(SHP = 1)
  ADC12IE = 0x01;                // habilita ADC12IFG.0. Se guarda en ADC12MEM0
  ADC12CTL0 |= ENC;              // Enable conversions
@@ -100,32 +98,32 @@ void Init_CAD(void)
 //*********************************************************************************//
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Configura el Timer A para medir la frecuencia del tren de pulsos que 
-// genera el sensor de Caudal. Interrumpirá en cada flanco de subida de cada pulso.
+//FUNCIï¿½N: Configura el Timer A para medir la frecuencia del tren de pulsos que 
+// genera el sensor de Caudal. Interrumpirï¿½ en cada flanco de subida de cada pulso.
  
 void Init_TA(void)
 {
  TACCTL2 = CM_1 + CCIS_0 + CAP + CCIE; // flanco de subida, CCI2A,
-                                       // modo Captura, habilitación.
+                                       // modo Captura, habilitaciï¿½n.
  TACTL = TASSEL_1 + MC_2 + TAIE;       // ACLK, modo continuo.
 }
 
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Configura el Timer B para generar un RTC, interrumpiendo cada segundo,
-// utilizando el registro de comparación CCR0.
+//FUNCIï¿½N: Configura el Timer B para generar un RTC, interrumpiendo cada segundo,
+// utilizando el registro de comparaciï¿½n CCR0.
 void Init_TB(void)
 {
- TBCCTL0 = CCIE;             // habilita la interrupción para CCR0
+ TBCCTL0 = CCIE;             // habilita la interrupciï¿½n para CCR0
  TBCCR0 = cargaTB;           // cuenta desde 0000h hasta 8000h(1seg)
  TBCTL = TBSSEL0 + MC_1;     // usa ACLK, modo up to TBCL0 
 }
 
 //***********************************************************************************
-//ENTRADAS: a(valor máximo de la cuenta).
+//ENTRADAS: a(valor mï¿½ximo de la cuenta).
 //SALIDAS: -
-//FUNCIÓN: Cuenta retrasos de (15 + a*11) ciclos de reloj.
+//FUNCIï¿½N: Cuenta retrasos de (15 + a*11) ciclos de reloj.
 void Delay (unsigned int a)
 {
  unsigned int k;
@@ -134,9 +132,9 @@ void Delay (unsigned int a)
 }
 
 //***********************************************************************************
-//ENTRADAS: b(valor máximo de la cuenta en usegundos).
+//ENTRADAS: b(valor mï¿½ximo de la cuenta en usegundos).
 //SALIDAS: -
-//FUNCIÓN: Llama a la función Delay, para contar en una escala mayor.
+//FUNCIï¿½N: Llama a la funciï¿½n Delay, para contar en una escala mayor.
 void Delayx100us(unsigned int b)
 {
  unsigned int j;
@@ -147,8 +145,8 @@ void Delayx100us(unsigned int b)
 //***********************************************************************************
 //ENTRADAS: val(caracter enviado al LCD).
 //SALIDAS: -
-//FUNCIÓN: Al configurarse el LCD en modo 4 bits, es necesario dividir el caracter
-// 'val' en dos partes, así, hacemos una doble transferencia.
+//FUNCIï¿½N: Al configurarse el LCD en modo 4 bits, es necesario dividir el caracter
+// 'val' en dos partes, asï¿½, hacemos una doble transferencia.
 void Put_Val(unsigned char val)
 {
   E_ON;
@@ -168,7 +166,7 @@ void Put_Val(unsigned char val)
 //***********************************************************************************
 //ENTRADAS: Ins(instruccion enviada al LCD).
 //SALIDAS: -
-//FUNCIÓN: Se encarga de configurar el LCD para recibir instrucciones.
+//FUNCIï¿½N: Se encarga de configurar el LCD para recibir instrucciones.
 void Put_Ins(unsigned char Ins)
 {
  RS_OFF;
@@ -178,9 +176,9 @@ void Put_Ins(unsigned char Ins)
 }
 
 //***********************************************************************************
-//ENTRADAS: Ch(carácter enviada al LCD).
+//ENTRADAS: Ch(carï¿½cter enviada al LCD).
 //SALIDAS: -
-//FUNCIÓN: Se usa para escribir caracteres en el LCD
+//FUNCIï¿½N: Se usa para escribir caracteres en el LCD
 void Put_Data(unsigned char Ch)
 {
  RS_ON;
@@ -192,7 +190,7 @@ void Put_Data(unsigned char Ch)
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Secuencia de instrucciones que hacen Inicializar al Display.
+//FUNCIï¿½N: Secuencia de instrucciones que hacen Inicializar al Display.
 void Init_Display(void)
 {
  Delayx100us(700); //esperar 70 ms. Queda en modo 8 bits.
@@ -213,8 +211,8 @@ void Init_Display(void)
 //***********************************************************************************
 //ENTRADAS: *Str(Cadena de caracteres).
 //SALIDAS: -
-//FUNCIÓN: Función que escribe en el LCD llamando a la función Put_Data, teniendo en 
-// cuenta que si termina de escribir en la primera línea, pasará a la segunda.
+//FUNCIï¿½N: Funciï¿½n que escribe en el LCD llamando a la funciï¿½n Put_Data, teniendo en 
+// cuenta que si termina de escribir en la primera lï¿½nea, pasarï¿½ a la segunda.
 void Put_Str(const char *Str)
 {
  unsigned int i, j;
@@ -227,10 +225,10 @@ void Put_Str(const char *Str)
 }
 
 //***********************************************************************************
-//ENTRADAS: direccion(valor donde se colocará el cursor).
+//ENTRADAS: direccion(valor donde se colocarï¿½ el cursor).
 //SALIDAS: -
-//FUNCIÓN: Función que se encarga de limpiar la línea seleccinada en la entrada. El
-// cursor volverá a la 'direccion' indicada.
+//FUNCIï¿½N: Funciï¿½n que se encarga de limpiar la lï¿½nea seleccinada en la entrada. El
+// cursor volverï¿½ a la 'direccion' indicada.
 void Limpia_Linea(unsigned char direccion)
 {
   Put_Ins(direccion);
@@ -241,8 +239,8 @@ void Limpia_Linea(unsigned char direccion)
 //***********************************************************************************
 //ENTRADAS: -
 //SALIDAS: -
-//FUNCIÓN: Posiciona el cursor al Inicio de la pantalla de la línea 1 y escribe 32
-// caracteres en blanco, para luego volver a posicionar el cursor el la línea 1.
+//FUNCIï¿½N: Posiciona el cursor al Inicio de la pantalla de la lï¿½nea 1 y escribe 32
+// caracteres en blanco, para luego volver a posicionar el cursor el la lï¿½nea 1.
 void Limpia_Pantalla(void)
 {
   Put_Ins(LINEA1);
@@ -253,7 +251,7 @@ void Limpia_Pantalla(void)
 //***********************************************************************************
 //ENTRADAS: num(entero).
 //SALIDAS: -
-//FUNCIÓN: Función encargada de pintar el 'num' en el LCD
+//FUNCIï¿½N: Funciï¿½n encargada de pintar el 'num' en el LCD
 void Put_Num(int num)
 {
   char LCD[16];
@@ -263,14 +261,14 @@ void Put_Num(int num)
 }  
 
 //***********************************************************************************
-//ENTRADAS: i(iésimo caracter dela CGRAM donde será redefinido el carácter),
+//ENTRADAS: i(iï¿½simo caracter dela CGRAM donde serï¿½ redefinido el carï¿½cter),
 //          l1(),
 //          ...
-//          l8(). Corresponden a las 8 filas de puntos de cada carácter.
+//          l8(). Corresponden a las 8 filas de puntos de cada carï¿½cter.
 //SALIDAS: -
-//FUNCIÓN: Rutina que escribe el carácter i en la CGRAM.
-//Los puntos se pasan por líneas, asegurando que el número sea menor que 32, para no 
-// exceder los 5 puntos horizontales por línea. 
+//FUNCIï¿½N: Rutina que escribe el carï¿½cter i en la CGRAM.
+//Los puntos se pasan por lï¿½neas, asegurando que el nï¿½mero sea menor que 32, para no 
+// exceder los 5 puntos horizontales por lï¿½nea. 
 void PutCharCGRAM(unsigned int i, 
                   unsigned int l1, unsigned int l2,unsigned int l3,unsigned int l4,
                   unsigned int l5, unsigned int l6,unsigned int l7,unsigned int l8)                  
@@ -296,7 +294,7 @@ void PutCharCGRAM(unsigned int i,
 //***********************************************************************************
 //ENTRADAS: cifra(array de 7 cifras).
 //SALIDAS: unsigned long(salida entera generada por la entrada 'cifra').
-//FUNCIÓN: 
+//FUNCIï¿½N: 
 unsigned long Entero(unsigned long cifra[7])
 {  
  return(1000000*cifra[0] + 100000*cifra[1] + 10000*cifra[2] + 1000*cifra[3] + cifra[4]*100 + cifra[5]*10 + cifra[6]);
@@ -305,7 +303,7 @@ unsigned long Entero(unsigned long cifra[7])
 //***********************************************************************************
 //ENTRADAS: num(entero).
 //SALIDAS: -
-//FUNCIÓN:
+//FUNCIï¿½N:
 void Pinta_num(unsigned long cifra[7], unsigned int longitud)
 {
  unsigned int i, j = 0;

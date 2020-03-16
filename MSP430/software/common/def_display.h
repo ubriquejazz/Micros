@@ -1,4 +1,4 @@
-//hd44780.h
+
 // HD44780 Instructions and Parameter definitions
 //
 // Copyright (C) 1997, Ian Harries & Imperial College, London, UK
@@ -16,7 +16,7 @@
 
 // HD44780 Parameters
 // ================
-// Los parámetros deben pasarse cada vez que se emplea alguna de las instrucciones
+// Los parï¿½metros deben pasarse cada vez que se emplea alguna de las instrucciones
 // Set_Entry_Mode
 // ==============
 #define Decrement_Address 0x00 // . . . . . . 0 .
@@ -57,9 +57,9 @@
 //
 //If timing is non-critical (no need to check Busy Flag DB7)
 //then the R/W line - LCD Pin 5 - can be tied to Ground LOW).
-// Especificación de pines de salida
+// Especificaciï¿½n de pines de salida
 // =========================================
-// Tipo de intrucción 7 6 5 4 3 2 1 0
+// Tipo de intrucciï¿½n 7 6 5 4 3 2 1 0
 // =============== === === === === === === === ===
 #define Data_Register 0x01 // . . . . . 1 . .
 #define Ins_Register 0x00 // . . . . . 0 . .
@@ -67,7 +67,7 @@
 // ====== === === === === === === === ===
 #define Enable_Low 0x00 // . . . . 0 . . .
 #define Enable_High 0x04 // . . . . 1 . . .
-//Alternativamente pueden especificarse las señales de control mediante operaciones al bit.
+//Alternativamente pueden especificarse las seï¿½ales de control mediante operaciones al bit.
 #define E_OFF P2OUT &= ~BIT2 // P2.2 = 0
 #define E_ON P2OUT |= BIT2 // P2.2 = 1
 #define RS_OFF P2OUT &= ~BIT0 // P2.0 = 0

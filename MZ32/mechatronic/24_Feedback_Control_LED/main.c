@@ -5,6 +5,10 @@
 #define PLOTPTS		200
 #define EINTMAX		1
 
+#define VOLTS_PER_COUNT (3.3/1024)
+#define CORE_TICK_TIME 25    // nanoseconds between core ticks
+#define SAMPLE_TIME 10       // 10 core timer ticks = 250 ns
+
 static volatile int Waveform[NUMSAMPS];		// waveform
 static volatile int ADCarray[PLOTPTS];		// measured values to plot
 static volatile int REFarray[PLOTPTS];		// reference values to plot
@@ -42,11 +46,10 @@ unsigned int adc_sample_convert(int pin)
 
     elapsed = _CP0_GET_COUNT();
     finish_time = elapsed + SAMPLE_TIME;
-    while (_CP0_GET_COUNT() < finish_time) { 
-      Nop(); // sample for more than 250 ns
-    }
+    while (_CP0_GET_COUNT() < finish_time); // sample for more than 250 ns
+
     AD1CON1bits.SAMP = 0;                 // stop sampling and start converting
-    while (!AD1CON1bits.DONE);			  // wait for the conversion process to finish
+    while (!AD1CON1bits.DONE);            // wait for the conversion process to finish
     return ADC1BUF0;                      // read the buffer with the result
 }
 
@@ -57,7 +60,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Controller(void) {
 	static unsigned int decctr = 0; 
 	static int adcval = 0; 
 
-	// manual sampling and automatic conversion
+	// manual sampling and automatic conversion ???
 	adcval = adc_sample_convert(15);
 	if (StoringData) {					// after DECIMATION control loops
 		decctr++;						// store data in global arrays
@@ -73,7 +76,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Controller(void) {
 		}
 	}
 
-	// 
+	// PWM output
 	int error = Waveform[counter] - adcval;
 	float newu = pi_controller(error);
 	OC1RS = (unsigned int) ((unew/100) * PR2);
@@ -100,8 +103,9 @@ void makeWaveform(int center, int A) {
 	return;
 }
 
-void LIGHT_Setup()
+void hardwareSetup()
 {
+	/* ADC */
 	AD1PCFGbits.PCFG15 = 0;                 // AN15 is an adc pin
 	AD1CON3bits.ADCS = 2;                   // Tad = 2*(ADCS+1)*Tpb = 2*3*12.5ns = 75ns
 	AD1CON1bits.ADON = 1;                   // turn on A/D converter
@@ -119,6 +123,7 @@ void LIGHT_Setup()
 	IEC0bits.T1IE = 1;              // INT step 6: enable interrupt
 	__builtin_enable_interrupts();  // INT step 7: enable interrupts at CPU
 
+	/* PWM */
 	T2CONbits.TCKPS = 2;     // Timer2 prescaler N=4 (1:4)
 	PR2 = 1999;              // period = (PR2+1) * N * 12.5 ns = 100 us, 10 kHz
 	TMR2 = 0;                // initial TMR2 count is 0
@@ -135,17 +140,17 @@ void LIGHT_Setup()
 	return;
 }
 
-int main(void) {
-
+int main(void) 
+{
 	char message[100];				// message to and from Matlab
 	float kptemp = 0, kitemp = 0;	// temporay local gains
 	int i = 0;						// plot data loop counter
 
 	NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
 	makeWaveform(500, 300);
-	LIGHT_Setup();
-	while(1) {
-
+	hardwareSetup();
+	while(1) 
+	{
 		NU32_ReadUART3(message, sizeof(message));	// wait for a message from Matlab
 		sscanf(message, "%f %f", &kptemp, &kitemp);
 		__builtin_disable_interrupts();
@@ -161,7 +166,6 @@ int main(void) {
 			sprintf(message, "%d %d %d\r\n", PLOTPTS-i, ADCarray[i], REFarray[i]);
 			NU32_WriteUART3(message);
 		}	// Matlab knows we're done when the first field is '1'
-
 	}
 	return 0;
 }

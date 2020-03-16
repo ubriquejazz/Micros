@@ -1,7 +1,8 @@
 #include "menu.h"
 #include "functions.h"
 
-bool flanco;                 // se controla mejor la pulsación
+
+bool flanco;                 // s
 unsigned int modo=0;
 unsigned int ON = 9;         //Botón pulsado.
 unsigned int salidas_ocup[9]  = {1, 1, 1, 1, 1, 1, 1, 1, 1};  // Todas las salidas libres.
@@ -127,3 +128,4 @@ void Menu(void)
  ON = 9; 
  modo = 0;
 }
+

@@ -1,6 +1,11 @@
+#ifndef LIBRERIA__H__
+#define LIBRERIA__H__
+
+#include <msp430.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include "def_display.h"
 
 #define _100us 131  //131 cycles * 6 + 13 = 799 / 799*125ns = 99,875 us
 #define retdata 55  // 43 us
@@ -58,17 +63,21 @@
 #define bitset(var,bitno) ((var) |= 1 << (bitno))
 #define bitclr(var,bitno) ((var) &= ~(1 << (bitno)))
 
-void Init_Osc (void);
-void Init_TA (void);
-void Init_TB (void);
-void Init_CAD(void);
-void Init_COMP(void);
+void Init_Osc 	(void);
+void Init_TA 	(void);
+void Init_TB 	(void);
+void Init_CAD	(void);
+void Init_COMP	(void);
 void Init_Display(void);
 
 void Delay(unsigned int);
 void Delayx100us(unsigned int);
+
 void Put_Val(unsigned char);
 void Put_Ins(unsigned char);
+void Put_Str(const char *);
 void Put_Data(unsigned char);
 
+void Limpia_Pantalla(void);
 
+#endif
