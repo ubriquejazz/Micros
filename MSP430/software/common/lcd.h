@@ -13,19 +13,9 @@
 #define retint  50   // 39 us
 #define retclear 15 // 1,53 ms 1530 us
 
-#define cargaTB 0x8000  //cuenta máxima del Timer B
-
 #define LCD_OUT P2OUT
 #define LCD_DIR P2DIR
 #define LCD_SEL P2SEL
-
-#define OPTO_OUT P4OUT
-#define OPTO_DIR P4DIR
-#define OPTO_SEL P4SEL
-
-#define RELE_OUT P5OUT
-#define RELE_DIR P5DIR
-#define RELE_SEL P5SEL
 
 #define LINEA1    0x80
 #define xy11      0x81
@@ -65,11 +55,6 @@
 #define bitclr(var,bitno) ((var) &= ~(1 << (bitno)))
 bool    bitest(unsigned char val, unsigned char bit);
 
-void Init_Ports (void);
-void Init_Osc 	(void);
-void Init_TB 	(void);
-void Init_CAD	(void);
-void Init_COMP	(void);
 void Init_Display(void);
 
 void Delay(unsigned int);

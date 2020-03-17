@@ -1,5 +1,5 @@
+#include <lcd.h>
 #include "menu.h"
-#include "libreria.h"
 #include "application.h"     // despierto, dormido
 
 bool flanco;                 // s
