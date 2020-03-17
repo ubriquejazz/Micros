@@ -1,4 +1,4 @@
-
+//
 // HD44780 Instructions and Parameter definitions
 //
 // Copyright (C) 1997, Ian Harries & Imperial College, London, UK

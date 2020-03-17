@@ -5,11 +5,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+
 #include "def_display.h"
 
-#define _100us 131  //131 cycles * 6 + 13 = 799 / 799*125ns = 99,875 us
+#define _100us  131  //131 cycles * 6 + 13 = 799 / 799*125ns = 99,875 us
 #define retdata 55  // 43 us
-#define retint 50   // 39 us
+#define retint  50   // 39 us
 #define retclear 15 // 1,53 ms 1530 us
 
 #define cargaTB 0x8000  //cuenta máxima del Timer B
@@ -62,9 +63,10 @@
 
 #define bitset(var,bitno) ((var) |= 1 << (bitno))
 #define bitclr(var,bitno) ((var) &= ~(1 << (bitno)))
+bool    bitest(unsigned char val, unsigned char bit);
 
+void Init_Ports (void);
 void Init_Osc 	(void);
-void Init_TA 	(void);
 void Init_TB 	(void);
 void Init_CAD	(void);
 void Init_COMP	(void);
@@ -77,7 +79,13 @@ void Put_Val(unsigned char);
 void Put_Ins(unsigned char);
 void Put_Str(const char *);
 void Put_Data(unsigned char);
+void Put_Num(int);
 
-void Limpia_Pantalla(void);
+void PutCharCGRAM(unsigned int i,
+      unsigned int l1, unsigned int l2,unsigned int l3,unsigned int l4,
+      unsigned int l5, unsigned int l6,unsigned int l7,unsigned int l8);
+
+void Limpia_Pantalla (void);
+void Limpia_Linea (unsigned char);
 
 #endif

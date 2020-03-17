@@ -1,5 +1,6 @@
 #include "menu.h"
-#include "application.h"
+#include "libreria.h"
+#include "application.h"     // despierto, dormido
 
 bool flanco;                 // s
 unsigned int modo=0;
@@ -235,3 +236,4 @@ void Menu(void)
 void Manual(void)
 {
 }
+
