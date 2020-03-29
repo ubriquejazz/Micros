@@ -90,15 +90,19 @@ int main(void)
                                   // INT step 3: configure ADC generating interrupts
   AD1PCFGbits.PCFG2 = 0;          //        make RB2/AN2 an analog input (the default)
   AD1CHSbits.CH0SA = 2;           //        AN2 is the positive input to the sampler
+  /* CON3 */
   AD1CON3bits.SAMC = 2;           //        sample for 2 Tad 
   AD1CON3bits.ADCS = 2;           //        Tad = 6*Tpb
+  /* CON2 */
   AD1CON2bits.VCFG = 3;           //        external Vref+ and Vref- for VREFH and VREFL
   AD1CON2bits.SMPI = 7;           //        interrupt after every 8th conversion (8 samples)
   AD1CON2bits.BUFM = 1;           //        adc buffer is two 8-word buffers
+  /* CON1 */
   AD1CON1bits.FORM = 0b100;       //        unsigned 32 bit integer output
   AD1CON1bits.ASAM = 1;           //        autosampling begins after conversion
   AD1CON1bits.SSRC = 0b111;       //        conversion starts when sampling ends
   AD1CON1bits.ON = 1;             //        turn on the ADC
+
   IPC6bits.AD1IP = 6;             // INT step 4: IPL6, to use shadow register set
   IFS1bits.AD1IF = 0;             // INT step 5: clear ADC interrupt flag
   IEC1bits.AD1IE = 1;             // INT step 6: enable ADC interrupt
