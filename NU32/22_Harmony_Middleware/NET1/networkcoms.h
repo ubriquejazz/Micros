@@ -47,9 +47,9 @@ typedef enum
 
 typedef struct
 {
-  //The application's current state
-  NETWORKCOMS_STATES state;
-	
+	//The application's current state
+	NETWORKCOMS_STATES state;
+
 	//State variable for transmitting a call request
 	NETWORKCOMS_CALLREQ_STATES callRequestState;
     
