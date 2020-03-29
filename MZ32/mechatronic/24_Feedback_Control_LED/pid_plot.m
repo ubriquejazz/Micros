@@ -1,8 +1,6 @@
 function data = pid_plot(port,Kp,Ki)
 %   pid_plot plot the data from the pwm controller to the current figure
 %
-%   data = pid_plot(port,Kp,Ki)
-%
 %   Input Arguments:
 %       port - the name of the com port.  This should be the same as what
 %               you use in screen or putty in quotes ' '
@@ -12,9 +10,7 @@ function data = pid_plot(port,Kp,Ki)
 %       data - The collected data.  Each column is a time slice
 %
 %   Example:
-%       data = pid_plot('/dev/ttyUSB0',1.0,1.0) (Linux)
-%       data = pid_plot('/dev/tty.usbserial-00001014A',1.0,1.0) (Mac)
-%       data = pid_plot('COM3',1.0,1.0) (PC)
+%       data = pid_plot('/dev/ttyUSB0',1.0,1.0) 
 %
 
 %% Opening COM connection
@@ -45,17 +41,16 @@ while read_samples > 1
     % Extracting variables from data_read
     read_samples=data_read(1); 
     ADCval(sampnum)=data_read(2);
-    ref(sampnum)=data_read(3);
-    
+    REFval(sampnum)=data_read(3);
     sampnum=sampnum+1; % incrementing loop number
 end
-data = [ref;ADCval]; % setting data variable
+data = [REFval;ADCval]; % setting data variable
 
 %% Plotting data
 clf;
 hold on;
 t = 1:sampnum-1;
-plot(t,ref);
+plot(t,REFval);
 plot(t,ADCval);
 legend('Reference', 'ADC Value')
 title(['Kp: ',num2str(Kp),'  Ki: ',num2str(Ki)]);

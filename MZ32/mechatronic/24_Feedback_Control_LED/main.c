@@ -1,13 +1,24 @@
+/*!\name      main.c
+ *
+ * \brief     Feedback Control Loop - LED Brightness
+ *			  Controller running at 1 KHz (TMR1)
+ *			  PWM generation at 20 KHz (OC1, TMR2)
+ *			  Sensor at AN15 (manual sampling for 200ns)
+ *
+ * \author    Juan Gago
+ *
+ */
+
 #include "NU32.h"
+
+#define VOLTS_PER_COUNT (3.3/1024)
+#define CORE_TICK_TIME 	40    // nanoseconds between core ticks
+#define ADC_SAMPLE_TIME	6     // 6 core timer ticks = 240 ns
 
 #define DECIMATION 	10
 #define NUMSAMPS	1000
 #define PLOTPTS		200
 #define EINTMAX		1
-
-#define VOLTS_PER_COUNT (3.3/1024)
-#define CORE_TICK_TIME 25    // nanoseconds between core ticks
-#define SAMPLE_TIME 10       // 10 core timer ticks = 250 ns
 
 static volatile int Waveform[NUMSAMPS];		// waveform
 static volatile int ADCarray[PLOTPTS];		// measured values to plot
@@ -43,9 +54,8 @@ unsigned int adc_sample_convert(int pin)
     unsigned int elapsed = 0, finish_time = 0;
     AD1CHSbits.CH0SA = pin;                // connect chosen pin to MUXA for sampling
     AD1CON1bits.SAMP = 1;                  // start sampling
-
     elapsed = _CP0_GET_COUNT();
-    finish_time = elapsed + SAMPLE_TIME;
+    finish_time = elapsed + ADC_SAMPLE_TIME;
     while (_CP0_GET_COUNT() < finish_time); // sample for more than 250 ns
 
     AD1CON1bits.SAMP = 0;                 // stop sampling and start converting
@@ -60,7 +70,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Controller(void) {
 	static unsigned int decctr = 0; 
 	static int adcval = 0; 
 
-	// manual sampling and automatic conversion ???
+	// manual sampling and automatic conversion
 	adcval = adc_sample_convert(15);
 	if (StoringData) {					// after DECIMATION control loops
 		decctr++;						// store data in global arrays
@@ -75,7 +85,6 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Controller(void) {
 			StoringData = 0;
 		}
 	}
-
 	// PWM output
 	int error = Waveform[counter] - adcval;
 	float newu = pi_controller(error);
@@ -84,8 +93,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Controller(void) {
 	if (counter == NUMSAMPS) {
 		counter = 0;					// roll the counter over
 	}
-
-	// insert line to clear interrupt flag
+	// Clear interrupt flag
 	IFS0bits.T1IF = 0; 
 }
 
@@ -105,15 +113,10 @@ void makeWaveform(int center, int A) {
 
 void hardwareSetup()
 {
-	/* ADC */
-	AD1PCFGbits.PCFG15 = 0;                 // AN15 is an adc pin
-	AD1CON3bits.ADCS = 2;                   // Tad = 2*(ADCS+1)*Tpb = 2*3*12.5ns = 75ns
-	AD1CON1bits.ADON = 1;                   // turn on A/D converter
-
-	__builtin_disable_interrupts(); // INT step 2: disable interrupts at CPU
-	PR1 = 62499;                    // INT step 3: setup period register
+	/* TMR1 at 1 KHz */
+	PR1 = 24999;                    // INT step 3: setup period register
 	TMR1 = 0;                       //             initialize count to 0
-	T1CONbits.TCKPS = 3;            //             set prescaler to 256
+	T1CONbits.TCKPS = 2;            //             set prescaler to 2
 	T1CONbits.TGATE = 0;            //             not gated input (the default)
 	T1CONbits.TCS = 0;              //             PCBLK input (the default)
 	T1CONbits.ON = 1;               //             turn on Timer1
@@ -121,22 +124,26 @@ void hardwareSetup()
 	IPC1bits.T1IS = 0;              //             subpriority
 	IFS0bits.T1IF = 0;              // INT step 5: clear interrupt flag
 	IEC0bits.T1IE = 1;              // INT step 6: enable interrupt
-	__builtin_enable_interrupts();  // INT step 7: enable interrupts at CPU
 
-	/* PWM */
-	T2CONbits.TCKPS = 2;     // Timer2 prescaler N=4 (1:4)
-	PR2 = 1999;              // period = (PR2+1) * N * 12.5 ns = 100 us, 10 kHz
+	/* OC1, TMR2  at 20 KHz */
+	T2CONbits.TCKPS = 1;     // Timer2 prescaler N=1
+	PR2 = 249;               // period = (PR2+1) * N * 20 ns = 50 us, 20 kHz
 	TMR2 = 0;                // initial TMR2 count is 0
 	OC1CONbits.OCM = 0b110;  // PWM mode without fault pin; other OC1CON bits are defaults
-	
-	OC1RS = 500;             // duty cycle = OC1RS/(PR2+1) = 25%
-	OC1R = 500;              // initialize before turning OC1 on; afterward it is read-only
+	OC1RS = 125;             // duty cycle = OC1RS/(PR2+1) = 50%
+	OC1R = 125;              // initialize before turning OC1 on; afterward it is read-only
 	T2CONbits.ON = 1;        // turn on Timer2
 	OC1CONbits.ON = 1;       // turn on OC1
 
 	_CP0_SET_COUNT(0);       // delay 4 seconds to see the 25% duty cycle on a 'scope
 	while(_CP0_GET_COUNT() < 4 * 40000000);
 	OC1RS = 1000;            // set duty cycle to 50%
+
+	/* ADC */
+	AD1PCFGbits.PCFG15 = 0;                 // AN15 is an adc pin
+	AD1CON3bits.ADCS = 3;                   // Tad = 2*(ADCS+1)*Tpb = 2*4*20ns = 80ns
+	AD1CON1bits.ADON = 1;                   // turn on A/D converter
+
 	return;
 }
 
@@ -145,10 +152,14 @@ int main(void)
 	char message[100];				// message to and from Matlab
 	float kptemp = 0, kitemp = 0;	// temporay local gains
 	int i = 0;						// plot data loop counter
+	makeWaveform(500, 300);			// init waveform
 
 	NU32_Startup(); // cache on, min flash wait, interrupts on, LED/button init, UART init
-	makeWaveform(500, 300);
+
+	__builtin_disable_interrupts(); // INT step 2: disable interrupts at CPU	
 	hardwareSetup();
+	__builtin_enable_interrupts();  // INT step 7: enable interrupts at CPU
+
 	while(1) 
 	{
 		NU32_ReadUART3(message, sizeof(message));	// wait for a message from Matlab

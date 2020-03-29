@@ -19,24 +19,21 @@ int main()
     NU32_LED2 = 1;                   // clear the error LED
     switch (buffer[0]) {
       case 'd':                      // dummy command for demonstration purposes
-      {
         int n = 0;
         NU32_ReadUART3(buffer,BUF_SIZE);
         sscanf(buffer, "%d", &n);
         sprintf(buffer,"%d\r\n", n + 1); // return the number + 1
         NU32_WriteUART3(buffer);
         break;
-      }
+      
       case 'q':
-      {
         // handle q for quit. Later you may want to return to IDLE mode here. 
         break;
-      }
+      
       default:
-      {
         NU32_LED2 = 0;  // turn on LED2 to indicate an error
         break;
-      }
+      
     }
   }
   return 0;
