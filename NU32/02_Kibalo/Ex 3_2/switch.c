@@ -6,20 +6,13 @@
  */
 
 #include "system.h"		
+#include "delay.h"   
 
 #define LED     LATBbits.LATB5
 #define SWITCH  PORTBbits.RB3
-#define iend    25	  //delay loop is iend times jend instruction cycles
-#define jend    1000
 
 int binarycount =0; //actual binary count
 int debounce =0 ; //debounce counter
-
-void delay(void) { // 501 msec
-  int i,j;
-  for (i=0; i<iend; i++)
-    for (j=0;j<jend; j++); 	
-}
 
 int main ( void )
 {
@@ -33,7 +26,7 @@ int main ( void )
   while (1) 
   {
     if (SWITCH == 0) {   //test if low-switch depressed
-      delay();
+      Delayms(500);
       debounce++; //increment count after delat
       if (debounce>4) {  //button down for 3 counts?
         binarycount = binarycount+0x7f; //yes, then increment count
