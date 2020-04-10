@@ -33,15 +33,15 @@ fprintf(mySerial,'%f %f\n',[Kp,Ki]);
 %% Reading data
 fprintf('Waiting for samples ...\n');
 
-sampnum = 1; % index for number of samples read
-read_samples = 10; % When this value from PIC32 equals 1, it is done sending data
+sampnum = 1; 		% index for number of samples read
+read_samples = 10; 	% When this value from PIC32 equals 1, it is done sending data
 while read_samples > 1
     data_read = fscanf(mySerial,'%d %d %d'); % reading data from serial port
     
     % Extracting variables from data_read
-    read_samples=data_read(1); 
-    ADCval(sampnum)=data_read(2);
-    REFval(sampnum)=data_read(3);
+    read_samples	=data_read(1); 
+    ADCval(sampnum)	=data_read(2);
+    REFval(sampnum)	=data_read(3);
     sampnum=sampnum+1; % incrementing loop number
 end
 data = [REFval;ADCval]; % setting data variable
