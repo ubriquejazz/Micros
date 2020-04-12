@@ -20,11 +20,11 @@ int adcvalue = 0;
 int main ( void )
 {
 	char count[] = {'0','0','0','0', '0'};
-	initADC(pin);
+	adc_init(pin);
 
 	while (1) 	/*  endless loop vary pot and capture reading*/
 	{ 
-		adcvalue = readADC();		// force a conversion 
+		adcvalue = adc_read();		// force a conversion 
 		binary_to_ascii(adcvalue); 	// convert binary to ASCII
 		
 		count[0] = bcd10000; //store ASCII result in array

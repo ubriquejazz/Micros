@@ -12,8 +12,7 @@ void initTMR1()
 }
 
 //timer1 hardware delays
-void Delayms(unsigned int t)
-{
+void delay_ms(unsigned int t) {
     initTMR1();
     while (t--) {
         TMR1 = 0;
@@ -21,8 +20,7 @@ void Delayms(unsigned int t)
     }
 }
 
-void Delay100us(unsigned int t)
-{
+void delay_100us(unsigned int t) {
     initTMR1();
     while (t--) {
         TMR1 = 0;
@@ -30,8 +28,7 @@ void Delay100us(unsigned int t)
     }
 } 
 
-void Delay10us(unsigned int t)
-{
+void delay_10us(unsigned int t) {
     initTMR1();
     while (t--) {
         TMR1 = 0;

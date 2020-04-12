@@ -48,7 +48,7 @@ int main ( void )
     {
         if (got_rx==1) {
             got_rx =0;
-            putU2(rxchar);
+            uart_putchar(rxchar);
         }
     }
     return 0;

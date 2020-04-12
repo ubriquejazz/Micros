@@ -11,8 +11,8 @@
 #define COUNT100US 		10000
 #define COUNT10US 		100000
 
-void Delayms(unsigned int t);
-void Delay100us(unsigned int t);
-void Delay10us(unsigned int t);
+void delay_ms(unsigned int t);
+void delay_100us(unsigned int t);
+void delay_10us(unsigned int t);
 
 #endif

@@ -76,7 +76,7 @@ int average_value (void) {
 }
 
 // Manual sampling, auto-conversion (SAR)
-int initADC(int pin)
+int adc_init(int pin)
 {
 	AD1CON1bits.ADON = 0; // turn off the ADC
   switch (pin) {
@@ -153,7 +153,7 @@ int initADC(int pin)
 
 // sample & convert the value on the given adc pin 
 // the pin should be configured as an analog input 
-int readADC(void)
+int adc_read(void)
 {
     //AD1CHS.CH0SA = pin;       // select analog input channel based on pin
     AD1CON1bits.SAMP = 1;       // start sampling, automatic conversion will follow
