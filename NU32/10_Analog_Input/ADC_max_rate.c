@@ -13,6 +13,8 @@
  */
 
 #include "NU32.h"                    // constants, functions for startup and UART
+#include "adc.h"
+#include "pwm.h"
 
 #define NUM_ISRS    125             // the number of 8-sample ISR results to be printed
 #define NUM_SAMPS   (NUM_ISRS*8)    // the number of samples stored 1000
@@ -74,13 +76,8 @@ int main(void)
 
   __builtin_disable_interrupts(); // INT step 2: disable interrupts
 
-                                  // configure OC1 to use T2 to make 5 kHz 25% DC
-  PR2 = 15999;                    // (15999+1)*12.5ns = 200us period = 5kHz
-  T2CONbits.ON = 1;               // turn on Timer2
-  OC1CONbits.OCM = 0b110;         // OC1 is PWM with fault pin disabled
-  OC1R = 4000;                    // hi for 4000 counts, lo for rest (25% DC)
-  OC1RS = 4000;
-  OC1CONbits.ON = 1;              // turn on OC1
+  tmr2_setup (1, 16000);          // period * 1 * 12.5 ns = 200 us, 5 kHz
+  oc1_duty_cycle (4000);          // turn on OC1, TMR2 (25%)
 
                                   // set up Timer45 to count every pbclk cycle
   T4CONbits.T32 = 1;              // configure 32-bit mode
@@ -90,19 +87,7 @@ int main(void)
                                   // INT step 3: configure ADC generating interrupts
   AD1PCFGbits.PCFG2 = 0;          //        make RB2/AN2 an analog input (the default)
   AD1CHSbits.CH0SA = 2;           //        AN2 is the positive input to the sampler
-  /* CON3 */
-  AD1CON3bits.SAMC = 2;           //        sample for 2 Tad 
-  AD1CON3bits.ADCS = 2;           //        Tad = 6*Tpb
-  /* CON2 */
-  AD1CON2bits.VCFG = 3;           //        external Vref+ and Vref- for VREFH and VREFL
-  AD1CON2bits.SMPI = 7;           //        interrupt after every 8th conversion (8 samples)
-  AD1CON2bits.BUFM = 1;           //        adc buffer is two 8-word buffers
-  /* CON1 */
-  AD1CON1bits.FORM = 0b100;       //        unsigned 32 bit integer output
-  AD1CON1bits.ASAM = 1;           //        autosampling begins after conversion
-  AD1CON1bits.SSRC = 0b111;       //        conversion starts when sampling ends
-  AD1CON1bits.ON = 1;             //        turn on the ADC
-
+  adc_init_auto();                //        turn on the ADC
   IPC6bits.AD1IP = 6;             // INT step 4: IPL6, to use shadow register set
   IFS1bits.AD1IF = 0;             // INT step 5: clear ADC interrupt flag
   IEC1bits.AD1IE = 1;             // INT step 6: enable ADC interrupt
