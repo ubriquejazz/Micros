@@ -1,6 +1,6 @@
 /*!\name      flash.h
  *
- * \brief     allocates a page of flash and provides read/write accesss
+ * \brief     PIC32 Peripheral
  *
  * \author    Juan Gago
  *
@@ -9,9 +9,6 @@
 #include "flash.h"
 #include <xc.h>
 #include <sys/kmem.h> // macros for converting between physical and virtual addresses
-
-#define OP_ERASE_PAGE 4 // erase page operation, per NVMCONbits.NVMOP specification
-#define OP_WRITE_WORD 1 // write word operation, per NVMCONbits.NVMOP specification
 
 // Making the array const and initializing it to 0 ensures that the linker will
 // store it in flash memory.
