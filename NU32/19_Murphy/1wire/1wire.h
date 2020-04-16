@@ -2,6 +2,9 @@
 #define _1WIRE_H
 
 #include <stdio.h>
+#include "pin_common.h"
+
+extern PIN_DEF PinOne;
 
 /*! \file 	1wire.h
 
@@ -9,38 +12,6 @@
 */
 
 #define  READ_COMMAND_SERIAL_NUMBER     0x33
-
-//! Drive 1-wire pin low
-/*! Set pin to be an output and drive it low
-*/ 
-/*! \a Nothing passed in
-    \return Nothing passed back
-*/
-void drive_OW_low (void);
-
-//! Drive 1-wire pin high
-/*! Set pin to be an output and drive it high
-*/ 
-/*! \a Nothing passed in
-    \return Nothing passed back
-*/
-void drive_OW_high (void);
-
-//unsigned char read__one_wire (void);
-
-//! Send a single bit to the 1-wire bus
-/*! @param write_data bit level that is to be sent (1/0)
-    \return Nothing passed back
-*/
-void OW_write_bit (unsigned char write_data);
-
-//! Read the 1-wire state
-/*! Set pin to be an input and read the value
-*/ 
-/*! \a Nothing passed in
-    \return The pin value found
-*/
-unsigned char read_OW (void);
 
 //! Place a reset pulse on the bus
 /*! Reset all devices on the bus by sending a long low.
