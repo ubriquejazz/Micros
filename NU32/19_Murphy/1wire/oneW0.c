@@ -1,32 +1,43 @@
 /*!\name      oneW0.c
  *
- * \brief     State machine for the 1W driver
+ * \brief     Client for the 1W driver
  *
  * \author    Juan Gago
  */
+
 #include "oneW0.h"
-#include "1wirecontrol.h"   // OW_read_byte(), etc.
-#include "barcode.h"        // BarCodeSetValue, GetValue
+#include "led_common.h"
+#include "1wire_common.h"   // OW_read_byte(), etc.
+#include "1wire_system.h"   // System1WireCount
+#include "barcode.h"        // SetValue, GetValue
 
-ONEW0_DATA oneW0Data;
+static int elapsed_time(uint32_t interval)
+{
+    static uint32_t lastCoreTime;
+    static bool firstTime = true;
+    uint32_t thisCoreTime = _CP0_GET_COUNT();
 
-bool ONEW0_Write_ModuleType (char* payload,  uint8_t* result, int32_t resultLen)
-{ 
-    int barResult;
-    oneW0Data.readen = false;
-    barResult=SetValue(MODULE_TYPE, payload, IGNORE_ERRORS);
-    if (barResult>0) {
-       snprintf(result, resultLen, "_INFO %s", payload);
-       return true;
+    if(firstTime) {
+        lastCoreTime = thisCoreTime;
+        firstTime = false;
+    }
+
+    int distance; // ticks since the last call
+    if (thisCoreTime > lastCoreTime) {
+        distance = thisCoreTime - lastCoreTime;
     }
     else {
-       snprintf(result, resultLen, "_ERR %s", payload); 
-       return false;
+        distance = 0xFFFFFFFF - lastCoreTime + thisCoreTime;
     }
-    return retVal; 
+
+    int error = distance - interval; // if over 0 then 100ms has passed
+    if (error > 0) {
+        lastCoreTime = thisCoreTime + error; // carried fowared in the next interval
+    }
+    return error;
 }
 
-float ONEW0_Temperature ()
+float one_read_temperature ()
 {
     uint8_t tempL, tempH;
     float aux;
@@ -36,95 +47,67 @@ float ONEW0_Temperature ()
     return 6.25 * aux;    
 }
 
-bool ONEW0_Read(char * buffer, uint8_t device_low)
-{   
-    switch (0x20 + device_low)
-    {
-        default:
-        case TYPE_ID_MEMORY_1:          // 0x23
-        {
-            // Reading the 1W PROM (serial number)
-            GetValue(MODULE_TYPE, buffer, IGNORE_ERRORS);
-            oneW0Data.readen = 0;
-            break;
-        }            
-        case TYPE_ID_DS18B20Z:          // 0x28
-        {
-            // Reading DS18B20 device
-            OW_reset_pulse();
-            OW_write_byte(DS18B20_Skip_ROM);        
-            OW_write_byte(DS18B20_Convert_T);
-            oneW0Data.state = ONEW0_STATE_CONVERT_T;
-            break;
-        }        
-    }  
-    return true;
+void task_phase0() {
+
 }
 
-// *****************************************************************************
-// *****************************************************************************
-// Section: Application Initialization and State Machine Functions
-// *****************************************************************************
-// *****************************************************************************
-
-void ONEW0_Initialize ( void )
-{
-    /* Place the App state machine in its initial state. */
-    oneW0Data.state = ONEW0_STATE_INIT;
-    oneW0Data.readen = false;
-    oneW0Data.device_id = 3;        // 0x23  
+void task_phase1() {    // Conversion DS18B20 device
+    OW_reset_pulse();
+    OW_write_byte(DS18B20_Skip_ROM);        
+    OW_write_byte(DS18B20_Convert_T);  
 }
 
-void ONEW0_Tasks ( uint32_t* milliseconds )
+void task_phase2(char* result) {    // Reading DS18B20 device
+    OW_reset_pulse();
+    OW_write_byte(DS18B20_Skip_ROM);        
+    OW_write_byte(DS18B20_Read_Scratchpad); 
+    sprintf(result, "%.2f", one_read_temperature()); 
+}
+
+void task_phase3(char* buffer) {    // Reading the 1W PROM (serial number)
+    OW_reset_pulse();
+    GetValue(MODULE_TYPE, buffer, IGNORE_ERRORS);
+}
+
+// Application Initialization and State Machine Functions
+
+int one_init ( int pin )
 {
-    switch ( oneW0Data.state )
+    int deviceCnt = 0;
+    PIN_DEF* ptr = ping_get(pin);
+    PinOne = *ptr;
+    elapsed_time(1000 * ms_SCALE);  // lastCoreTime initialized
+    deviceCnt += System1WireCount(TYPE_ID_DS18B20Z);
+    deviceCnt += System1WireCount(TYPE_ID_MEMORY_1);
+    return deviceCnt;
+}
+
+int one_pull ( uint32_t* milliseconds )
+{
+    static int count = 0;
+    char buffer[32];
+
+    // (*milliseconds > 1000)
+    if (elapsed_time(1000 * ms_SCALE) > 0)
     {
-        /* Application's initial state. */
-        case ONEW0_STATE_INIT:  
-            if (*milliseconds> ONEW0_DISCOVER_START)
-            {
-                *milliseconds= 0;                
-                oneW0Data.state = ONEW0_STATE_INIT_1WIRE;
-            }                   
-            break;
-        
-        case ONEW0_STATE_INIT_1WIRE:        
-            if (false
-                || (System1WireCount(TYPE_ID_DS18B20Z) > 0) 
-                || (System1WireCount(TYPE_ID_MEMORY_1) > 0) 
-                || (*milliseconds> ONEW0_DISCOVER_TIMEOUT))
-            {
-                oneW0Data.state = ONEW0_STATE_IDLE;          
-                *milliseconds= 0; 
-            }                   
-            break;          
+        if (count == 1) {
+            task_phase1();
+        }
+        else if (count == 2) {
+            task_phase2(buffer);
+        }
+        else if (count == 3) {
+            task_phase3(buffer);
+        }
+        else {
+            task_phase0();
+            count = 0;
+        }
+        count++;
+        // *milliseconds = 0;
 
-        case ONEW0_STATE_IDLE:
-            if (oneW0Data.readen)
-            {
-                memset(oneW0Data.rxbuff, 0, MAX_NUM_OF_uint8_tS);
-                ONEW0_Read( oneW0Data.rxbuff, oneW0Data.device_id);
-                *milliseconds= 0;
-            }         
-            break;
-        
-        case ONEW0_STATE_CONVERT_T:           
-            if (*milliseconds> ONEW0_SENSOR_DELAY)
-            {
-                *milliseconds= 0;
-                oneW0Data.readen = 0;
-                oneW0Data.state = ONEW0_STATE_IDLE;                
-                // Reading DS18B20 device
-                OW_reset_pulse();
-                OW_write_byte(DS18B20_Skip_ROM);        
-                OW_write_byte(DS18B20_Read_Scratchpad); 
-                sprintf(oneW0Data.rxbuff, "%.2f", ONEW0_Temperature());                
-            }
-            break;
-
-        default:
-            break;
     }
+    return count;
 }
 
 /*******************************************************************************

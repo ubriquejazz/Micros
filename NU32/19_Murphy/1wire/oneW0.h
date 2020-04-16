@@ -11,7 +11,7 @@
 
 /*!\name      oneW0.c
  *
- * \brief     State machine for the 1W driver
+ * \brief     Client for the 1W driver
  *
  * \author    Juan Gago
  *
@@ -37,31 +37,12 @@
 #define TERMINATOR      ']'   //!< Terminator of any field ID delimiter (This has no data attaced to it).
 #define CR_VALUE        '\r'  //!< Caraige return to mark end of data.
 #define LF_VALUE        '\n'  //!< Caraige return to mark end of data.
-
-typedef enum
-{
-	ONEW0_STATE_INIT=0,            
-	ONEW0_STATE_SETUP_FREQ,
-	ONEW0_STATE_INIT_1WIRE,            
-    ONEW0_STATE_IDLE,
-    ONEW0_STATE_CONVERT_T
-
-} ONEW0_STATES;
-
-typedef struct
-{
-    ONEW0_STATES state;   
-    char        rxbuff[64];     // buffer from the 1W Prom
-    uint8_t     device_id;      // Device ID to be read
-    bool        readen;         // read Enable    
-
-} ONEW0_DATA;
 	
 // Application Initialization and State Machine Functions
 
-void ONEW0_Initialize ( void );
+int one_init ( int );
 
-void ONEW0_Tasks( uint32_t* );
+int one_pull ( uint32_t* );
 
 #endif /* _ONEW0_H */
 
