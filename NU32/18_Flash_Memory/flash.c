@@ -37,17 +37,40 @@ static void flash_op(unsigned char op) { // perform a flash operation (op is NVM
   }
 }
 
-void flash_erase() {         // erase the flash buffer. resets the memory to ones
+/*! \fn         flash_erase ()
+ * 
+ *  \brief      Eerase the flash buffer. resets the memory to ones
+ * 
+ *  \return     Current phase
+ */
+void flash_erase() {
   NVMADDR = KVA_TO_PA(buf);  // use the physical address of the buffer
   flash_op(OP_ERASE_PAGE);      
 }
 
-void flash_write_word(unsigned int index, unsigned int data) { // writes a word to flash  
-  NVMADDR = KVA_TO_PA(buf + index);   // physical address of flash to write to
-  NVMDATA = data;                     // data to write 
+/*! \fn         flash_write_word (index, data)
+ * 
+ *  \brief      Wwrites a word to flash  
+ * 
+ *  \param      index - physical address of flash to write to
+ *  \param      data - data to write like f01dab1e
+ */
+void flash_write_word(unsigned int index, unsigned int data) {  
+  NVMADDR = KVA_TO_PA(buf + index);   // 
+  NVMDATA = data;                     // 
   flash_op(OP_WRITE_WORD);
 }
 
-unsigned int flash_read_word(unsigned int index) { // read a word from flash
+/*! \fn         flash_read_word ()
+ * 
+ *  \brief      Rread a word from flash
+ * 
+ *  \return     Current word
+ */
+unsigned int flash_read_word(unsigned int index) { 
   return buf[index];
 }
+
+/*******************************************************************************
+ End of File
+ */
