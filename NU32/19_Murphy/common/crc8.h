@@ -9,7 +9,7 @@ extern uint8_t crc8;
 */
 uint8_t do_crc8(uint8_t);
 
-bool check_crc8(int8 *);
+bool check_crc8(uint8_t *);
 
 bool reset_crc8(void);
 

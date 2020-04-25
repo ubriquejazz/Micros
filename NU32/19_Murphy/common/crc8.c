@@ -1,6 +1,11 @@
 #include "crc8.h"
 
-uint8_t   crc8;
+static uint8_t crc8;
+
+bool reset_crc8 () {
+    crc8 = 0;
+    return true;
+}
 
 //constant data table used for checking CRC of 64 bit unique ROM codes
 const char crc8_table[256]={
@@ -25,25 +30,20 @@ const char crc8_table[256]={
  * 
  *  \brief      Checks if the unique 64 bit ROM code was received correctly 
  *
- *  \param      pointer to ROM code
+ *  \param      pointer to ROM code (8 bytes)
+ *
  *  \return     TRUE if CRC matches, FALSE if CRC doesn't match 
  */
-bool check_crc8(int8 *ptr)
+bool check_crc8(uint8_t *ptr)
 {
-   int8 i, result=0;
+   uint8_t i, result=0;
    for(i=0;i<8;i++) {
-      result = crc8_table[result^ptr[i]];
+      result = crc8_table[result ^ ptr[i]];
    }
    if(result)
       return false;
    else
       return true;
-}
-
-bool reset_crc8 () 
-{
-    crc8 = 0;
-    return true;
 }
 
 /*! \fn         do_crc8 ()
@@ -52,6 +52,7 @@ bool reset_crc8 ()
  *              with the current global 'crc8' value.
  *
  *  \param      value to add to the byte crc
+ *
  *  \return     current global crc8 value
  *
  */
