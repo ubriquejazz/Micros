@@ -15,7 +15,9 @@
 /*! \param void Nothing passed in
 	\return uint8_t pointer to the EEPROM address
 */
-uint8_t* OWGetAddresLoc(void);
+uint8_t* OWGetRomPtr(void);
+
+uint64_t OWGetRom64bit(void);
 
 //! Find the first device on the 1-Wire bus 
 /*! \return TRUE - ROM number in \a ROM_NO  FALSE - no device present 
@@ -27,4 +29,4 @@ int OWFirst(void);
 */ 
 int OWNext(void); 
 
-#endif // _OW_SEARCH_COMMON_H
+#endif // _OW_SEARCH_H

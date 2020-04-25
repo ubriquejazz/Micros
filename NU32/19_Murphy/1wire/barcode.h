@@ -1,4 +1,4 @@
-#ifndef __BAR_CODE_DECODE_H
+s#ifndef __BAR_CODE_DECODE_H
 #define __BAR_CODE_DECODE_H
 
 #include <stdio.h>

@@ -4,18 +4,7 @@
 /*!\name      ds1820.h
  *
  * \brief     Functions of the DS18B20 thermometer  
- *			   
- *			   write_scratchpad(addr, data)                   
- *			     Used to write data to scratchpad             																	
- *			   data = read_scratchpad(&addr, &ES)             
- *			     Used to verify scratchpad data and target addr
- *			   copy_scratchpad(addr, ES)                      
- *			     Used to copy data from scratchpad to memory  
- *
- *			   convert_temperature()
- *            
- *			   read_power()
- *
+ *			  
  * \author    Juan Gago
  *
  */ 
@@ -24,6 +13,7 @@
 #define TEMPERATURE_CMD_WRITE_SCRATCHPAD 0x4E
 #define TEMPERATURE_CMD_READ_SCRATCHPAD	 0xBE
 #define TEMPERATURE_CMD_COPY_SCRATCHPAD	 0x48
+#define TEMPERATURE_CMD_POWER_SUPPLY     0xB4
 
 typedef union {
     struct {
@@ -40,30 +30,14 @@ typedef union {
     uint8_t byte[9]; 
 }temperatureData_t;
 
-void convert_temperature ();
+void  ds1820_init(PIN_DEF);
 
-void read_power ();
+int   ds1820_search(uint64_t*, int);
 
+int   ds1820_poll(uint64_t, LED_DEF);
 
-/* This will write a byte of data to the scratchpad at a specified location
-PARAM addr: The address to write to
-PARAM data: The byte to write to the specified location
-RETURNS: none
-*/
-void write_scratchpad(int16 addr, uint8_t data);
+float ds1820_get_temperature(int);
 
-/* This will read scratchpad data from a specified address
-PARAM addr: The address to read from
-NOTE: In order to copy data from the scratchpad, the ES byte must be known
-RETURNS: The data in the address of scratchpad
-*/
-float read_scratchpad(uint8_t* ES);
-
-/* This will copy the contents of the scratchpad to the specified location
-   All parameters passed in must match the DS2493's 3 address registers
-PARAM addr: The address to copy to
-PARAM ES: The E/S byte to use
-*/
-void copy_scratchpad(int16 addr, uint8_t ES);
+bool  ds1820_get_error();
 
 #endif

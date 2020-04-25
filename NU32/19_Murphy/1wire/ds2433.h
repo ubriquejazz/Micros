@@ -1,19 +1,9 @@
-#ifndef  __DS2433_H
-#define  __DS2433_H
+#ifndef  _DS2433_H
+#define  _DS2433_H
 
 /*!\name      ds2433.h
  *
- * \brief     Functions of the DS2433 SRAM  
- *			   
- *			   write_scratchpad(addr, data)                   
- *			     Used to write data to scratchpad             																	
- *			   data = read_scratchpad(&addr, &ES)             
- *			     Used to verify scratchpad data and target addr
- *			   copy_scratchpad(addr, ES)                      
- *			     Used to copy data from scratchpad to memory  
- *
- *			   data = read_memory(addr)                       
- *			     Used to read a place in memory   
+ * \brief     Functions of the DS2433 SRAM   
  *            
  * \author    Juan Gago
  *
@@ -28,7 +18,7 @@
 #define EEPROM_CMD_READ_MEMORY      0xF0
 
 typedef union {
-    struct{
+    struct {
         unsigned E:5;				// Ending offset
         unsigned PF:1;				// Partial Flag
         unsigned X:1;				// Always zero
@@ -37,32 +27,39 @@ typedef union {
     uint8_t byte;
 } ESRegister_t;
 
+void  ds2433_init(PIN_DEF);
+
+int   ds2433_search(uint64_t*, int);
+
+int   ds2433_poll(uint64_t, LED_DEF);
+
+bool  ds2433_getError();
+
 /* This will write a byte of data to the scratchpad at a specified location
 PARAM addr: The address to write to
 PARAM data: The byte to write to the specified location
-RETURNS: none
 */
-void write_scratchpad(int16 addr, uint8_t data);
+void ds2433_write_scratchpad(uint16_t addr, uint8_t data);
 
 /* This will read scratchpad data from a specified address
 PARAM addr: The address to read from
 NOTE: In order to copy data from the scratchpad, the ES byte must be known
 RETURNS: The data in the address of scratchpad
 */
-uint8_t read_scratchpad(uint8_t* ES);
+uint8_t ds2433_read_scratchpad(uint8_t* ES);
 
 /* This will copy the contents of the scratchpad to the specified location
    All parameters passed in must match the DS2493's 3 address registers
 PARAM addr: The address to copy to
 PARAM ES: The E/S byte to use
 */
-void copy_scratchpad(int16 addr, uint8_t ES);
+void ds2433_copy_scratchpad(uint16_t addr, uint8_t ES);
 
 /* This will read one byte from memory at a specified address
 PARAM: The address to read from
 RETURNS: The data at the address
 */
-uint8_t read_memory(int16 addr);
+uint8_t ds2433_read_memory(uint16_t addr);
 
 #endif
 

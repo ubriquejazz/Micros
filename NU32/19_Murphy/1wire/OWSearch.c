@@ -7,13 +7,13 @@ int       LastDiscrepancy;
 int       LastFamilyDiscrepancy;
 int       LastDeviceFlag;
 
-/*! \fn         OWGetAddresLoc ()
+/*! \fn         OWGetRomPtr ()
  * 
  *  \brief      Get a pointer to the location of the found address
  *  \return     pointer to the EEPROM address
  *
  */ 
-uint8_t* OWGetAddresLoc(void) {
+uint8_t* OWGetRomPtr(void) {
     return &ROM_NO[0];
 }
 

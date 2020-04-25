@@ -5,13 +5,13 @@
 
 /*!\name      OW.h
  *
- * \brief     API for PIN controlling (1W line)
+ * \brief     Library to control 1W bit
  *
  * \author    Juan Gago
  *
  */ 
 
-extern PIN_DEF PinOne;
+int OW_init(PIN_DEF);
 
 //! Place a reset pulse on the bus
 /*! \a Nothing passed in
@@ -31,19 +31,7 @@ uint8_t OW_read_bit (void);
 */
 void OW_write_bit (uint8_t write_data);
 
-//! Send a byte over the 1-wire
-/*! @param write_data byte of data to write to the bus
-    \return Nothing passed back
-*/
-void OW_write_byte (uint8_t write_data);
-
-//! Read a byte from the bus
-/*! \a Nothing passed in
-    \return byte read back from the 1-wire
-*/
-uint8_t OW_read_byte (void);
-
-#endif /* OW_PIN_COMMON_H */
+#endif /* _OW_H */
 
 /*******************************************************************************
  End of File
