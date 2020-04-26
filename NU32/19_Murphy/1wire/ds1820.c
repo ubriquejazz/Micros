@@ -19,25 +19,33 @@ void ds1820_init(PIN_DEF pin)
 int ds1820_search(uint64_t* buffer, int length) 
 {
 	int deviceCount = 0;
-	if(OWFirst())
     {
-        uint8_t* ptr;
-        ptr = OWGetRomPtr();
-        if (ptr[0] == TEMPERATURE_FAMILY_CODE){
-            buffer[deviceCount] = OWGetRom64bit();
-            deviceCount++;
-        }
-        while(OWNext())
+    if (!mutex_isLocked(MutexOneWire))
+    {
+        mutex_lock(MutexOneWire);
+    	if(OWFirst())
         {
+            uint8_t* ptr;
             ptr = OWGetRomPtr();
             if (ptr[0] == TEMPERATURE_FAMILY_CODE){
                 buffer[deviceCount] = OWGetRom64bit();
-            	deviceCount++;
+                deviceCount++;
+            }
+            while(OWNext())
+            {
+                ptr = OWGetRomPtr();
+                if (ptr[0] == TEMPERATURE_FAMILY_CODE){
+                    buffer[deviceCount] = OWGetRom64bit();
+                	deviceCount++;
+                }
             }
         }
+        mutex_unlock(MutexOneWire);
+        Error = 0;
     }
     return deviceCount;
 }
+
 void task_phase1(uint64_t address)
 {
     if (!mutex_isLocked(MutexOneWire))

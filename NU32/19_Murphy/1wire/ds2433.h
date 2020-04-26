@@ -31,9 +31,7 @@ void  ds2433_init(PIN_DEF);
 
 int   ds2433_search(uint64_t*, int);
 
-int   ds2433_poll(uint64_t, LED_DEF);
-
-bool  ds2433_getError();
+bool  ds2433_get_error();
 
 /* This will write a byte of data to the scratchpad at a specified location
 PARAM addr: The address to write to

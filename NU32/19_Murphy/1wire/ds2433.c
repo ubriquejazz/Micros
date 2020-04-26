@@ -19,7 +19,18 @@ void ds2433_init(PIN_DEF pin)
 int ds2433_search(uint64_t* buffer, int length) 
 {
   int deviceCount = 0;
+  if (!mutex_isLocked(MutexOneWire))
+  {
+      mutex_lock(MutexOneWire);
+      // ...
+      mutex_unlock(MutexOneWire);
+      Error = 0;
+  }
   return deviceCount;
+}
+
+int ds2433_get_error() {
+  return Error;
 }
 
 /*! \fn         write_scratchpad(uint16_t addr, uint8_t data)
@@ -67,17 +78,6 @@ void ds2433_copy_scratchpad(uint16_t addr, uint8_t ES)
 	OW_write_byte(addr);
 	OW_write_byte(addr >> 8);  // Autorization Code
 	OW_write_byte(ES);         // TA1, TA2, E/S, in that order
-}
-
-
-int ds2433_poll (uint64_t address, LED_DEF* led) 
-{
-  static uint8_t phase = 0;
-  return phase;
-}
-
-int ds2433_get_error() {
-  return Error;
 }
 
 /*******************************************************************************
