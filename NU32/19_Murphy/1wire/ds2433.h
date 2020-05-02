@@ -44,11 +44,11 @@ int  	ds2433_get_error();
 
 int 	ds2433_poll();
 
-bool 	ds2433_write_scratchpad(uint16_t addr, uint8_t data);
+int 	ds2433_write_scratchpad(uint16_t addr, uint8_t data);
 
-bool 	ds2433_read_scratchpad(uint8_t* ES, uint8_t* result);
+int 	ds2433_copy_scratchpad(uint16_t addr, uint8_t ES);
 
-bool 	ds2433_copy_scratchpad(uint16_t addr, uint8_t ES);
+int 	ds2433_read_scratchpad(uint16_t addr, uint8_t* ES, uint8_t* result);
 
 uint8_t ds2433_read_memory(uint16_t addr, uint8_t* result);
 

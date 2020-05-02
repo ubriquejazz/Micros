@@ -6,12 +6,11 @@
 // Private variables
 static PIN_DEF 	PinOne;
 static int		MutexOneWire;
-static OW_REQ	RequestBuffer[BUFFER_LEN];
 
-int OW_init(PIN_DEF pin) 
-{
+int OW_init(PIN_DEF pin)  {
 	static bool firstTime = true;
 	if (firstTime) {
+		buffer_init();
         MutexOneWire = mutex_new();
         firstTime = false;
     }
@@ -19,21 +18,26 @@ int OW_init(PIN_DEF pin)
 	return MutexOneWire;
 }
 
-int OW_poll(uint64_t address)
+int OW_poll() 
 {
-	OW_REQ req;
 	int retVal = 0;
-	if (!buffer_empty())
-	{
-		buffer_read(&req);
-		for (i<req.wlen) {
-			OW_write_byte(to_write[i])
+	uint16_t param[2];
+
+	if (!buffer_empty()) {
+		OW_REQ req;				// process request
+		buffer_read(&req);		// return OK
+				
+		OW_reset_pulse();			// check if 0
+		OWBus_match(req.rom_no);	// 64 bits
+
+		for (i<req.wlen) {				// write loop
+			OW_write_byte(to_write[i])	// 1st command
 		}
-		if (req.rlen>0) {
-			for (i<req.rlen)
+
+		if (req.rlen>0) {			// rlen = 0 for a write request
+			for (i<req.rlen)		// read loop
 				to_read[i] = OW_read_byte();
 		}
-		retVal = (req.pfunc)(12,12);
 	}
 	return retVal;
 }
@@ -44,13 +48,14 @@ int OW_poll(uint64_t address)
  *
  *  \param		write_data - byte of data to write to the bus
  */	
-void OW_write_byte (uint8_t write_data)
+int OW_write_byte (uint8_t write_data)
 {
 	uint8_t loop;	
 	for (loop = 0; loop < 8; loop++) {
 		OW_write_bit(write_data & 0x01);    // sending LS-bit first
 		write_data >>= 1; // shift the data byte for the next bit to send
 	}	
+	return OW_SUCCESS;
 }	
 
 /*! \fn         OW_read_byte ()

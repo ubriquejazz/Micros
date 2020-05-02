@@ -1,7 +1,7 @@
 #include "buffer.h"
 
-static volatile int data_buf[BUFFER_LEN]; // array that stores the data
 static volatile uint8_t read, write;      // circular buf indexes
+static volatile OW_REQ data_buf[BUFFER_LEN];
 
 int buffer_init() {
   write = 0;
@@ -17,7 +17,7 @@ int buffer_full() {     // return true if the buffer is full.
   return (write + 1) % BUFFER_LEN == read; 
 }
 
-int buffer_read(int* val) {     // reads from current buffer location; assumes buffer not empty
+int buffer_read(OW_REQ* val) {     // reads from current buffer location; assumes buffer not empty
   *val = data_buf[read];
   ++read;               // increments read index
   if(read >= BUFFER_LEN) {  // wraps the read index around if necessary
@@ -26,7 +26,7 @@ int buffer_read(int* val) {     // reads from current buffer location; assumes b
   return BUFFER_OK;
 }
 
-int buffer_write(int data) { // add an element to the buffer.  
+int buffer_write(OW_REQ data) { // add an element to the buffer.  
   if(!buffer_full()) {        // if the buffer is full the data is lost
     data_buf[write] = data;
     ++write;                  // increment the write index and wrap around if necessary
