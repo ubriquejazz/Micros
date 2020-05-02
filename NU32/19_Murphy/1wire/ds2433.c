@@ -43,6 +43,10 @@ int ds2433_set_device(uint64_t rom_code)
 
 /* REQ FIFO IMPLEMENTATION */
 
+int ds2433_poll() {
+  OW_poll();
+}
+
 /*! \fn         ds2433_write_scratchpad( addr, data )
 * 
 *  \brief      Write a byte of data at a specified location
