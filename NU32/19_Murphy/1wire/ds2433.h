@@ -9,6 +9,11 @@
  *
  */ 
 
+// Functions result
+#define EEPROM_SUCCESS				+1
+#define EEPROM_FAILURE				-1
+#define EEPROM_NO_ENOUGH			-2
+
 #define EEPROM_FAMILY_CODE  		0x23
 #define EEPROM_SIZE         		0x200
 #define SCRATCHPAD_SIZE     		32
@@ -27,37 +32,25 @@ typedef union {
     uint8_t byte;
 } ESRegister_t;
 
-void  ds2433_init(PIN_DEF);
+void  	ds2433_init(PIN_DEF);
 
-int   ds2433_search(uint64_t*, int);
+int   	ds2433_search(uint64_t*, int);
 
-bool  ds2433_get_error();
+int 	ds2433_set_device(uint64_t);
 
-/* This will write a byte of data to the scratchpad at a specified location
-PARAM addr: The address to write to
-PARAM data: The byte to write to the specified location
-*/
-void ds2433_write_scratchpad(uint16_t addr, uint8_t data);
+int  	ds2433_get_error();
 
-/* This will read scratchpad data from a specified address
-PARAM addr: The address to read from
-NOTE: In order to copy data from the scratchpad, the ES byte must be known
-RETURNS: The data in the address of scratchpad
-*/
-uint8_t ds2433_read_scratchpad(uint8_t* ES);
+/* Implementation with Request FIFO */
 
-/* This will copy the contents of the scratchpad to the specified location
-   All parameters passed in must match the DS2493's 3 address registers
-PARAM addr: The address to copy to
-PARAM ES: The E/S byte to use
-*/
-void ds2433_copy_scratchpad(uint16_t addr, uint8_t ES);
+int 	ds2433_poll();
 
-/* This will read one byte from memory at a specified address
-PARAM: The address to read from
-RETURNS: The data at the address
-*/
-uint8_t ds2433_read_memory(uint16_t addr);
+bool 	ds2433_write_scratchpad(uint16_t addr, uint8_t data);
+
+bool 	ds2433_read_scratchpad(uint8_t* ES, uint8_t* result);
+
+bool 	ds2433_copy_scratchpad(uint16_t addr, uint8_t ES);
+
+uint8_t ds2433_read_memory(uint16_t addr, uint8_t* result);
 
 #endif
 
