@@ -1,7 +1,6 @@
 #include "OW.h"
 #include "timing.h"
 #include "mutex.h"
-#include "buffer.h"
 
 // Private variables
 static PIN_DEF 	PinOne;
@@ -10,36 +9,11 @@ static int		MutexOneWire;
 int OW_init(PIN_DEF pin)  {
 	static bool firstTime = true;
 	if (firstTime) {
-		buffer_init();
         MutexOneWire = mutex_new();
         firstTime = false;
     }
 	PinOne = pin;
 	return MutexOneWire;
-}
-
-int OW_poll() 
-{
-	int retVal = 0;
-	uint16_t param[2];
-
-	if (!buffer_empty()) {
-		OW_REQ req;				// process request
-		buffer_read(&req);		// return OK
-				
-		OW_reset_pulse();			// check if 0
-		OWBus_match(req.rom_no);	// 64 bits
-
-		for (i<req.wlen) {				// write loop
-			OW_write_byte(to_write[i])	// 1st command
-		}
-
-		if (req.rlen>0) {			// rlen = 0 for a write request
-			for (i<req.rlen)		// read loop
-				to_read[i] = OW_read_byte();
-		}
-	}
-	return retVal;
 }
 
 /*! \fn         OW_write_byte (write_data)
