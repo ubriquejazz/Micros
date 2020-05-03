@@ -1,50 +1,74 @@
 #include "OWRequest.h"
+#include "OW.h"
+#include "OWBus.h"
 #include "buffer.h"
 
 int OW_new_request(OW_Request* req, ...)
 {
+	int retVal = buffer_write((Base*)req);
 	req->base.self = (Base*)req;
 	// ...
-	return 0;
-}	
-
-
-int OW_request_write(OW_Request value) 
-{
-	return buffer_write(value.base.self)
+	return retVal;
 }
 
-int OW_request_read(OW_Request* value) 
+OW_Request* OW_request_read(void) 
 {
-	buffer_read(value->base.self);
-	OW_Request* ptr = (OW_Request*) value->base.self;
-	copy_request(value, ptr);
+	Base* ptr;
+	buffer_read(ptr);			// 
+	return (OW_Request*) ptr;	// casting
 }
 
 int OW_request_poll() 
 {
+	static OW_Request* req;
+	static OW_REQ_STATES state = OW_REQ_STATE_INIT;
 	int retVal = 0;
-	uint16_t param[2];
 
-	if (!buffer_empty()) {
-		OW_Request req;			// process request
-		buffer_read(&req);		// return OK
-				
-		OW_reset_pulse();			// check if 0
-		OWBus_match(req.rom_no);	// 64 bits
+	switch(state)
+	{
+		case OW_STATE_INIT:
+			if (!buffer_empty()) {
+				OW_Request* req = OW_request_read();
+				OW_reset_pulse();
+				state = OW_STATE_MATCH;
+			}
+			break;
 
-		for (i<req.wlen) {				// write loop
-			OW_write_byte(to_write[i])	// 1st command
-		}
+		case OW_STATE_MATCH:
+			OWBus_match(req->rom_no);	// 64 bits
+			i = 0;
 
-		if (req.rlen>0) {			// rlen = 0 for a write request
-			for (i<req.rlen)		// read loop
-				to_read[i] = OW_read_byte();
-		}
+		case OW_STATE_WRITE:
+			if (i == req->wlen){
+				i = 0;
+				state = OW_STATE_READ;
+			}
+			else {
+				OW_write_byte(req->to_write[i++]);
+			}
+			break;
+
+		case OW_STATE_READ:
+			if (i == req->rlen){
+				i = 0;
+				state = OW_STATE_CALLBACK;
+			}
+			else {
+				req->to_read[i++] = OW_read_byte();
+			}
+			break;
+
+		case OW_STATE_CALLBACK:
+			uint16_t param[2];
+			req->pfunc(param[1], param[0]);
+			state = OW_STATE_INIT;
+			break;
+
+		default:
+			break;
 	}
 	return retVal;
 }
-
 
 /*******************************************************************************
  End of File

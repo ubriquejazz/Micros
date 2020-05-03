@@ -15,7 +15,6 @@
 #define OW_FAILURE		-1
 
 int 	OW_init (PIN_DEF);
-int  	OW_poll (void);
 uint8_t OW_reset_pulse (void);
 uint8_t OW_read_bit (void);
 int 	OW_write_bit (uint8_t write_data);

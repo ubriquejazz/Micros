@@ -1,6 +1,7 @@
 #include "ds2433.h"
 #include "OW.h"
-#include "OWSearch.h"     
+#include "OWRequest.h"   
+#include "OWSearch.h"   
 #include "mutex.h"
 #include "buffer.h" 
 
@@ -44,7 +45,7 @@ int ds2433_set_device(uint64_t rom_code)
 /* REQ FIFO IMPLEMENTATION */
 
 int ds2433_poll() {
-  OW_poll();
+  return OW_request_poll();
 }
 
 /*! \fn         ds2433_write_scratchpad( addr, data )

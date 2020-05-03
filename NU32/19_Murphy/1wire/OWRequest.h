@@ -1,3 +1,6 @@
+#ifndef __OW_REQUEST_H
+#define __OW_REQUEST_H
+
 #include "buffer.h"
 
 // buffer pointer type.  The buffer is shared by an ISR and mainline code.
@@ -5,6 +8,16 @@
 // Hence the double volatile qualification
 typedef volatile unint8_t * volatile buffer_t;
 typedef int (*callback_t) (uint16_t, uint16_t);
+
+typedef enum 
+{
+	OW_REQ_STATE_INIT,
+	OW_REQ_STATE_MATCH,
+	OW_REQ_STATE_WRITE,
+	OW_REQ_STATE_READ,
+	OW_STATE_CALLBACK,
+	OW_REQ_STATE_ERROR,
+} OW_REQ_STATES;
 
 typedef struct 
 {
@@ -18,8 +31,8 @@ typedef struct
 
 int OW_new_request(OW_Request* req, ...);
 
-int OW_request_read(OW_Request* value);
-
-int OW_request_write(OW_Request value);
+OW_Request* OW_request_read();
 
 int OW_request_poll();
+
+#endif;
