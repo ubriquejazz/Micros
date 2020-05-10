@@ -3,7 +3,7 @@
 
 /*!\name      buffer.h
  *
- * \brief     Circular buffer, one server reads while not empty.
+ * \brief     Circular buffer, server reads while not empty.
  *			  Clients write in at more random rate (faster)
  *
  *			  
@@ -11,21 +11,27 @@
  *
  */ 
 
-#define BUFFER_OK		0
-#define BUFFER_ERR		-1
-#define BUFFER_LEN  	99 // length of the buffer
+// Result of these functions
+typedef enum {
+	ERR_BUFF_SUCCESS = 0,
+	ERR_BUFF_FAILURE = -1,
+	ERR_BUFF_UNKNOWN = -99,
+} ERR_BUFF;
+
+#define BUFFER_SIZE	99 	// length of the buffer
+#define BUFFER_INST 1	//
 
 typedef struct BASE Base;
 
 struct BASE {
-	int data;
-	Base* self;
+	int 	state;		// write (1); read (0)
+	Base* 	self;		// pointer to something
 };
 
-bool buffer_init();
-bool buffer_empty();
-bool buffer_full();
-int  buffer_write(Base);
-int  buffer_read(Base*);
+int  buffer_init(int);				// initialize state to 0
+bool buffer_empty(int);				//
+bool buffer_full(int);				//
+int  buffer_write(int, Base*);		// add an element to the buffer; assume buffer not full
+Base* buffer_read(int);				// read from current location; assume buffe not empty
 
 #endif
