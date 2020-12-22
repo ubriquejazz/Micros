@@ -230,8 +230,10 @@ void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 {
 	// Create Buffers for 2, 3, or 4 bytes of data
 	uint8_t TX_2Byte [2] = {0x00, 0x00};
+	uint8_t RX_2Byte [2] ;
 	uint8_t TX_3Byte [3] = {0x00, 0x00, 0x00};
 	uint8_t TX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
+	uint16_t value;
 	#warning "The argument op.value is ignored!!"
 
 	switch(op.action)
@@ -239,23 +241,23 @@ void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 		case BQ76952_OP_ALARM_ENABLE:
 			TX_2Byte[0] = 0x82;	// op.value
 			TX_2Byte[1] = 0xF0;	// op.value
-			BQ76952_WriteReg(BQ76952_REG_ALARM_ENABLE, TX_2Byte, 2);
+			BQ76952_Command(BQ76952_REG_ALARM_ENABLE, TX_2Byte);
 			sprintf(result, "Write Alarm Enable to 0x%04x", TX_2Byte[1] * 256 + TX_2Byte[0]);
 			break;
 
 		case BQ76952_OP_READ_VCELL:
-			BQ76952_ReadReg(BQ76952_REG_VCELL_1, 2);
-			sprintf(result, "Read Voltage on Cell #1 0x%04x", bq76952.buf[1] * 256 +  bq76952.buf[0]);
+			BQ76952_DirectCommand(BQ76952_REG_VCELL_1, &value);
+			sprintf(result, "Read Voltage on Cell #1 0x%04x", value);
 			break;
 
 		case BQ76952_OP_READ_CC:
-			BQ76952_ReadReg(BQ76952_REG_CC2, 2);
-			sprintf(result, "Read CC2 Current 0x%04x", bq76952.buf[1] * 256 +  bq76952.buf[0]);
+			BQ76952_DirectCommand(BQ76952_REG_CC2, &value);
+			sprintf(result, "Read CC2 Current 0x%04x", value);
 			break;
 
 		case BQ76952_OP_READ_TEMP:
-			BQ76952_ReadReg(BQ76952_REG_TEMPERATURE, 2);
-			sprintf(result, "Read Internal Temperature 0x%04x", bq76952.buf[1] * 256 +  bq76952.buf[0]);
+			BQ76952_DirectCommand(BQ76952_REG_TEMPERATURE, &value);
+			sprintf(result, "Read Internal Temperature 0x%04x", value);
 			break;
 
 		// ############## Subcommand Examples ##############
@@ -263,38 +265,38 @@ void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 		case BQ76952_OP_MANUFACTURER:
 			TX_2Byte[0] = BQ76952_REG_MANUFACTURER;
 			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
-			BQ76952_ReadReg(BQ76952_REG_RESPONSE, 2);
-			sprintf(result, "Read Manufacturer Status 0x%04x", bq76952.buf[1] * 256 +  bq76952.buf[0]);
+			BQ76952_SubCommand(TX_2Byte);
+			BQ76952_SubCommandResponseInt(RX_2Byte, 2);
+			sprintf(result, "Read Manufacturer Status 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
 			break;
 
 		case BQ76952_OP_DEVICE_NUMBER:
 			TX_2Byte[0] = BQ76952_REG_DEVICE_NUMBER;
 			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
-			BQ76952_ReadReg(BQ76952_REG_RESPONSE, 2);
-			sprintf(result, "Read Device Number 0x%04x", bq76952.buf[1] * 256 +  bq76952.buf[0]);
+			BQ76952_SubCommand(TX_2Byte);
+			BQ76952_SubCommandResponseInt(RX_2Byte, 2);
+			sprintf(result, "Read Device Number 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
 			break;
 
 		case BQ76952_OP_ENA_PROTECT:
 			TX_2Byte[0] = BQ76952_REG_ENA_PROTECT_L;
 			TX_2Byte[1] = BQ76952_REG_ENA_PROTECT_H;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
-			BQ76952_ReadReg(BQ76952_REG_RESPONSE, 1);
-			sprintf(result, "Read Enable Protections A 0x%02x", bq76952.buf[0]);
+			BQ76952_SubCommand(TX_2Byte);
+			BQ76952_SubCommandResponseInt(RX_2Byte, 1);
+			sprintf(result, "Read Enable Protections A 0x%02x", RX_2Byte[0]);
 			break;
 
 		case BQ76952_OP_FET_ENABLE:
 			TX_2Byte[0] = BQ76952_REG_FET_ENABLE;
 			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
+			BQ76952_Command(BQ76952_REG_COMMAND, TX_2Byte);
 			sprintf(result, "FET enabled");
 			break;
 
 		case BQ76952_OP_RESET:
 			TX_2Byte[0] = BQ76952_REG_RESET;
 			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
+			BQ76952_Command(BQ76952_REG_COMMAND, TX_2Byte);
 			sprintf(result, "Returned device to default settings");
 			break;
 
