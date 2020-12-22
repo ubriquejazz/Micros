@@ -154,7 +154,7 @@ idn_RetVal_t I2C_Master_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *re
 		}
 		else {
 			BQ76952_SignalWait(bq76952.intSignal, osWaitForever);
-			BQ76952_Printf (ResultString[bq76952.intResult] );
+			BQ76952_Printf ( ResultString[bq76952.intResult] );
 		}
 		I2C_Master_Realease();
 	}
@@ -183,7 +183,7 @@ idn_RetVal_t I2C_Master_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t coun
 		}
 		else {
 			BQ76952_SignalWait(bq76952.intSignal, osWaitForever);
-			BQ76952_Printf (ResultString[bq76952.intResult] );
+			BQ76952_Printf ( ResultString[bq76952.intResult] );
 		}
 		I2C_Master_Realease();
 	}
@@ -210,9 +210,7 @@ idn_RetVal_t BQ76952_ReadReg(uint8_t reg_addr, uint8_t count)
 {
 	idn_RetVal_t ret = IDN_OK;
 	uint8_t RX_CRC_Fail = 0;  // reset to 0. If in CRC Mode and CRC fails, this will be incremented.
-
 	#if CRC_Mode
-
 	#else
 		I2C_Master_ReadReg(BQ76952_I2C_ADDR_READ, reg_addr, count);
 	#endif
@@ -220,6 +218,57 @@ idn_RetVal_t BQ76952_ReadReg(uint8_t reg_addr, uint8_t count)
 		ret = IDN_ERROR;
 	return ret;
 }
+
+/**
+  * @brief  Direct Command = Wr(1), Rd(2)
+  */
+idn_RetVal_t BQ76952_DirectCommand(uint8_t command, uint16_t* data) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	BQ76952_ReadReg(command, 2);
+	BQ76952_Printf("[+] Direct Cmd SENT ->");	// command
+	BQ76952_Printf("[+] Direct Cmd RESP <-");	// bq76952.buf[i]
+	// strcpy(data, bq76952.buf, 2);
+	return ret;
+}
+
+/**
+  * @brief Command = Wr(3)
+  */
+idn_RetVal_t BQ76952_Command(uint8_t reg_addr, uint16_t data) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	BQ76952_WriteReg(reg_addr, data, 2);			// 0x3E
+	BQ76952_Printf("[+] Cmd SENT to 0x%02x ->");	// reg_addr
+	return ret;
+}
+
+/**
+  * @brief  Sub Command = Wr(3)
+  */
+idn_RetVal_t BQ76952_SubCommand(uint16_t data) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	ret = BQ76952_Command(BQ76952_REG_COMMAND, data);
+	return ret;
+}
+
+/**
+  * @brief  Sub Command Response = Wr(1) + Rd(2)
+  */
+idn_RetVal_t BQ76952_SubCommandResponseInt(uint8_t* data, uint8_t count) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	BQ76952_WriteReg(BQ76952_REG_RESPONSE, count);		// 0x40
+
+	BQ76952_Printf("[+] Sub Cmd RESP at 0x40 ->");		// bq76952.buf[i]
+	strcpy(data, bq76952.buf, count);
+	return ret;
+}
+
+
+
+
 
 /* Private functions ---------------------------------------------------------*/
 
