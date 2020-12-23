@@ -180,7 +180,19 @@ idn_RetVal_t BQ76952_Release(void);
 
 /* Command Level --------------------------------------------------------*/
 
+idn_RetVal_t BQ76952_DirectCommand(uint8_t command, uint16_t* data);
 
+idn_RetVal_t BQ76952_BasicCommand(uint8_t reg_addr, uint16_t data);
+
+idn_RetVal_t BQ76952_SubCommandTransmit(uint16_t data);
+
+idn_RetVal_t BQ76952_SubCommandResponse(uint8_t* data, uint8_t count);
+
+/* Register Level --------------------------------------------------------*/
+
+idn_RetVal_t BQ76952_ReadReg(uint8_t reg_addr, uint8_t count);
+
+idn_RetVal_t BQ76952_WriteReg(uint8_t reg_addr, uint8_t *reg_data, uint8_t count);
 
 /* Execute Operations ----------------------------------------------------*/
 

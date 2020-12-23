@@ -15,6 +15,7 @@
 #include "timers.h"
 #include "IO.h"
 #include "PortMap.h"
+#include "bqcommand.h"
 
 /* Defines ------------------------------------------------------------------*/
 
@@ -235,28 +236,28 @@ idn_RetVal_t BQ76952_DirectCommand(uint8_t command, uint16_t* data)
 /**
   * @brief Command = Wr(3)
   */
-idn_RetVal_t BQ76952_Command(uint8_t reg_addr, uint16_t data) 
+idn_RetVal_t BQ76952_BasicCommand(uint8_t reg_addr, uint16_t data) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	BQ76952_WriteReg(reg_addr, data, 2);			// 0x3E
-	BQ76952_Printf("[+] Cmd SENT to 0x%02x ->");	// reg_addr
+	BQ76952_WriteReg(reg_addr, data, 2);			//
+	BQ76952_Printf("[+] Cmd SENT to 0x%02x ->");	//
 	return ret;
 }
 
 /**
   * @brief  Sub Command = Wr(3)
   */
-idn_RetVal_t BQ76952_SubCommand(uint16_t data) 
+idn_RetVal_t BQ76952_SubCommandTransmit(uint16_t data) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	ret = BQ76952_Command(BQ76952_REG_COMMAND, data);
+	ret = BQ76952_BasicCommand(BQ76952_REG_COMMAND, data);
 	return ret;
 }
 
 /**
   * @brief  Sub Command Response = Wr(1) + Rd(2)
   */
-idn_RetVal_t BQ76952_SubCommandResponseInt(uint8_t* data, uint8_t count) 
+idn_RetVal_t BQ76952_SubCommandResponse(uint8_t* data, uint8_t count) 
 {
 	idn_RetVal_t ret = IDN_OK;
 	BQ76952_WriteReg(BQ76952_REG_RESPONSE, count);		// 0x40
@@ -266,10 +267,6 @@ idn_RetVal_t BQ76952_SubCommandResponseInt(uint8_t* data, uint8_t count)
 	return ret;
 }
 
-
-
-
-
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -277,21 +274,45 @@ idn_RetVal_t BQ76952_SubCommandResponseInt(uint8_t* data, uint8_t count)
   */
 void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 {
-	// Create Buffers for 2, 3, or 4 bytes of data
-	uint8_t TX_2Byte [2] = {0x00, 0x00};
-	uint8_t RX_2Byte [2] ;
-	uint8_t TX_3Byte [3] = {0x00, 0x00, 0x00};
-	uint8_t TX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
-	uint16_t value;
+	uint16_t value;	// Tempertature, Voltage or Current
 	#warning "The argument op.value is ignored!!"
 
 	switch(op.action)
 	{
 		case BQ76952_OP_ALARM_ENABLE:
-			TX_2Byte[0] = 0x82;	// op.value
-			TX_2Byte[1] = 0xF0;	// op.value
-			BQ76952_Command(BQ76952_REG_ALARM_ENABLE, TX_2Byte);
-			sprintf(result, "Write Alarm Enable to 0x%04x", TX_2Byte[1] * 256 + TX_2Byte[0]);
+			BQ76952_AlarmEnable(0xF082, result),
+			break;
+
+		case BQ76952_OP_FET_ENABLE:
+			BQ76952_FETEnable(result);
+			break;
+
+		case BQ76952_OP_RESET:
+			BQ76952_Reset(result);
+			break;
+
+		case BQ76952_OP_MANUFACTURER:
+			BQ76952_ManufacturerStatus(result),
+			break;
+
+		case BQ76952_OP_DEVICE_NUMBER:
+			BQ76952_DeviceNumber(result);
+			break;
+
+		case BQ76952_OP_ENA_PROTECT:
+			BQ76952_ReadEnableProtection(result);
+			break;
+
+		case ZZZZ:
+			BQ76952_SetConfigUpdateMode(1, NULL);				// Enter CONFIG_UPDATE mode
+			BQ76952_WriteEnableProtection(0x8C, result);
+			BQ76952_SetConfigUpdateMode(0, NULL);				// Exit CONFIG_UPDATE mode
+			break;
+
+		case BQ76952_OP_VCELL_MODE:
+			BQ76952_SetConfigUpdateMode(1, NULL);			// Enter CONFIG_UPDATE mode
+			BQ76952_VCellMode(0x37F, result);				// 9-cell battery
+			BQ76952_SetConfigUpdateMode(0, NULL);			// Exit CONFIG_UPDATE mode
 			break;
 
 		case BQ76952_OP_READ_VCELL:
@@ -307,72 +328,6 @@ void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 		case BQ76952_OP_READ_TEMP:
 			BQ76952_DirectCommand(BQ76952_REG_TEMPERATURE, &value);
 			sprintf(result, "Read Internal Temperature 0x%04x", value);
-			break;
-
-		// ############## Subcommand Examples ##############
-
-		case BQ76952_OP_MANUFACTURER:
-			TX_2Byte[0] = BQ76952_REG_MANUFACTURER;
-			TX_2Byte[1] = 0x00;
-			BQ76952_SubCommand(TX_2Byte);
-			BQ76952_SubCommandResponseInt(RX_2Byte, 2);
-			sprintf(result, "Read Manufacturer Status 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
-			break;
-
-		case BQ76952_OP_DEVICE_NUMBER:
-			TX_2Byte[0] = BQ76952_REG_DEVICE_NUMBER;
-			TX_2Byte[1] = 0x00;
-			BQ76952_SubCommand(TX_2Byte);
-			BQ76952_SubCommandResponseInt(RX_2Byte, 2);
-			sprintf(result, "Read Device Number 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
-			break;
-
-		case BQ76952_OP_ENA_PROTECT:
-			TX_2Byte[0] = BQ76952_REG_ENA_PROTECT_L;
-			TX_2Byte[1] = BQ76952_REG_ENA_PROTECT_H;
-			BQ76952_SubCommand(TX_2Byte);
-			BQ76952_SubCommandResponseInt(RX_2Byte, 1);
-			sprintf(result, "Read Enable Protections A 0x%02x", RX_2Byte[0]);
-			break;
-
-		case BQ76952_OP_FET_ENABLE:
-			TX_2Byte[0] = BQ76952_REG_FET_ENABLE;
-			TX_2Byte[1] = 0x00;
-			BQ76952_Command(BQ76952_REG_COMMAND, TX_2Byte);
-			sprintf(result, "FET enabled");
-			break;
-
-		case BQ76952_OP_RESET:
-			TX_2Byte[0] = BQ76952_REG_RESET;
-			TX_2Byte[1] = 0x00;
-			BQ76952_Command(BQ76952_REG_COMMAND, TX_2Byte);
-			sprintf(result, "Returned device to default settings");
-			break;
-
-		// ############## RAM Registers ##############
-
-		case BQ76952_OP_VCELL_MODE:
-
-			/* Enter CONFIG_UPDATE mode */
-			TX_2Byte[0] = BQ76952_REG_SET_CFGUPDATE;
-			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
-
-			TX_4Byte[0] = BQ76952_REG_VCELL_MODE_L;
-			TX_4Byte[1] = BQ76952_REG_VCELL_MODE_H;
-			TX_4Byte[2] = 0x03; // op.value
-			TX_4Byte[3] = 0x7F;	// 9-cell battery
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_4Byte, 4);
-			TX_2Byte[0] = 0xE6;
-			TX_2Byte[1] = 0x06;
-			BQ76952_WriteReg(BQ76952_REG_CHECKSUM, TX_2Byte, 2);
-
-			/* Exit CONFIG_UPDATE mode */
-			TX_2Byte[0] = BQ76952_REG_EXIT_CFGUPDATE;
-			TX_2Byte[1] = 0x00;
-			BQ76952_WriteReg(BQ76952_REG_COMMAND, TX_2Byte, 2);
-
-			sprintf(result, "Write Cell Mode Register for 9 cells");
 			break;
 
 		default:
