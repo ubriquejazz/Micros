@@ -49,16 +49,22 @@
 /* Exported types ---------------------------------------------------- */
 
 typedef enum {
-	BQ76952_OP_VCELL_MODE,		 	/*!< R/W. VCell Mode 	           			*/
-	BQ76952_OP_ENA_PROTECT,	   		/*!< R/W. Enabled Protections A   			*/
-	BQ76952_OP_RESET,				/*!< W. Reset the device          			*/
-	BQ76952_OP_FET_ENABLE,		 	/*!< W. Test Mode or FW Control 			*/
-	BQ76952_OP_MANUFACTURER,   		/*!< R. Flags for use during manufacturing 	*/
-	BQ76952_OP_DEVICE_NUMBER,  		/*!< R. Identifies the product (7695x) 		*/
-	BQ76952_OP_ALARM_ENABLE,    	/*!< R/W. By default is set to 0xF800   	*/
-	BQ76952_OP_READ_VCELL,     		/*!< R. 16-bit voltage on cell				*/
-	BQ76952_OP_READ_CC,        		/*!< R. 16-bit CC2 current					*/
-	BQ76952_OP_READ_TEMP,      		/*!< R. most recent measured internal temp. */
+	BQ76952_OP_WR_VCELL_MODE,		/*!< R/W. VCell Mode 	           			*/
+	BQ76952_OP_RD_VCELL_MODE,
+	BQ76952_OP_WR_ENA_PROTECT,	   	/*!< R/W. Enabled Protections A   			*/
+	BQ76952_OP_RD_ENA_PROTECT,	
+	BQ76952_OP_WR_ALARM_ENABLE,    	/*!< R/W. By default is set to 0xF800   	*/
+	BQ76952_OP_RD_ALARM_ENABLE,
+	/* Write only */	
+	BQ76952_OP_WR_RESET,			/*!< W. Reset the device          			*/
+	BQ76952_OP_WR_FET_ENABLE,		/*!< W. Test Mode or FW Control 			*/
+	/* Direct () */
+	BQ76952_OP_RD_VCELL,     		/*!< R. 16-bit voltage on cell				*/
+	BQ76952_OP_RD_CC,        		/*!< R. 16-bit CC2 current					*/
+	BQ76952_OP_RD_TEMP,      		/*!< R. most recent measured internal temp. */
+	/* Read only */
+	BQ76952_OP_RD_MANUFACTURER,   	/*!< R. Flags for use during manufacturing 	*/
+	BQ76952_OP_RD_DEVICE_NUMBER,  	/*!< R. Identifies the product (7695x) 		*/
 	BQ76952_OP_UNKNOWN,
 	BQ76952_OP_NumOfOperations
 } bq76952_operation_t;

@@ -112,6 +112,12 @@ idn_RetVal_t BQ76952_ReadEnableProtection (uint8_t* result)
 idn_RetVal_t BQ76952_WriteEnableProtection (uint8_t value, uint8_t* result) 
 {
 	idn_RetVal_t ret = IDN_OK;
+
+}
+
+idn_RetVal_t BQ76952_WriteEnableProtection2 (uint8_t value, uint8_t* result) 
+{
+	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = BQ76952_REG_ENA_PROTECT_L;
 	TX_3Byte[1] = BQ76952_REG_ENA_PROTECT_H;
 	TX_3Byte[2] = value;
@@ -126,6 +132,11 @@ idn_RetVal_t BQ76952_WriteEnableProtection (uint8_t value, uint8_t* result)
 idn_RetVal_t BQ76952_VCellMode (uint16_t mode, uint8_t* result) 
 {
 	idn_RetVal_t ret = IDN_OK;
+}
+
+idn_RetVal_t BQ76952_VCellMode2 (uint16_t mode, uint8_t* result) 
+{
+	idn_RetVal_t ret = IDN_OK;
 	TX_4Byte[0] = BQ76952_REG_VCELL_MODE_L;
 	TX_4Byte[1] = BQ76952_REG_VCELL_MODE_H;
 	TX_4Byte[2] = HIGH_BYTE(mode);
@@ -137,3 +148,5 @@ idn_RetVal_t BQ76952_VCellMode (uint16_t mode, uint8_t* result)
 	sprintf(result, "Write Cell Mode Register");
 	return ret;
 }
+
+/* Rd Registers --------------------------------------------------------------*/

@@ -221,7 +221,7 @@ idn_RetVal_t BQ76952_ReadReg(uint8_t reg_addr, uint8_t count)
 }
 
 /**
-  * @brief  Direct Command = Wr(1), Rd(2)
+  * @brief  Direct Command = Wr(1) + Rd(2)
   */
 idn_RetVal_t BQ76952_DirectCommand(uint8_t command, uint16_t* data) 
 {
@@ -234,7 +234,7 @@ idn_RetVal_t BQ76952_DirectCommand(uint8_t command, uint16_t* data)
 }
 
 /**
-  * @brief Command = Wr(3)
+  * @brief Basic Command = Wr(3)
   */
 idn_RetVal_t BQ76952_BasicCommand(uint8_t reg_addr, uint16_t data) 
 {
@@ -245,7 +245,7 @@ idn_RetVal_t BQ76952_BasicCommand(uint8_t reg_addr, uint16_t data)
 }
 
 /**
-  * @brief  Sub Command = Wr(3)
+  * @brief  Sub Command Tranmit = Wr(3) with 0x3E
   */
 idn_RetVal_t BQ76952_SubCommandTransmit(uint16_t data) 
 {
@@ -261,7 +261,6 @@ idn_RetVal_t BQ76952_SubCommandResponse(uint8_t* data, uint8_t count)
 {
 	idn_RetVal_t ret = IDN_OK;
 	BQ76952_WriteReg(BQ76952_REG_RESPONSE, count);		// 0x40
-
 	BQ76952_Printf("[+] Sub Cmd RESP at 0x40 ->");		// bq76952.buf[i]
 	strcpy(data, bq76952.buf, count);
 	return ret;
@@ -274,69 +273,118 @@ idn_RetVal_t BQ76952_SubCommandResponse(uint8_t* data, uint8_t count)
   */
 void BQ76952_ExecuteOperation_Helper(bq76952_op_t op, char* result)
 {
-	uint16_t value;	// Tempertature, Voltage or Current
 	#warning "The argument op.value is ignored!!"
 
 	switch(op.action)
 	{
-		case BQ76952_OP_ALARM_ENABLE:
-			BQ76952_AlarmEnable(0xF082, result),
-			break;
-
-		case BQ76952_OP_FET_ENABLE:
-			BQ76952_FETEnable(result);
-			break;
-
-		case BQ76952_OP_RESET:
-			BQ76952_Reset(result);
-			break;
-
-		case BQ76952_OP_MANUFACTURER:
-			BQ76952_ManufacturerStatus(result),
-			break;
-
-		case BQ76952_OP_DEVICE_NUMBER:
-			BQ76952_DeviceNumber(result);
-			break;
-
-		case BQ76952_OP_ENA_PROTECT:
-			BQ76952_ReadEnableProtection(result);
-			break;
-
-		case ZZZZ:
-			BQ76952_SetConfigUpdateMode(1, NULL);				// Enter CONFIG_UPDATE mode
-			BQ76952_WriteEnableProtection(0x8C, result);
-			BQ76952_SetConfigUpdateMode(0, NULL);				// Exit CONFIG_UPDATE mode
-			break;
-
-		case BQ76952_OP_VCELL_MODE:
+		case BQ76952_OP_WR_VCELL_MODE:
 			BQ76952_SetConfigUpdateMode(1, NULL);			// Enter CONFIG_UPDATE mode
 			BQ76952_VCellMode(0x37F, result);				// 9-cell battery
 			BQ76952_SetConfigUpdateMode(0, NULL);			// Exit CONFIG_UPDATE mode
 			break;
 
-		case BQ76952_OP_READ_VCELL:
-			BQ76952_DirectCommand(BQ76952_REG_VCELL_1, &value);
-			sprintf(result, "Read Voltage on Cell #1 0x%04x", value);
+		case BQ76952_OP_RD_VCELL_MODE:
 			break;
 
-		case BQ76952_OP_READ_CC:
-			BQ76952_DirectCommand(BQ76952_REG_CC2, &value);
-			sprintf(result, "Read CC2 Current 0x%04x", value);
+		case BQ76952_OP_WR_ENA_PROTECT:
+			BQ76952_SetConfigUpdateMode(1, NULL);			// Enter CONFIG_UPDATE mode
+			BQ76952_WriteEnableProtection(0x8C, result);
+			BQ76952_SetConfigUpdateMode(0, NULL);			// Exit CONFIG_UPDATE mode
 			break;
 
-		case BQ76952_OP_READ_TEMP:
-			BQ76952_DirectCommand(BQ76952_REG_TEMPERATURE, &value);
-			sprintf(result, "Read Internal Temperature 0x%04x", value);
+		case BQ76952_OP_RD_ENA_PROTECT:
+			BQ76952_ReadEnableProtection(result);
+			break;
+
+		case BQ76952_OP_WR_ALARM_ENABLE:
+			BQ76952_AlarmEnable(0xF082, result),
+			break;
+
+		case BQ76952_OP_RD_ALARM_ENABLE:
 			break;
 
 		default:
 		case BQ76952_OP_UNKNOWN:
 			break;
 	}
+
+	FilterCommand_ReadOnly(bq76952.operation, result);
+	FilterCommand_WriteOnly(bq76952.operation, result);
+	FilterCommand_Direct(bq76952.operation, result);
 	if (op.callback != NULL) {
 		op.callback();
 	}
+}
+
+
+idn_RetVal_t FilterCommand_ReadOnly(bq76952_op_t op, char* result)
+{
+	idn_RetVal_t ret = IDN_OK;
+	switch(op.action)
+	{
+		case BQ76952_OP_RD_MANUFACTURER:
+			BQ76952_ManufacturerStatus(result),
+			break;
+
+		case BQ76952_OP_RD_DEVICE_NUMBER:
+			BQ76952_DeviceNumber(result);
+			break;
+
+		default:
+			ret = IDN_ERROR;
+			break;
+	}
+	return ret;
+}
+	
+idn_RetVal_t FilterCommand_WriteOnly(bq76952_op_t op, char* result)
+{
+	idn_RetVal_t ret = IDN_OK;
+	switch(op.action)
+	{
+		case BQ76952_OP_WR_FET_ENABLE:
+			BQ76952_FETEnable(result);
+			break;
+
+		case BQ76952_OP_WR_RESET:
+			BQ76952_Reset(result);
+			break;
+
+		default:
+			ret = IDN_ERROR;
+			break;
+	}
+	return ret;
+}
+
+idn_RetVal_t FilterCommand_Direct(bq76952_op_t op, char* result)
+{
+	idn_RetVal_t ret = IDN_OK;
+	uint16_t value;	// Tempertature, Voltage or Current
+	#warning "The argument op.value is ignored!!"
+	switch(op.action)
+	{
+
+		case BQ76952_OP_RD_VCELL:
+			BQ76952_DirectCommand(BQ76952_REG_VCELL_1, &value);
+			sprintf(result, "Read Voltage on Cell #1 0x%04x", value);
+			break;
+
+		case BQ76952_OP_RD_CC:
+			BQ76952_DirectCommand(BQ76952_REG_CC2, &value);
+			sprintf(result, "Read CC2 Current 0x%04x", value);
+			break;
+
+		case BQ76952_OP_RD_TEMP:
+			BQ76952_DirectCommand(BQ76952_REG_TEMPERATURE, &value);
+			sprintf(result, "Read Internal Temperature 0x%04x", value);
+			break;
+
+		default:
+			ret = IDN_ERROR;
+			break;
+	}
+	return ret;
 }
 
 /**
