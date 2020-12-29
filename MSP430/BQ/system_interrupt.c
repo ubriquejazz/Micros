@@ -1,3 +1,16 @@
+/**
+  ******************************************************************************
+  * @file    i2c.c
+  * @author  
+  * @version V1.0.0
+  * @date    30 October 2020
+  * @brief   Source file I2C driver
+  ******************************************************************************
+  */
+
+#include "i2c.h"
+
+extern uint8_t RX_Buffer [MAX_BUFFER_SIZE];
 
 /* ReceiveBuffer: Buffer used to receive data in the ISR
  * RXByteCtr: Number of bytes left to receive
@@ -6,28 +19,12 @@
  * TXByteCtr: Number of bytes left to transfer
  * TransmitIndex: The index of the next byte to be transmitted in TransmitBuffer
  * */
-extern uint8_t ReceiveBuffer[MAX_BUFFER_SIZE] = {0};
-extern uint8_t RXByteCtr = 0;
-extern uint8_t ReceiveIndex = 0;
-extern uint8_t TransmitBuffer[MAX_BUFFER_SIZE] = {0};
-extern uint8_t TXByteCtr = 0;
-extern uint8_t TransmitIndex = 0;
-
-//******************************************************************************
-// General I2C State Machine ***************************************************
-//******************************************************************************
-
-typedef enum I2C_ModeEnum{
-    IDLE_MODE,
-    NACK_MODE,
-    TX_REG_ADDRESS_MODE,
-    RX_REG_ADDRESS_MODE,
-    TX_DATA_MODE,
-    RX_DATA_MODE,
-    SWITCH_TO_RX_MODE,
-    SWITHC_TO_TX_MODE,
-    TIMEOUT_MODE
-} I2C_Mode;
+uint8_t ReceiveBuffer[MAX_BUFFER_SIZE] = {0};
+uint8_t RXByteCtr = 0;
+uint8_t ReceiveIndex = 0;
+uint8_t TransmitBuffer[MAX_BUFFER_SIZE] = {0};
+uint8_t TXByteCtr = 0;
+uint8_t TransmitIndex = 0;
 
 /* Used to track the state of the software state machine*/
 I2C_Mode MasterMode = IDLE_MODE;
@@ -35,19 +32,10 @@ I2C_Mode MasterMode = IDLE_MODE;
 /* The Register Address/Command to use*/
 uint8_t TransmitRegAddr = 0;
 
+/********************************/
 /* I2C Write and Read Functions */
+/********************************/
 
-/* For slave device with dev_addr, writes the data specified in *reg_data
- *
- * dev_addr: The slave device address.
- *           Example: SLAVE_ADDR
- * reg_addr: The register or command to send to the slave.
- *           Example: CMD_TYPE_0_MASTER
- * *reg_data: The buffer to write
- *           Example: MasterType0
- * count: The length of *reg_data
- *           Example: TYPE_0_LENGTH
- *  */
 I2C_Mode I2C_Master_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count)
 {
     /* Initialize state machine */
@@ -73,16 +61,7 @@ I2C_Mode I2C_Master_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_da
     return MasterMode;
 }
 
-/* For slave device with dev_addr, read the data specified in slaves reg_addr.
- * The received data is available in ReceiveBuffer
- *
- * dev_addr: The slave device address.
- *           Example: SLAVE_ADDR
- * reg_addr: The register or command to send to the slave.
- *           Example: CMD_TYPE_0_SLAVE
- * count: The length of data to read
- *           Example: TYPE_0_LENGTH
- *  */
+// NOTE: the received data is available in ReceiveBuffer
 I2C_Mode I2C_Master_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count)
 {
     /* Initialize state machine */
@@ -105,6 +84,104 @@ I2C_Mode I2C_Master_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count)
     return MasterMode;
 }
 
+unsigned char CRC8(unsigned char *ptr, unsigned char len)
+{
+    unsigned char i;
+    unsigned char crc=0;
+    while(len--!=0)
+    {
+        for(i=0x80; i!=0; i/=2)
+        {
+            if((crc & 0x80) != 0)
+            {
+                crc *= 2;
+                crc ^= 0x107;
+            }
+            else
+                crc *= 2;
+
+            if((*ptr & i)!=0)
+                crc ^= 0x107;
+        }
+        ptr++;
+    }
+    return(crc);
+}
+
+void I2C_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count)
+{
+    #if CRC_Mode
+    {
+        uint8_t crc_count = 0;
+        crc_count = count * 2;
+        uint8_t crc1stByteBuffer [3] = {0x10, reg_addr, reg_data[0]};
+        unsigned int j;
+        unsigned int i;
+        uint8_t temp_crc_buffer [3];
+        
+        TX_Buffer[0] = reg_data[0];
+        TX_Buffer[1] = CRC8(crc1stByteBuffer,3);
+
+        j = 2;
+        for(i=1; i<count; i++)
+        {
+            TX_Buffer[j] = reg_data[i];
+            j = j + 1;
+            temp_crc_buffer[0] = reg_data[i];
+            TX_Buffer[j] = CRC8(temp_crc_buffer,1);
+            j = j + 1;
+        }
+        I2C_Master_WriteReg(dev_addr, reg_addr, TX_Buffer, crc_count);
+    }
+    #else
+        I2C_Master_WriteReg(dev_addr, reg_addr, reg_data, count);
+    #endif
+}
+
+// NOTE: the received data is available in RX_Buffer
+int I2C_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count)
+{
+    unsigned int RX_CRC_Fail = 0;  // reset to 0. If in CRC Mode and CRC fails, this will be incremented.
+
+    #if CRC_Mode
+    {
+        uint8_t crc_count = 0;
+        crc_count = count * 2;
+        unsigned int j;
+        unsigned int i;
+        unsigned char CRC = 0;
+        uint8_t temp_crc_buffer [3];
+        
+        I2C_Master_ReadReg(dev_addr, reg_addr, crc_count);
+        uint8_t crc1stByteBuffer [4] = {0x10, reg_addr, 0x11, ReceiveBuffer[0]};
+        CRC = CRC8(crc1stByteBuffer,4);
+        if (CRC != ReceiveBuffer[1])
+            RX_CRC_Fail += 1;
+        
+        RX_Buffer[0] = ReceiveBuffer[0];
+        
+        j = 2; 
+        for (i=1; i<count; i++)
+        {
+            RX_Buffer[i] = ReceiveBuffer[j];
+            temp_crc_buffer[0] = ReceiveBuffer[j];
+            j = j + 1;
+            CRC = CRC8(temp_crc_buffer,1);
+            if (CRC != ReceiveBuffer[j])
+                RX_CRC_Fail += 1;
+            j = j + 1;
+        }
+        //CopyArray(ReceiveBuffer, RX_Buffer, crc_count);
+    }
+    #else
+        I2C_Master_ReadReg(dev_addr, reg_addr, count);
+        CopyArray(ReceiveBuffer, RX_Buffer, count);
+    #endif
+    if (RX_CRC_Fail > 0)
+        return -1;
+    else
+        return 0;
+}
 
 //******************************************************************************
 // I2C Interrupt ***************************************************************
