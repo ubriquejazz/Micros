@@ -38,6 +38,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "bq.h"
+#include "init.h"
+
 /* TX_*Byte are example buffers initialized in the master, they will be
  * sent by the master to the slave.
  * RX_*Byte are example buffers initialized in the slave, they will be
@@ -55,116 +58,8 @@ uint8_t RX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
 uint8_t RX_Buffer [MAX_BUFFER_SIZE] = {0};
 unsigned int RX_CRC_Check = 0;
 
-/* ReceiveBuffer: Buffer used to receive data in the ISR
- * RXByteCtr: Number of bytes left to receive
- * ReceiveIndex: The index of the next byte to be received in ReceiveBuffer
- * TransmitBuffer: Buffer used to transmit data in the ISR
- * TXByteCtr: Number of bytes left to transfer
- * TransmitIndex: The index of the next byte to be transmitted in TransmitBuffer
- * */
-uint8_t ReceiveBuffer[MAX_BUFFER_SIZE] = {0};
-uint8_t RXByteCtr = 0;
-uint8_t ReceiveIndex = 0;
-uint8_t TransmitBuffer[MAX_BUFFER_SIZE] = {0};
-uint8_t TXByteCtr = 0;
-uint8_t TransmitIndex = 0;
-
-unsigned char CRC8(unsigned char *ptr, unsigned char len)
-{
-	unsigned char i;
-	unsigned char crc=0;
-	while(len--!=0)
-	{
-		for(i=0x80; i!=0; i/=2)
-		{
-			if((crc & 0x80) != 0)
-			{
-				crc *= 2;
-				crc ^= 0x107;
-			}
-			else
-				crc *= 2;
-
-			if((*ptr & i)!=0)
-				crc ^= 0x107;
-		}
-		ptr++;
-	}
-	return(crc);
-}
-
-void I2C_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count)
-{
-	#if CRC_Mode
-	{
-		uint8_t crc_count = 0;
-		crc_count = count * 2;
-		uint8_t crc1stByteBuffer [3] = {0x10, reg_addr, reg_data[0]};
-		unsigned int j;
-		unsigned int i;
-		uint8_t temp_crc_buffer [3];
-		
-		TX_Buffer[0] = reg_data[0];
-		TX_Buffer[1] = CRC8(crc1stByteBuffer,3);
-
-		j = 2;
-		for(i=1; i<count; i++)
-		{
-			TX_Buffer[j] = reg_data[i];
-			j = j + 1;
-			temp_crc_buffer[0] = reg_data[i];
-			TX_Buffer[j] = CRC8(temp_crc_buffer,1);
-			j = j + 1;
-		}
-		I2C_Master_WriteReg(dev_addr, reg_addr, TX_Buffer, crc_count);
-	}
-	#else
-		I2C_Master_WriteReg(dev_addr, reg_addr, reg_data, count);
-	#endif
-}
-
-void I2C_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count)
-{
-	#if CRC_Mode
-	{
-		uint8_t crc_count = 0;
-		crc_count = count * 2;
-		unsigned int j;
-		unsigned int i;
-		unsigned char CRC = 0;
-		uint8_t temp_crc_buffer [3];
-		RX_CRC_Check = 0;  // reset to 0
-		
-		I2C_Master_ReadReg(dev_addr, reg_addr, crc_count);
-		uint8_t crc1stByteBuffer [4] = {0x10, reg_addr, 0x11, ReceiveBuffer[0]};
-		CRC = CRC8(crc1stByteBuffer,4);
-		if (CRC != ReceiveBuffer[1])
-			RX_CRC_Check += 1;
-		
-		RX_Buffer[0] = ReceiveBuffer[0];
-		
-		j = 2; 
-		for (i=1; i<count; i++)
-		{
-			RX_Buffer[i] = ReceiveBuffer[j];
-			temp_crc_buffer[0] = ReceiveBuffer[j];
-			j = j + 1;
-			CRC = CRC8(temp_crc_buffer,1);
-			if (CRC != ReceiveBuffer[j])
-				RX_CRC_Check += 1;
-			j = j + 1;
-		}
-		//CopyArray(ReceiveBuffer, RX_Buffer, crc_count);
-	}
-	#else
-		I2C_Master_ReadReg(dev_addr, reg_addr, count);
-		CopyArray(ReceiveBuffer, RX_Buffer, count);
-	#endif
-}
-
 //******************************************************************************
 // Main ************************************************************************
-// Send and receive three messages containing the example commands *************
 //******************************************************************************
 
 int main(void) {
@@ -172,7 +67,7 @@ int main(void) {
     initClockTo16MHz();
     initGPIO(); 
     initI2C();
-    volatile i = 0;
+    volatile uint16_t i = 0;
     
     P1OUT = 0x01;   // Turn on red LED
     P6OUT = 0x00;	// Turn off green LED
@@ -184,8 +79,7 @@ int main(void) {
 	// ############# Direct Command Examples ###################
 	
 	// Write Alarm Enable to 0xF082
-	TX_2Byte[0] = 0x82; TX_2Byte[1] = 0xF0;
-    I2C_WriteReg(0x08, 0x66, TX_2Byte, 2);
+    BQ_Set_AlarmEnable(0xF082, NULL);
     wait(2);
     while (P2IN & BIT3)
         wait(1); // wait ~1 second
@@ -211,79 +105,55 @@ int main(void) {
 	// ############# Subcommand Examples ###################
 	
 	// Read Device Number
-	TX_2Byte[0] = 0x01; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 2);
-    wait(2);
+	BQ_Get_DeviceNumber(&i, NULL);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
 	// Read Manufacturing Status
-	TX_2Byte[0] = 0x57; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 2);
-    wait(2);
+	BQ_Get_ManufacturerStatus(&i, NULL);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
 	// FET_ENABLE
-	TX_2Byte[0] = 0x22; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(2);
+	BQ_Set_FETEnable(NULL);
+	wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
 	// RESET - returns device to default settings
-	TX_2Byte[0] = 0x12; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(2);
+	BQ_Set_Reset(NULL);
+	wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
 	// ############# Reading and Writing to RAM Registers ############
 	
 	// Read 'Enabled Protections A' RAM register 0x9261
-	TX_2Byte[0] = 0x61; TX_2Byte[1] = 0x92;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 1);
-    wait(2);
+	BQ_Get_EnableProtection(&i, NULL);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
 	// Set CONFIG_UPDATE Mode (RAM registers should be written while in
 	// CONFIG_UPDATE mode and will take effect after exiting CONFIG_UPDATE mode
-	TX_2Byte[0] = 0x90; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+	BQ_Set_ConfigUpdateMode(1, NULL);
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 	
 	// Write to 'Enabled Protections A' RAM register to enable CUV protection
-	TX_3Byte[0] = 0x61; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x8C;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = 0x80; TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+    BQ_Set_EnableProtection(0x8C, NULL);
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 	
 	// Write to 'VCell Mode' RAM register to configure for a 9-cell battery
-	TX_4Byte[0] = 0x04; TX_4Byte[1] = 0x93; TX_4Byte[2] = 0x03; TX_4Byte[3] = 0x7F;
-    I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 
-    wait(1);
-	TX_2Byte[0] = 0xE6; TX_2Byte[1] = 0x06;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+    BQ76952_Set_VCellMode(0x37F, NULL);
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 	
 	// Exit CONFIG_UPDATE Mode
-	TX_2Byte[0] = 0x92; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);        
+	BQ_Set_ConfigUpdateMode(0, NULL);        
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second

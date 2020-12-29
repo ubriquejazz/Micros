@@ -38,6 +38,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "bq.h"
+#include "init.h"
+
 /* TX_*Byte are example buffers initialized in the master, they will be
  * sent by the master to the slave.
  * RX_*Byte are example buffers initialized in the slave, they will be
@@ -54,221 +57,12 @@ uint8_t RX_3Byte [3] = {0x00, 0x00, 0x00};
 uint8_t RX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
 uint8_t RX_Buffer [MAX_BUFFER_SIZE] = {0};
 
-/* ReceiveBuffer: Buffer used to receive data in the ISR
- * RXByteCtr: Number of bytes left to receive
- * ReceiveIndex: The index of the next byte to be received in ReceiveBuffer
- * TransmitBuffer: Buffer used to transmit data in the ISR
- * TXByteCtr: Number of bytes left to transfer
- * TransmitIndex: The index of the next byte to be transmitted in TransmitBuffer
- * */
-uint8_t ReceiveBuffer[MAX_BUFFER_SIZE] = {0};
-uint8_t RXByteCtr = 0;
-uint8_t ReceiveIndex = 0;
-uint8_t TransmitBuffer[MAX_BUFFER_SIZE] = {0};
-uint8_t TXByteCtr = 0;
-uint8_t TransmitIndex = 0;
-
-unsigned char CRC8(unsigned char *ptr, unsigned char len)
-{
-	unsigned char i;
-	unsigned char crc=0;
-	while(len--!=0)
-	{
-		for(i=0x80; i!=0; i/=2)
-		{
-			if((crc & 0x80) != 0)
-			{
-				crc *= 2;
-				crc ^= 0x107;
-			}
-			else
-				crc *= 2;
-
-			if((*ptr & i)!=0)
-				crc ^= 0x107;
-		}
-		ptr++;
-	}
-	return(crc);
-}
-
-unsigned char Checksum(unsigned char *ptr, unsigned char len)
-{
-	unsigned char i;
-	unsigned char checksum = 0;
-	
-	for(i=0; i<len; i++)
-		checksum += ptr[i];
-	checksum = 0xff & ~checksum;
-	return(checksum);
-}
-
-void I2C_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count)
-{
-	#if CRC_Mode
-	{
-		uint8_t crc_count = 0;
-		crc_count = count * 2;
-		uint8_t crc1stByteBuffer [3] = {0x10, reg_addr, reg_data[0]};
-		unsigned int j;
-		unsigned int i;
-		uint8_t temp_crc_buffer [3];
-		
-		TX_Buffer[0] = reg_data[0];
-		TX_Buffer[1] = CRC8(crc1stByteBuffer,3);
-
-		j = 2;
-		for(i=1; i<count; i++)
-		{
-			TX_Buffer[j] = reg_data[i];
-			j = j + 1;
-			temp_crc_buffer[0] = reg_data[i];
-			TX_Buffer[j] = CRC8(temp_crc_buffer,1);
-			j = j + 1;
-		}
-		I2C_Master_WriteReg(dev_addr, reg_addr, TX_Buffer, crc_count);
-	}
-	#else
-		I2C_Master_WriteReg(dev_addr, reg_addr, reg_data, count);
-	#endif
-}
-
-int I2C_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count)
-{
-	unsigned int RX_CRC_Fail = 0;  // reset to 0. If in CRC Mode and CRC fails, this will be incremented.
-
-	#if CRC_Mode
-	{
-		uint8_t crc_count = 0;
-		crc_count = count * 2;
-		unsigned int j;
-		unsigned int i;
-		unsigned char CRC = 0;
-		uint8_t temp_crc_buffer [3];
-		
-		I2C_Master_ReadReg(dev_addr, reg_addr, crc_count);
-		uint8_t crc1stByteBuffer [4] = {0x10, reg_addr, 0x11, ReceiveBuffer[0]};
-		CRC = CRC8(crc1stByteBuffer,4);
-		if (CRC != ReceiveBuffer[1])
-			RX_CRC_Fail += 1;
-		
-		RX_Buffer[0] = ReceiveBuffer[0];
-		
-		j = 2; 
-		for (i=1; i<count; i++)
-		{
-			RX_Buffer[i] = ReceiveBuffer[j];
-			temp_crc_buffer[0] = ReceiveBuffer[j];
-			j = j + 1;
-			CRC = CRC8(temp_crc_buffer,1);
-			if (CRC != ReceiveBuffer[j])
-				RX_CRC_Fail += 1;
-			j = j + 1;
-		}
-		//CopyArray(ReceiveBuffer, RX_Buffer, crc_count);
-	}
-	#else
-		I2C_Master_ReadReg(dev_addr, reg_addr, count);
-		CopyArray(ReceiveBuffer, RX_Buffer, count);
-	#endif
-	if (RX_CRC_Fail > 0)
-		return -1;
-	else
-		return 0;
-}
-
-//******************************************************************************
-// BQ Functions ***************************************************
-//******************************************************************************
-
-void BQ_EnableRegulators()
-{
-	// Enable REG0 - 0x9237 = 0x01
-    TX_3Byte[0] = 0x37; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x01;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable REG1 = 3.3V - 0x9236 = 0x0D
-    TX_3Byte[0] = 0x36; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x0D;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-}
-
-void BQ_ConfigureCells()
-{
-	// 'VCell Mode' - Enable 7 cells - 0x9304 = 0x023F
-    TX_4Byte[0] = 0x04; TX_4Byte[1] = 0x93; TX_4Byte[2] = 0x3F; TX_4Byte[3] = 0x02;
-    I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 
-	TX_2Byte[0] = Checksum(TX_4Byte, 4); TX_2Byte[1] = 0x06;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);
-}
-
-void BQ_EnableAllProtections(uint8_t a, uint8_t b, uint8_t c)
-{
-	// Enable all protections in 'Enabled Protections A' 0x9241 = 0xFC
-	TX_3Byte[0] = 0x61; TX_3Byte[1] = 0x92; TX_3Byte[2] = a;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable all protections in 'Enabled Protections B' 0x9262 = 0xF7
-	TX_3Byte[0] = 0x62; TX_3Byte[1] = 0x92; TX_3Byte[2] = b;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable all protections in 'Enabled Protections C' 0x9263 = 0xFE
-	TX_3Byte[0] = 0x63; TX_3Byte[1] = 0x92; TX_3Byte[2] = c;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-}
-
-void BQ_SetTemperatures()
-{
-	// Set TS1 to measure Cell Temperature - 0x92FD = 0x07
-	TX_3Byte[0] = 0xFD; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x07;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-	
-	// Set TS3 to measure FET Temperature - 0x92FF = 0x0F
-	TX_3Byte[0] = 0xFF; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x0F;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-}
-
-void BQ_PeriodicMeasurement (void)
-{
-	// Read Voltage on cells
-	I2C_ReadReg(0x08, 0x14, 2); // Cell 1
-	I2C_ReadReg(0x08, 0x16, 2); // Cell 2
-	I2C_ReadReg(0x08, 0x18, 2); // Cell 3
-	I2C_ReadReg(0x08, 0x1A, 2); // Cell 4
-	I2C_ReadReg(0x08, 0x1C, 2); // Cell 5
-	I2C_ReadReg(0x08, 0x1E, 2); // Cell 6 (VC6)
-	I2C_ReadReg(0x08, 0x26, 2); // Cell 7 (VC10)
-	// Read CC2 Current
-	I2C_ReadReg(0x08, 0x3A, 2);
-	// Read Temperatures
-	I2C_ReadReg(0x08, 0x70, 2); // Cell temp on TS1
-	I2C_ReadReg(0x08, 0x74, 2); // FET temp on TS3
-}
-
 //******************************************************************************
 // Main ************************************************************************
-// Send and receive three messages containing the example commands *************
 //******************************************************************************
 
-int main(void) {
+int main(void) 
+{
     WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
     initClockTo16MHz();
     initGPIO(); 
@@ -293,9 +87,11 @@ int main(void) {
 	
 	// Note: Block writing can be used to improve efficiency. In this example, write one 
 	
+	// 'VCell Mode' - Enable 7 cells - 0x9304 = 0x023F
+	BQ76952_Set_VCellMode(0x23F, NULL);
+	
 	// Enable regulators, protections, temperatures
 	BQ_EnableRegulators();
-	BQ_ConfigureCells();
     BQ_EnableAllProtections(0xFC, 0xF7, 0xFE);
     BQ_SetTemperatures();
 	
