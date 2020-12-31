@@ -70,9 +70,9 @@ typedef enum {
 } output_pin_t;
 
 typedef enum {
-	TS1,
+	TS1,				//
 	TS2,
-	TS3,
+	TS3,				//
 	NumOfThermistors
 } thermistor_t;
 
@@ -92,7 +92,7 @@ idn_RetVal_t BQ_Set_ConfigUpdateMode (uint8_t mode, char*);
 idn_RetVal_t BQ_Get_ManufacturerStatus (uint16_t* status, char*);
 idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char*);
 
-/* Setter Getter --------------------------------------------------------------*/
+/* Setter&Getter --------------------------------------------------------------*/
 
 idn_RetVal_t BQ_Get_EnableRegulator (regulator_t, uint8_t* result, char*);
 idn_RetVal_t BQ_Set_EnableRegulator (regulator_t, uint8_t value, char*);
@@ -106,10 +106,15 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t, uint8_t value, char*);
 idn_RetVal_t BQ_Get_OutputPinConifg (output_pin_t pinx, uint8_t* result, char*); 
 idn_RetVal_t BQ_Set_OutputPinConifg (output_pin_t pinx, uint8_t value, char*); 
 
-/* System Commands ---------------------------------------------------------- */
+/* Setter 6Bytes ------------------------------------------------------------ */
 
 idn_RetVal_t BQ_Get_VCellMode (uint16_t* mode, char*);
 idn_RetVal_t BQ_Set_VCellMode (uint16_t mode, char*);
+
+idn_RetVal_t BQ_Get_AlarmMask (uint16_t* mask, char*);
+idn_RetVal_t BQ_Set_AlarmMask (uint16_t mask, char*);
+
+/* System Commands ---------------------------------------------------------- */
 
 idn_RetVal_t BQ_PeriodicMeasurement (void);
 

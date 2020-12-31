@@ -36,14 +36,25 @@ unsigned char Checksum(unsigned char *ptr, unsigned char len)
 	return(checksum);
 }
 
-static inline void Setter(uint8_t value) 
+static inline void Setter_5Bytes(uint8_t value) 
 {
 	TX_3Byte[2] = value;
 	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
 	wait(1);
 	TX_2Byte[0] = Checksum(TX_3Byte, 3);
-	TX_2Byte[1] = 0x05;
+	TX_2Byte[1] = 0x05; // Length
 	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+}
+
+static inline void Setter_6Bytes(uint16_t mode)
+{
+	TX_4Byte[2] = HIGH_BYTE(mode);
+	TX_4Byte[3] = LOW_BYTE(mode);
+    I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 
+    wait(1);
+	TX_2Byte[0] = Checksum(TX_4Byte, 4); 
+	TX_2Byte[1] = 0x06;  // Length
+    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
 }
 
 static inline void Getter(uint8_t high) 
@@ -56,7 +67,7 @@ static inline void Getter(uint8_t high)
 }
 
 //******************************************************************************
-// Basic Commands 
+// Atomic Commands 
 //******************************************************************************
 
 idn_RetVal_t BQ_Set_AlarmEnable (uint16_t alarm_source, char* log) 
@@ -77,7 +88,9 @@ idn_RetVal_t BQ_Get_AlarmEnable (uint16_t* alarm_source, char* log)
 	return ret;
 }
 
-/* Subcommands (Tx) ------------------------------------------------------------*/
+//******************************************************************************
+// Write Only (Tx) SubCommands 
+//******************************************************************************
 
 /**
   * @brief  Toggle FET_EN in Manufacturing Status (see below)
@@ -120,7 +133,9 @@ idn_RetVal_t BQ_Set_ConfigUpdateMode (uint8_t mode, char* log)
 	return ret;
 }
 
-/* Subcommands (TxRx) ----------------------------------------------------------*/
+//******************************************************************************
+// Read Only (TxRx) SubCommands 
+//******************************************************************************
 
 idn_RetVal_t BQ_Get_ManufacturerStatus (uint16_t* status, char* log) 
 {
@@ -142,7 +157,9 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char* log)
 	return ret;
 }
 
-/* Getter --------------------------------------------------------------*/
+//******************************************************************************
+// Getter (TxRx) SubCommands 
+//******************************************************************************
 
 /**
   * @brief  BQ_Get_EnableRegulator()
@@ -200,7 +217,9 @@ idn_RetVal_t BQ_Get_OutputPinConifg(output_pin_t pinx, uint8_t* result, char* lo
 	return ret;
 }
 
-/* Setter --------------------------------------------------------------*/
+//******************************************************************************
+// 5-Byte Setter (Tx) SubCommands 
+//******************************************************************************
 
 /**
   * @brief  BQ_Set_EnableRegulator()
@@ -211,7 +230,7 @@ idn_RetVal_t BQ_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log)
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0x36 + regx;		// settings::configuration
 	TX_3Byte[1] = 0x92;
-	Setter(value);
+	Setter_5Bytes(value);
 	sprintf(log, "Set Regulator %d to 0x%02x", regx, value);
 	return ret;
 }
@@ -225,7 +244,7 @@ idn_RetVal_t BQ_Set_EnableProtection (protection_t abc, uint8_t value, char* log
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0x61 + abc;			// settings::configuration
 	TX_3Byte[1] = 0x92;
-	Setter(value);
+	Setter_5Bytes(value);
 	sprintf(log, "Set Enable Protections %d to 0x%02x", abc, value);
 	return ret;
 }
@@ -239,7 +258,7 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t tsx, uint8_t value, char* log
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0xFD + tsx;			// settings::configuration
 	TX_3Byte[1] = 0x92;
-	Setter(value);
+	Setter_5Bytes(value);
 	sprintf(log, "Set Enable Thermistor %d to 0x%02x", tsx, value);
 	return ret;
 }
@@ -253,13 +272,13 @@ idn_RetVal_t BQ_Set_OutputPinConfig (output_pin_t pinx, uint8_t value, char* log
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0xFA + pinx;			// settings::configuration
 	TX_3Byte[1] = 0x92; 
-	Setter(value);
+	Setter_5Bytes(value);
     sprintf(log, "Set Enable Pin %d to 0x%02x", pinx, value);
 	return ret;
 }
 
 //******************************************************************************
-// System Commands 
+// 6-Byte Setter (Tx) SubCommands 
 //******************************************************************************
 
 idn_RetVal_t BQ76952_Get_VCellMode (uint16_t* mode, char* log) 
@@ -277,16 +296,35 @@ idn_RetVal_t BQ76952_Set_VCellMode (uint16_t mode, char* log)
 	idn_RetVal_t ret = IDN_OK;
 	TX_4Byte[0] = 0x04;				// settings::configuration
 	TX_4Byte[1] = 0x93;
-	TX_4Byte[2] = HIGH_BYTE(mode);
-	TX_4Byte[3] = LOW_BYTE(mode);
-	I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 	
-	wait(1);
-	TX_2Byte[0] = Checksum(TX_4Byte, 4); 
-	TX_2Byte[1] = 0x06;  // Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);
+	Setter_6Bytes(mode);
 	sprintf(log, "Set Cell Mode Register to 0x%04x", mode);
 	return ret;
 }
+
+idn_RetVal_t BQ76952_Get_AlarmMask (uint16_t* mask, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	return ret;
+}
+
+/**
+  * @brief  BQ76952_Set_VCellMode()
+  * 		It is recommended to first enter CONFIG_UPDATE mode
+  */
+idn_RetVal_t BQ76952_Set_AlarmMask (uint16_t mask, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_4Byte[0] = 0x6D;				// settings::configuration
+    TX_4Byte[1] = 0x92; 
+    Setter_6Bytes(mask);
+	sprintf(log, "Set Default Alarm Mask to 0x%04x", mode);
+	return ret;
+}
+
+//******************************************************************************
+// System Commands 
+//******************************************************************************
+
 
 idn_RetVal_t BQ_PeriodicMeasurement(void)
 {

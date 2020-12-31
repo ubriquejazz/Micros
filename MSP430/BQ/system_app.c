@@ -106,12 +106,9 @@ int main(void)
 	
 	// Set up Alert Pin - 0x92FC = 0x2A
     BQ_Set_OutputPinConifg(ALERT, 0x2A, NULL);
-    
+
 	// Default Alarm Mask 0x926D = 0xF882
-    TX_4Byte[0] = 0x6D; TX_4Byte[1] = 0x92; TX_4Byte[2] = 0x82; TX_4Byte[3] = 0xE0;
-    I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 
-	TX_2Byte[0] = Checksum(TX_4Byte, 4); TX_2Byte[1] = 0x06;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+	BQ76952_Set_AlarmMask(0xE082, NULL);
 	
 	// Exit CONFIG_UPDATE Mode - Command 0x0092
 	BQ_Set_ConfigUpdateMode(0, NULL);    	
