@@ -9,20 +9,6 @@
   */
 #include "bq.h"
 
-// Direct Commands
-#define	BQ76952_REG_ALARM_ENABLE	0x66	// R/W. By default is set to 0xF800
-#define BQ76952_REG_VCELL_1			0x14	// R. 16-bit voltage on cell 1
-#define BQ76952_REG_TEMPERATURE		0x68	// R. most recent measured internal die temp.
-#define BQ76952_REG_CC2				0x3A	// R. 16-bit current (Filter 2)
-
-// Subcommands (0x3E, 0x40)
-#define BQ76952_REG_DEVICE_NUMBER 	0x01	// R. Identifies the product (7695x)
-#define BQ76952_REG_MANUFACTURER	0x57	// R. Provides flags for use during manufacturing
-#define BQ76952_REG_FET_ENABLE		0x22	// W. FET_EN = 0 means Test Mode. FET_EN = 1 means FW Control
-#define BQ76952_REG_RESET 		  	0x12	// W. Reset the device
-#define BQ76952_REG_SET_CFGUPDATE	0x90	// W. Enters CONFIG_UPDATE mode
-#define BQ76952_REG_EXIT_CFGUPDATE	0x92	// W. Also clears the Battery Status() [POR] and Battery Status()[WD] bits.
-
 /* TX_*Byte are example buffers initialized in the master, they will be
  * sent by the master to the slave.
  * RX_*Byte are example buffers initialized in the slave, they will be
@@ -145,6 +131,20 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char* log)
 	return ret;
 }
 
+idn_RetVal_t BQ_Get_EnableRegulator (regulator_t regx, uint8_t* result, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_2Byte[0] = 0x36 + regx;		// settings::configuration
+	TX_2Byte[1] = 0x92;
+    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+    wait(1);
+    I2C_ReadReg(0x08, 0x40, 1);
+    wait(2);
+	*result = RX_2Byte[0];
+	sprintf(log, "Get Enable Regulator %d : 0x%02x", regx, RX_2Byte[0]);
+	return ret;
+}
+
 /**
   * @brief 	To verify that default settings have COV (over-voltage) and SCD (short-circuit) 
   *			protections enable. 
@@ -159,7 +159,7 @@ idn_RetVal_t BQ_Get_EnableProtection (protection_t protect, uint8_t* result, cha
     I2C_ReadReg(0x08, 0x40, 1);
     wait(2);
 	*result = RX_2Byte[0];
-	sprintf(log, "Get Enable Protections : 0x%02x", RX_2Byte[0]);
+	sprintf(log, "Get Enable Protections %d : 0x%02x", protect, RX_2Byte[0]);
 	return ret;
 }
 
