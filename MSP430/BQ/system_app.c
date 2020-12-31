@@ -87,11 +87,17 @@ int main(void)
 	// 'VCell Mode' - Enable 7 cells - 0x9304 = 0x023F
 	BQ76952_Set_VCellMode(0x23F, NULL);
 	
-	// Enable regulators, protections, temperatures
-	BQ_EnableRegulators();
+	// Enable REG0 - 0x9237 = 0x01
+	BQ_Set_EnableRegulator(REG0, 0x01, NULL);
+
+	// Enable REG1 = 3.3V - 0x9236 = 0x0D
+    BQ_Set_EnableRegulator(REG12, 0x0D, NULL);
 
 	// Enable all protections in 'Enabled Protections A', 'B' and 'C'
-    BQ_EnableAllProtections(0xFC, 0xF7, 0xFE);
+    BQ_Set_EnableProtection(PROTECTION_A, 0xFC, NULL);
+    BQ_Set_EnableProtection(PROTECTION_B, 0xF7, NULL);	
+	BQ_Set_EnableProtection(PROTECTION_C, 0xFE, NULL);	
+
     BQ_SetTemperatures();
 	
 	// Set up Alert Pin - 0x92FC = 0x2A

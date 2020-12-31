@@ -17,7 +17,7 @@
 #define CRC_Mode 			0 // 0 for disabled, 1 for enabled
 #define CRC_KEY 			7 //
 
-typedef enum I2C_ModeEnum{
+typedef enum {
     IDLE_MODE,
     NACK_MODE,
     TX_REG_ADDRESS_MODE,

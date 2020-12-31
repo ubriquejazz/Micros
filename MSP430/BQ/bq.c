@@ -23,13 +23,6 @@
 #define BQ76952_REG_SET_CFGUPDATE	0x90	// W. Enters CONFIG_UPDATE mode
 #define BQ76952_REG_EXIT_CFGUPDATE	0x92	// W. Also clears the Battery Status() [POR] and Battery Status()[WD] bits.
 
-// RAM Registers (0x3E, 0x40, 0x60)
-// - It is recommended to first enter CONFIG_UPDATE mode
-// - Write the address to 0x3E followed by the data
-// - Write the checksum of the address and data
-#define BQ76952_REG_VCELL_MODE_L	0x04
-#define BQ76952_REG_VCELL_MODE_H	0x93	// R/W. VCell Mode registers
-
 /* TX_*Byte are example buffers initialized in the master, they will be
  * sent by the master to the slave.
  * RX_*Byte are example buffers initialized in the slave, they will be
@@ -178,10 +171,14 @@ idn_RetVal_t BQ76952_Get_VCellMode (uint16_t* mode, char* log)
 
 /* Wr Registers --------------------------------------------------------------*/
 
-idn_RetVal_t BQ_Set_EnableProtection (protection_t protect, uint8_t value, char* log) 
+/**
+  * @brief  BQ_Set_EnableRegulator()
+  * 		It is recommended to first enter CONFIG_UPDATE mode
+  */
+idn_RetVal_t BQ_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	TX_3Byte[0] = 0x61 + protect;
+	TX_3Byte[0] = 0x36 + regx;		// settings::configuration
 	TX_3Byte[1] = 0x92;
 	TX_3Byte[2] = value;
 	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
@@ -189,15 +186,34 @@ idn_RetVal_t BQ_Set_EnableProtection (protection_t protect, uint8_t value, char*
 	TX_2Byte[0] = Checksum(TX_3Byte, 3);
 	TX_2Byte[1] = 0x05;
 	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-	sprintf(log, "Set Enable Protections A to 0x%02x", value);
+	sprintf(log, "Set Regulator %d to 0x%02x", regx, value);
 	return ret;
 }
 
+idn_RetVal_t BQ_Set_EnableProtection (protection_t abc, uint8_t value, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_3Byte[0] = 0x61 + abc;			// settings::configuration
+	TX_3Byte[1] = 0x92;
+	TX_3Byte[2] = value;
+	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
+	wait(1);
+	TX_2Byte[0] = Checksum(TX_3Byte, 3);
+	TX_2Byte[1] = 0x05;
+	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+	sprintf(log, "Set Enable Protections %d to 0x%02x", abc, value);
+	return ret;
+}
+
+/**
+  * @brief  BQ76952_Set_VCellMode()
+  * 		It is recommended to first enter CONFIG_UPDATE mode
+  */
 idn_RetVal_t BQ76952_Set_VCellMode (uint16_t mode, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	TX_4Byte[0] = BQ76952_REG_VCELL_MODE_L;
-	TX_4Byte[1] = BQ76952_REG_VCELL_MODE_H;
+	TX_4Byte[0] = 0x04;				// settings::configuration
+	TX_4Byte[1] = 0x93;
 	TX_4Byte[2] = HIGH_BYTE(mode);
 	TX_4Byte[3] = LOW_BYTE(mode);
 	I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 	
@@ -212,33 +228,6 @@ idn_RetVal_t BQ76952_Set_VCellMode (uint16_t mode, char* log)
 //******************************************************************************
 // System Commands 
 //******************************************************************************
-
-idn_RetVal_t BQ_EnableRegulators(void)
-{
-	idn_RetVal_t ret = IDN_OK;
-
-	// Enable REG0 - 0x9237 = 0x01
-    TX_3Byte[0] = 0x37; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x01;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable REG1 = 3.3V - 0x9236 = 0x0D
-    TX_3Byte[0] = 0x36; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x0D;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;  // Checksum and Length
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-    return ret;
-}
-
-idn_RetVal_t BQ_EnableAllProtections(uint8_t a, uint8_t b, uint8_t c)
-{
-	idn_RetVal_t ret = IDN_OK;
-    BQ_Set_EnableProtection(PROTECTION_A, a, NULL);
-    BQ_Set_EnableProtection(PROTECTION_B, b, NULL);	
-	BQ_Set_EnableProtection(PROTECTION_C, c, NULL);	
-    return ret;
-}
 
 idn_RetVal_t BQ_SetTemperatures(void)
 {

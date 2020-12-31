@@ -39,6 +39,12 @@ typedef enum {
     NumOfProtections
 } protection_t;
 
+typedef enum {
+	REG12,				// 7:4 REG2 ; 3:0 REG1
+	REG0,				// REG0_EN only (bit 0)
+	NumOfRegulators
+} protection_t;
+
 /* Atomic Commands ----------------------------------------------------------- */
 
 idn_RetVal_t BQ_Set_AlarmEnable (uint16_t alarm_source, char*);
@@ -59,13 +65,12 @@ idn_RetVal_t BQ_Get_VCellMode (uint16_t* mode, char*);
 
 /* Wr Registers --------------------------------------------------------------*/
 
+idn_RetVal_t BQ_Set_EnableRegulator (regulator_t, uint8_t value, char*);
 idn_RetVal_t BQ_Set_EnableProtection (protection_t, uint8_t value, char*);
 idn_RetVal_t BQ_Set_VCellMode (uint16_t mode, char*);
 
 /* System Commands ---------------------------------------------------------- */
 
-idn_RetVal_t BQ_EnableRegulators(void);
-idn_RetVal_t BQ_EnableAllProtections(uint8_t a, uint8_t b, uint8_t c);
 idn_RetVal_t BQ_SetTemperatures(void);
 idn_RetVal_t BQ_PeriodicMeasurement (void);
 
