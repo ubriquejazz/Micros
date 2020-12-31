@@ -77,13 +77,10 @@ int main(void)
         wait(1); // wait ~1 second	
 	
 	// RESET - returns device to default settings
-	TX_2Byte[0] = 0x12; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(2);
+	BQ_Set_Reset(NULL);
 	
 	// Enter CONFIG_UPDATE  - Command 0x0090
-	TX_2Byte[0] = 0x90; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+	BQ_Set_ConfigUpdateMode(1, NULL);
 	
 	// Note: Block writing can be used to improve efficiency. In this example, write one 
 	
@@ -92,6 +89,8 @@ int main(void)
 	
 	// Enable regulators, protections, temperatures
 	BQ_EnableRegulators();
+
+	// Enable all protections in 'Enabled Protections A', 'B' and 'C'
     BQ_EnableAllProtections(0xFC, 0xF7, 0xFE);
     BQ_SetTemperatures();
 	
@@ -109,12 +108,10 @@ int main(void)
     I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
 	
 	// Exit CONFIG_UPDATE Mode - Command 0x0092
-	TX_2Byte[0] = 0x92; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);     	
+	BQ_Set_ConfigUpdateMode(0, NULL);    	
 	
 	// FET_ENABLE command to turn on CHG and DSG FETs
-	TX_2Byte[0] = 0x22; TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);	
+	BQ_Set_FETEnable(NULL);
     
     P1IFG &= ~BIT4; // P1.4 interrupt flag cleared
 	

@@ -75,6 +75,9 @@ int main(void) {
     // Advance to next I2C command by pressing burron on P2.3 (SW2)
     while (P2IN & BIT3)
         wait(1); // wait ~1 second
+
+	// RESET - returns device to default settings
+	BQ_Set_Reset(NULL);
     
 	// ############# Direct Command Examples ###################
 	
@@ -114,18 +117,6 @@ int main(void) {
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
 		
-	// FET_ENABLE
-	BQ_Set_FETEnable(NULL);
-	wait(2);
-	while (P2IN & BIT3)
-        wait(1); // wait ~1 second
-		
-	// RESET - returns device to default settings
-	BQ_Set_Reset(NULL);
-	wait(2);
-	while (P2IN & BIT3)
-        wait(1); // wait ~1 second
-		
 	// ############# Reading and Writing to RAM Registers ############
 	
 	// Read 'Enabled Protections A' RAM register 0x9261
@@ -141,7 +132,7 @@ int main(void) {
         wait(1); // wait ~1 second
 	
 	// Write to 'Enabled Protections A' RAM register to enable CUV protection
-    BQ_Set_EnableProtection(0x8C, NULL);
+    BQ_Set_EnableProtection(PROTECTION_A, 0x8C, NULL);
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
@@ -157,6 +148,9 @@ int main(void) {
     wait(2);
 	while (P2IN & BIT3)
         wait(1); // wait ~1 second
+
+	// FET_ENABLE
+	BQ_Set_FETEnable(NULL);
        
     while(1)
     {

@@ -22,8 +22,6 @@
 #define BQ76952_REG_RESET 		  	0x12	// W. Reset the device
 #define BQ76952_REG_SET_CFGUPDATE	0x90	// W. Enters CONFIG_UPDATE mode
 #define BQ76952_REG_EXIT_CFGUPDATE	0x92	// W. Also clears the Battery Status() [POR] and Battery Status()[WD] bits.
-#define BQ76952_REG_ENA_PROTECT_L	0x61
-#define BQ76952_REG_ENA_PROTECT_H	0x92	// R/W. Enabled Protections A register
 
 // RAM Registers (0x3E, 0x40, 0x60)
 // - It is recommended to first enter CONFIG_UPDATE mode
@@ -94,6 +92,7 @@ idn_RetVal_t BQ_Set_FETEnable (char* log)
 	TX_2Byte[0] = BQ76952_REG_FET_ENABLE;
 	TX_2Byte[1] = 0x00;
 	I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+    wait(1);
 	sprintf(log, "Toggle FET_EN in Manufacturing Status");	
 	return ret;
 }
@@ -104,6 +103,7 @@ idn_RetVal_t BQ_Set_Reset (char* log)
 	TX_2Byte[0] = BQ76952_REG_RESET;
 	TX_2Byte[1] = 0x00;
 	I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+    wait(2);
 	sprintf(log, "Returned to default settings");	
 	return ret;
 }
@@ -156,11 +156,11 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char* log)
   * @brief 	To verify that default settings have COV (over-voltage) and SCD (short-circuit) 
   *			protections enable. 
 **/
-idn_RetVal_t BQ_Get_EnableProtection (uint8_t* result, char* log) 
+idn_RetVal_t BQ_Get_EnableProtection (protection_t protect, uint8_t* result, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	TX_2Byte[0] = BQ76952_REG_ENA_PROTECT_L;
-	TX_2Byte[1] = BQ76952_REG_ENA_PROTECT_H;
+	TX_2Byte[0] = 0x61 + protect;
+	TX_2Byte[1] = 0x92;
     I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
     wait(1);
     I2C_ReadReg(0x08, 0x40, 1);
@@ -178,11 +178,11 @@ idn_RetVal_t BQ76952_Get_VCellMode (uint16_t* mode, char* log)
 
 /* Wr Registers --------------------------------------------------------------*/
 
-idn_RetVal_t BQ_Set_EnableProtection (uint8_t value, char* log) 
+idn_RetVal_t BQ_Set_EnableProtection (protection_t protect, uint8_t value, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	TX_3Byte[0] = BQ76952_REG_ENA_PROTECT_L;
-	TX_3Byte[1] = BQ76952_REG_ENA_PROTECT_H;
+	TX_3Byte[0] = 0x61 + protect;
+	TX_3Byte[1] = 0x92;
 	TX_3Byte[2] = value;
 	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
 	wait(1);
@@ -234,27 +234,9 @@ idn_RetVal_t BQ_EnableRegulators(void)
 idn_RetVal_t BQ_EnableAllProtections(uint8_t a, uint8_t b, uint8_t c)
 {
 	idn_RetVal_t ret = IDN_OK;
-
-	// Enable all protections in 'Enabled Protections A' 0x9241 = 0xFC
-	TX_3Byte[0] = 0x61; TX_3Byte[1] = 0x92; TX_3Byte[2] = a;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable all protections in 'Enabled Protections B' 0x9262 = 0xF7
-	TX_3Byte[0] = 0x62; TX_3Byte[1] = 0x92; TX_3Byte[2] = b;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-
-	// Enable all protections in 'Enabled Protections C' 0x9263 = 0xFE
-	TX_3Byte[0] = 0x63; TX_3Byte[1] = 0x92; TX_3Byte[2] = c;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+    BQ_Set_EnableProtection(PROTECTION_A, a, NULL);
+    BQ_Set_EnableProtection(PROTECTION_B, b, NULL);	
+	BQ_Set_EnableProtection(PROTECTION_C, c, NULL);	
     return ret;
 }
 
