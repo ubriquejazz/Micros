@@ -98,15 +98,15 @@ int main(void)
     BQ_Set_EnableProtection(PROTECTION_B, 0xF7, NULL);	
 	BQ_Set_EnableProtection(PROTECTION_C, 0xFE, NULL);	
 
-    BQ_SetTemperatures();
+	// Set TS1 to measure Cell Temperature - 0x92FD = 0x07
+	BQ_Set_ThermistorConfig(TS1, 0x07, NULL);
+
+	// Set TS3 to measure FET Temperature - 0x92FF = 0x0F
+    BQ_Set_ThermistorConfig(TS3, 0x0F, NULL);
 	
 	// Set up Alert Pin - 0x92FC = 0x2A
-	TX_3Byte[0] = 0xFC; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x2A;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);		
-	
+    BQ_Set_OutputPinConifg(ALERT, 0x2A, NULL);
+    
 	// Default Alarm Mask 0x926D = 0xF882
     TX_4Byte[0] = 0x6D; TX_4Byte[1] = 0x92; TX_4Byte[2] = 0x82; TX_4Byte[3] = 0xE0;
     I2C_WriteReg(0x08, 0x3E, TX_4Byte, 4); 

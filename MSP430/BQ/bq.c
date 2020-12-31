@@ -36,6 +36,25 @@ unsigned char Checksum(unsigned char *ptr, unsigned char len)
 	return(checksum);
 }
 
+static inline void Setter(uint8_t value) 
+{
+	TX_3Byte[2] = value;
+	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
+	wait(1);
+	TX_2Byte[0] = Checksum(TX_3Byte, 3);
+	TX_2Byte[1] = 0x05;
+	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+}
+
+static inline void Getter(uint8_t high) 
+{
+	TX_2Byte[1] = high;
+    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
+    wait(1);
+    I2C_ReadReg(0x08, 0x40, 1);
+    wait(2);
+}
+
 //******************************************************************************
 // Basic Commands 
 //******************************************************************************
@@ -107,11 +126,7 @@ idn_RetVal_t BQ_Get_ManufacturerStatus (uint16_t* status, char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
 	TX_2Byte[0] = BQ76952_REG_MANUFACTURER;
-	TX_2Byte[1] = 0x00;
-	I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 2);
-    wait(2);
+	Getter(0x00);
 	*status = RX_2Byte[1] * 256 + RX_2Byte[0];
 	sprintf(log, "Get Manufacturer Status : 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
 	return ret;
@@ -121,25 +136,23 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
 	TX_2Byte[0] = BQ76952_REG_DEVICE_NUMBER;
-	TX_2Byte[1] = 0x00;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 2);
-    wait(2);
+	Getter(0x00);
 	*device_number = RX_2Byte[1] * 256 + RX_2Byte[0];
 	sprintf(log, "Get Device Number : 0x%04x", RX_2Byte[1] * 256 + RX_2Byte[0]);
 	return ret;
 }
 
+/* Getter --------------------------------------------------------------*/
+
+/**
+  * @brief  BQ_Get_EnableRegulator()
+  *
+**/
 idn_RetVal_t BQ_Get_EnableRegulator (regulator_t regx, uint8_t* result, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
 	TX_2Byte[0] = 0x36 + regx;		// settings::configuration
-	TX_2Byte[1] = 0x92;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 1);
-    wait(2);
+	Getter(0x92);
 	*result = RX_2Byte[0];
 	sprintf(log, "Get Enable Regulator %d : 0x%02x", regx, RX_2Byte[0]);
 	return ret;
@@ -153,23 +166,41 @@ idn_RetVal_t BQ_Get_EnableProtection (protection_t protect, uint8_t* result, cha
 {
 	idn_RetVal_t ret = IDN_OK;
 	TX_2Byte[0] = 0x61 + protect;
-	TX_2Byte[1] = 0x92;
-    I2C_WriteReg(0x08, 0x3E, TX_2Byte, 2);
-    wait(1);
-    I2C_ReadReg(0x08, 0x40, 1);
-    wait(2);
+	Getter(0x92);
 	*result = RX_2Byte[0];
 	sprintf(log, "Get Enable Protections %d : 0x%02x", protect, RX_2Byte[0]);
 	return ret;
 }
 
-idn_RetVal_t BQ76952_Get_VCellMode (uint16_t* mode, char* log) 
+/**
+  * @brief  BQ_Get_ThermistorConfig()
+  *
+**/
+idn_RetVal_t BQ_Get_ThermistorConfig(thermistor_t tsx, uint8_t* result, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
+	TX_2Byte[0] = 0xFD + tsx;		// settings::configuration
+	Getter(0x92);
+	*result = RX_2Byte[0];
+	sprintf(log, "Get Enable Thermistor %d : 0x%02x", tsx, RX_2Byte[0]);
 	return ret;
 }
 
-/* Wr Registers --------------------------------------------------------------*/
+/**
+  * @brief  BQ_Get_OutputPinConifg()
+  *
+**/
+idn_RetVal_t BQ_Get_OutputPinConifg(output_pin_t pinx, uint8_t* result, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_3Byte[0] = 0xFA + pinx;			// settings::configuration
+	Getter(0x92);
+	*result = RX_2Byte[0];
+	sprintf(log, "Get Enable Pin %d : 0x%02x", tsx, RX_2Byte[0]);
+	return ret;
+}
+
+/* Setter --------------------------------------------------------------*/
 
 /**
   * @brief  BQ_Set_EnableRegulator()
@@ -180,28 +211,60 @@ idn_RetVal_t BQ_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log)
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0x36 + regx;		// settings::configuration
 	TX_3Byte[1] = 0x92;
-	TX_3Byte[2] = value;
-	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
-	wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3);
-	TX_2Byte[1] = 0x05;
-	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+	Setter(value);
 	sprintf(log, "Set Regulator %d to 0x%02x", regx, value);
 	return ret;
 }
 
+/**
+  * @brief  BQ_Set_EnableProtection()
+  *
+**/
 idn_RetVal_t BQ_Set_EnableProtection (protection_t abc, uint8_t value, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
 	TX_3Byte[0] = 0x61 + abc;			// settings::configuration
 	TX_3Byte[1] = 0x92;
-	TX_3Byte[2] = value;
-	I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3);
-	wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3);
-	TX_2Byte[1] = 0x05;
-	I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
+	Setter(value);
 	sprintf(log, "Set Enable Protections %d to 0x%02x", abc, value);
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_ThermistorConfig()
+  *
+**/
+idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t tsx, uint8_t value, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_3Byte[0] = 0xFD + tsx;			// settings::configuration
+	TX_3Byte[1] = 0x92;
+	Setter(value);
+	sprintf(log, "Set Enable Thermistor %d to 0x%02x", tsx, value);
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_OutputPinConfig (ALERT, 0x2A, NULL)
+  * 		It is recommended to first enter CONFIG_UPDATE mode
+  */
+idn_RetVal_t BQ_Set_OutputPinConfig (output_pin_t pinx, uint8_t value, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_3Byte[0] = 0xFA + pinx;			// settings::configuration
+	TX_3Byte[1] = 0x92; 
+	Setter(value);
+    sprintf(log, "Set Enable Pin %d to 0x%02x", pinx, value);
+	return ret;
+}
+
+//******************************************************************************
+// System Commands 
+//******************************************************************************
+
+idn_RetVal_t BQ76952_Get_VCellMode (uint16_t* mode, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
 	return ret;
 }
 
@@ -223,30 +286,6 @@ idn_RetVal_t BQ76952_Set_VCellMode (uint16_t mode, char* log)
     I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);
 	sprintf(log, "Set Cell Mode Register to 0x%04x", mode);
 	return ret;
-}
-
-//******************************************************************************
-// System Commands 
-//******************************************************************************
-
-idn_RetVal_t BQ_SetTemperatures(void)
-{
-	idn_RetVal_t ret = IDN_OK;
-
-	// Set TS1 to measure Cell Temperature - 0x92FD = 0x07
-	TX_3Byte[0] = 0xFD; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x07;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-	
-	// Set TS3 to measure FET Temperature - 0x92FF = 0x0F
-	TX_3Byte[0] = 0xFF; TX_3Byte[1] = 0x92; TX_3Byte[2] = 0x0F;
-    I2C_WriteReg(0x08, 0x3E, TX_3Byte, 3); 
-    wait(1);
-	TX_2Byte[0] = Checksum(TX_3Byte, 3); TX_2Byte[1] = 0x05;
-    I2C_WriteReg(0x08, 0x60, TX_2Byte, 2);	
-    return ret;
 }
 
 idn_RetVal_t BQ_PeriodicMeasurement(void)
