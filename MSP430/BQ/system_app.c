@@ -41,48 +41,15 @@
 #include "bq.h"
 #include "init.h"
 
-/* TX_*Byte are example buffers initialized in the master, they will be
- * sent by the master to the slave.
- * RX_*Byte are example buffers initialized in the slave, they will be
- * sent by the slave to the master.
- * */
-// Create Buffers for 2, 3, or 4 bytes of data
-uint8_t TX_2Byte [2] = {0x00, 0x00};
-uint8_t TX_3Byte [3] = {0x00, 0x00, 0x00};
-uint8_t TX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
-uint8_t TX_Buffer [MAX_BUFFER_SIZE] = {0};
+extern uint8_t RX_Buffer [MAX_BUFFER_SIZE];
 
-uint8_t RX_2Byte [2] = {0x00, 0x00};
-uint8_t RX_3Byte [3] = {0x00, 0x00, 0x00};
-uint8_t RX_4Byte [4] = {0x00, 0x00, 0x00, 0x00};
-uint8_t RX_Buffer [MAX_BUFFER_SIZE] = {0};
-
-//******************************************************************************
-// Main ************************************************************************
-//******************************************************************************
-
-int main(void) 
+int Setup ()
 {
-    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
-    initClockTo16MHz();
-    initGPIO(); 
-    initI2C();
-    volatile int i = 0;
-    
-    P1OUT = 0x00;   // Turn off red LED
-    P6OUT = 0x00;	// Turn off green LED
-
-	// Wait for P2.3 Button to start running program
-	while (P2IN & BIT3)
-        wait(1); // wait ~1 second	
-	
 	// RESET - returns device to default settings
 	BQ_Set_Reset(NULL);
 	
 	// Enter CONFIG_UPDATE  - Command 0x0090
 	BQ_Set_ConfigUpdateMode(1, NULL);
-	
-	// Note: Block writing can be used to improve efficiency. In this example, write one 
 	
 	// 'VCell Mode' - Enable 7 cells - 0x9304 = 0x023F
 	BQ76952_Set_VCellMode(0x23F, NULL);
@@ -115,41 +82,70 @@ int main(void)
 	
 	// FET_ENABLE command to turn on CHG and DSG FETs
 	BQ_Set_FETEnable(NULL);
+	return 0;
+}
+
+/**
+  * @brief  Loop() called in a while loop. Wait for Alert pin interrupt to indicate 
+  *			measurements available or fault present. LED's control 
+  *	
+  * @retval 	0
+**/
+int Loop ()
+{
+    static int i = 0;
+
+    // Alarm Status to figure out if a new set of measurements is ready
+	I2C_ReadReg(0x08, 0x62, 2);		
+	if (RX_Buffer[0] & 0x82){	// ... go read them
+	    i += 1; // counter to flash LEDs to show measurement activity
+		BQ_Set_AlarmStatus(0x0082, NULL); // Clear Scan Alert bits
+	    BQ_PeriodicMeasurement(NULL);
+	}
+		
+    // Toggle the green LED every 40 measurements
+    if (i > 20)
+		P6OUT = 0x40;
+	else
+		P6OUT = 0x00;
+	if (i > 40)
+        i = 0;
+
+	// Raw Alarm Status to figure out if there is a PF
+	I2C_ReadReg(0x08, 0x64, 2);
+	if (RX_Buffer[1] & 0xE0) 	// ... light up red LED
+	    P1OUT = 0x01;
+	else
+		P1OUT = 0x00;
+	    
+	BQ_Set_AlarmStatus(0xF800, NULL);// Try to clear Alert bits
+	return 0;
+}
+
+//******************************************************************************
+// Main ************************************************************************
+//******************************************************************************
+
+int main(void) 
+{
+    WDTCTL = WDTPW | WDTHOLD;	// Stop watchdog timer
+    initClockTo16MHz();
+    initGPIO(); 
+    initI2C();
     
+    P1OUT = 0x00;   // Turn off red LED
+    P6OUT = 0x00;	// Turn off green LED
+ 
+	// Wait for P2.3 Button to start running program
+	while (P2IN & BIT3)
+        wait(1); // wait ~1 second	
+	
+    Setup();
     P1IFG &= ~BIT4; // P1.4 interrupt flag cleared
 	
-    while(1)
-    {	
-		__bis_SR_register(LPM3_bits + GIE);  // Enter Low Power Mode 3 w/ interrupt
-		// Wait for Alert pin interrupt to indicate measurements available or fault present
-		
-		// Read Raw Alarm Status to figure out what to do
-		I2C_ReadReg(0x08, 0x62, 2);		
-		if (RX_Buffer[0] & 0x82) // If a new set of measurements is ready, go read them
-		{
-		    i += 1; //Counter to flash LEDs to show measurement activity
-	    	TX_2Byte[0] = 0x82; TX_2Byte[1] = 0x00;
-			I2C_WriteReg(0x08, 0x62, TX_2Byte, 2);  // Clear Scan Alert bits
-		    BQ_PeriodicMeasurement();
-		}
-		
-        // Toggle the green LED every 40 measurements
-        if (i > 20)
-			P6OUT = 0x40;
-		else
-			P6OUT = 0x00;
-		if (i > 40)
-            i = 0;
-
-		// Read Raw Alarm Status to figure out what to do
-		I2C_ReadReg(0x08, 0x64, 2);
-		if (RX_Buffer[1] & 0xE0) // If there is a protection triggered or PF, light up red LED
-		    P1OUT = 0x01;
-		else
-			P1OUT = 0x00;	
-
-	   	TX_2Byte[0] = 0x00; TX_2Byte[1] = 0xF8;
-	    I2C_WriteReg(0x08, 0x62, TX_2Byte, 2);  // Try to clear Alert bits
+	while(1) {	
+		__bis_SR_register(LPM3_bits + GIE);  // Enter Low Power Mode 3 w/ interrupt		
+		Loop();
     }
     __bis_SR_register(LPM0_bits + GIE);
 	return 0;
