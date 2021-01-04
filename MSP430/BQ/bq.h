@@ -16,10 +16,10 @@
 /* Defines ----------------------------------------------------------- */
 
 // Direct Commands
-#define BQ76952_REG_VCELL_1			0x14	// R. 16-bit voltage on cell 1
+#define BQ76952_REG_VCELL_1			  0x14	// R. 16-bit voltage on cell 1
 #define BQ76952_REG_TEMPERATURE		0x68	// R. most recent measured internal die temp.
-#define BQ76952_REG_CC2				0x3A	// R. 16-bit current (Filter 2)
-#define BQ76952_REG_FET_STAT        0x7F
+#define BQ76952_REG_CC2				    0x3A	// R. 16-bit current (Filter 2)
+#define BQ76952_REG_FET_STAT      0x7F
 // Subcommands (0x3E, 0x40)
 #define BQ76952_REG_FET_ENABLE		0x22	// W. FET_EN = 0 means Test Mode. FET_EN = 1 means FW Control
 #define BQ76952_REG_RESET 		  	0x12	// W. Reset the device
@@ -41,12 +41,27 @@
 #define BIT_PB_UTD                	1
 #define BIT_PB_UTC                	0
 
-/* Macros ---------------------------------------------------- */
+/* Macros ------------------------------------------------------------- */
 
 #define CELL_NO_TO_ADDR(cellNo) 	(0x14 + ((cellNo-1)*2))
-#define LOW_BYTE(data) 				(uint8_t)(data & 0x00FF)
-#define HIGH_BYTE(data) 			(uint8_t)((data >> 8) & 0x00FF)
-#define DATA_MEM_ADDR(x, y)			(uint16_t) (0x92 << 8) + (uint16_t) (x + y)		
+#define LOW_BYTE(data)            (uint8_t)(data & 0x00FF)
+#define HIGH_BYTE(data)           (uint8_t)((data >> 8) & 0x00FF)
+#define DATA_MEM_ADDR(x, y)       (uint16_t) (0x92 << 8) + (uint16_t) (x + y)		
+
+/* Exported struct ---------------------------------------------------- */
+
+typedef struct {
+  uint8_t       OVDelay;          // OverVoltage Protection
+  uint8_t       OVThresh;         //
+  uint8_t       UVDelay;          // UnderVoltage Protection
+  uint8_t       UVThresh;         //
+  uint8_t       SCDDelay;         // ShortCircuit Discharge
+  uint8_t       SCDThresh;        // 
+  uint8_t       OCCDelay;         // OverCurrent Charge
+  uint8_t       OCCThresh;        // 
+  uint8_t       OCDDelay;         // OverCurrent Discharge
+  uint8_t       OCDThresh;        // 
+} tagBMSInitConfig;
 
 /* Exported types ---------------------------------------------------- */
 
@@ -59,7 +74,7 @@ typedef enum {
 
 typedef enum {
 	REG12,				// 7:4 REG2 ; 3:0 REG1
-	REG0,				// REG0_EN only (bit 0)
+	REG0,				  // REG0_EN only (bit 0)
 	NumOfRegulators
 } regulator_t;
 
@@ -71,17 +86,22 @@ typedef enum {
 } output_pin_t;
 
 typedef enum {
-	TS1,				//
-	TS2,
-	TS3,				//
+	TS1,				 //
+	TS2,         //
+	TS3,				 //
 	NumOfThermistors
 } thermistor_t;
 
 /* Direct Commands ----------------------------------------------------------- */
 
-idn_RetVal_t BQ_Set_AlarmStatus (uint16_t alarm_source, char*);
-idn_RetVal_t BQ_Set_RawAlarmStatus (uint16_t alarm_source, char*);
-idn_RetVal_t BQ_Set_AlarmEnable (uint16_t alarm_source, char*);
+idn_RetVal_t BQ_Set_AlarmStatus (uint16_t status, char*);
+idn_RetVal_t BQ_Get_AlarmStatus (uint16_t* status, char*);
+
+idn_RetVal_t BQ_Set_RawAlarmStatus (uint16_t raw_status, char*);
+idn_RetVal_t BQ_Get_RawAlarmStatus (uint16_t* raw_status, char*);
+
+idn_RetVal_t BQ_Set_AlarmEnable (uint16_t enable, char*);
+idn_RetVal_t BQ_Get_AlarmEnable (uint16_t* enable, char*);
 
 /* Write only (Tx) ------------------------------------------------------------*/
 
@@ -118,6 +138,7 @@ idn_RetVal_t BQ_Set_AlarmMask (uint16_t mask, char*);
 
 /* System Commands ---------------------------------------------------------- */
 
+idn_RetVal_t BMS_Init (tagBMSInitConfig, char*);
 idn_RetVal_t BQ_PeriodicMeasurement (char*);
 
 #endif /* BQ_COMMAND_H_ */
