@@ -43,6 +43,52 @@
 
 extern uint8_t RX_Buffer [MAX_BUFFER_SIZE];
 
+/* Exported struct ---------------------------------------------------- */
+
+typedef struct {
+  uint16_t      COV_Delay;        // Cell OverVoltage Protection
+  uint16_t      COV_Thresh;       //
+  uint16_t      CUV_Delay;        // Cell UnderVoltage Protection
+  uint16_t      CUV_Thresh;       //
+  uint8_t       OCC_Delay;        // OverCurrent Charge
+  uint8_t       OCC_Thresh;       // 
+  uint8_t       OCD_Delay;        // OverCurrent Discharge
+  uint8_t       OCD_Thresh;       // 
+  uint8_t       SCD_Delay;        // ShortCircuit Discharge
+  scd_thresh_t  SCD_Thresh;       //
+  uint8_t       OTC_Delay;        // OverTemperature Charge
+  int16_t       OTC_Thresh;       // signed threshold
+  uint8_t       OTD_Delay;        // OverTemperature Discharge
+  int16_t       OTD_Thresh;       // signed threshold  
+} tagBMSInitConfig;
+
+/* Exported struct ---------------------------------------------------- */
+
+
+int BMS_Init(tagBMSInitConfig init, char* log) 
+{
+	// COV and CUV
+	BQ_Set_CellOverVoltage (init.COV_Thresh, init.COV_Delay, NULL);
+	BQ_Set_CellUnderVoltage (init.CUV_Thresh, init.CUV_Delay, NULL);
+
+	// OCC, OCD, SCD_40
+	BQ_Set_ChargingOverCurrent (init.OCC_Thresh, init.OCC_Delay, NULL);
+	BQ_Set_DischargingOverCurrent (init.OCD_Thresh, init.OCD_Delay, NULL);
+	BQ_Set_DischargingShortCircuit (init.SCD_Thresh, init.SCD_Delay, NULL);
+
+	// OTD, OTC
+	BQ_Set_ChargingOverTemperature(init.OTC_Thresh, init.OTC_Delay, NULL);
+	BQ_Set_DischargingOverTemperature(init.OTD_Thresh, init.OTD_Delay, NULL);
+
+	// Protections
+    BQ_Set_EnableProtection(PROTECTION_A, 0xFC, NULL);
+    BQ_Set_EnableProtection(PROTECTION_B, 0xF7, NULL);	
+	BQ_Set_EnableProtection(PROTECTION_C, 0xFE, NULL);	
+	
+	sprintf(log, "BMS Configured");
+	return 0;
+}
+
 int Setup ()
 {
 	// RESET - returns device to default settings

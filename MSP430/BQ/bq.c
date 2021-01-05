@@ -440,12 +440,193 @@ idn_RetVal_t BQ_PeriodicMeasurement(char* log)
 	return ret;
 }
 
-idn_RetVal_t BMS_Init(tagBMSInitConfig init, char* log) 
+/**
+  * @brief  BQ_Set_CellOverVoltage (4150, 1000, NULL)
+  *			Set user-defined overvoltage protection
+  * @param	mv, ms
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_CellOverVoltage (uint16_t mv, uint16_t ms, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;	
+	uint8_t thresh = (uint8_t) mv/50.6;
+	uint16_t dly = (uint16_t) (ms/3.3)-2;
+
+	if(thresh < 20 || thresh > 110) {
+		thresh = 86;
+		ret = IDN_ERROR;
+	}
+	if(dly < 1 || dly > 2047) {	
+		dly = 74;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+		Setter_8Bits(0x9278, thresh);
+		Setter_2Bytes(0x9279, dly);
+		sprintf(log, "[+] COV => 0x%02x, 0x%04x", thresh, dly);
+	}
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_CellUnderVoltage (2880, 1000, NULL)
+  *			Set user-defined undervoltage protection
+  * @param	mv, ms
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_CellUnderVoltage (uint16_t mv, uint16_t ms, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;	
+	uint8_t thresh = (uint8_t) mv/50.6;
+	uint16_t dly = (uint16_t) (ms/3.3)-2;
+
+	if(thresh < 20 || thresh > 90) {
+		thresh = 86;
+		ret = IDN_ERROR;
+	}
+	if(dly < 1 || dly > 2047) {	
+		dly = 74;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+		Setter_8Bits(0x9275, thresh);
+		Setter_2Bytes(0x9276, dly);
+		sprintf(log, "[+] CUV => 0x%02x, 0x%04x", thresh, dly);
+	}
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_ChargingOverCurrent (50, 10, NULL)
+  *			Set user-defined charging current protection
+  * @param	amps, ms
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_ChargingOverCurrent (uint8_t amps, uint8_t ms, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;	
+	uint8_t thresh = (uint8_t) amps/2;
+	uint16_t dly = (uint16_t) (ms/3.3)-2;
+
+	if(thresh < 2 || thresh > 62) {
+		thresh = 2;
+		ret = IDN_ERROR;
+	}
+	if(dly < 1 || dly > 127) {	
+		dly = 4;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+		Setter_8Bits(0x9280, thresh);
+		Setter_2Bytes(0x9281, dly);
+		sprintf(log, "[+] OCC => 0x%02x, 0x%04x", thresh, dly);
+	}
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_DischargingOverCurrent (70, 10, NULL)
+  *			Set user-defined discharging current protection
+  * @param	amps, ms
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_DischargingOverCurrent (uint8_t amps, uint8_t ms, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;	
+	uint8_t thresh = (uint8_t) amps/2;
+	uint16_t dly = (uint16_t) (ms/3.3)-2;
+
+	if(thresh < 2 || thresh > 100) {
+		thresh = 2;
+		ret = IDN_ERROR;
+	}
+	if(dly < 1 || dly > 127) {	
+		dly = 1;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+		Setter_8Bits(0x9282, thresh);
+		Setter_2Bytes(0x9283, dly);
+		sprintf(log, "[+] OCD => 0x%02x, 0x%04x", thresh, dly);
+	}
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_DischargingShortCircuit (SCD_40, 100, NULL)
+  *			Set user-defined discharging current protection
+  * @param	thresh, us
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t thresh, uint8_t us, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;	
+	uint8_t dly = (uint8_t)(us/15)+1;
+	if(dly < 1 || dly > 31) {	
+		dly = 2;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(0x9286, thresh);
+  		Setter_8Bits(0x9287, dly);
+		sprintf(log, "[+] SCD => 0x%02x, 0x%02x (us)", thresh, dly);
+  	}
+  	return ret;
+}
+
+/**
+  * @brief  BQ_Set_ChargingOverTemperature (85, 1, NULL)
+  *			Set user-defined charging over-temperature protection
+  * @param	temp, sec
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t temp, uint8_t sec, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-    BQ_Set_EnableProtection(PROTECTION_A, 0xFC, NULL);
-    BQ_Set_EnableProtection(PROTECTION_B, 0xF7, NULL);	
-	BQ_Set_EnableProtection(PROTECTION_C, 0xFE, NULL);	
-	sprintf(log, "BMS Configured");
-	return ret;
+	if(temp < -40 || temp > 120) {
+		temp = 55;
+		ret = IDN_ERROR;
+	}
+	if(sec < 0 || sec > 255) {	
+		sec = 1;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(0x929A, temp);
+  		Setter_8Bits(0x929B, sec);
+  		sprintf(log, "[+] OTC => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
+}
+
+/**
+  * @brief  BQ_Set_DischargingOverTemperature (85, 1, NULL)
+  *			Set user-defined discharging over-temperature protection
+  * @param	temp, sec
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t temp, uint8_t sec, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	if(temp < -40 || temp > 120) {
+		temp = 60;
+		ret = IDN_ERROR;
+	}
+	if(sec < 0 || sec > 255) {	
+		sec = 2;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(0x929D, temp);
+  		Setter_8Bits(0x929E, sec);
+  		sprintf(log, "[+] OTD => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
 }

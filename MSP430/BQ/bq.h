@@ -48,21 +48,6 @@
 #define HIGH_BYTE(data)           (uint8_t)((data >> 8) & 0x00FF)
 #define DATA_MEM_ADDR(x, y)       (uint16_t) (0x92 << 8) + (uint16_t) (x + y)		
 
-/* Exported struct ---------------------------------------------------- */
-
-typedef struct {
-  uint8_t       OVDelay;          // OverVoltage Protection
-  uint8_t       OVThresh;         //
-  uint8_t       UVDelay;          // UnderVoltage Protection
-  uint8_t       UVThresh;         //
-  uint8_t       SCDDelay;         // ShortCircuit Discharge
-  uint8_t       SCDThresh;        // 
-  uint8_t       OCCDelay;         // OverCurrent Charge
-  uint8_t       OCCThresh;        // 
-  uint8_t       OCDDelay;         // OverCurrent Discharge
-  uint8_t       OCDThresh;        // 
-} tagBMSInitConfig;
-
 /* Exported types ---------------------------------------------------- */
 
 typedef enum {
@@ -91,6 +76,25 @@ typedef enum {
 	TS3,				 //
 	NumOfThermistors
 } thermistor_t;
+
+typedef enum {
+  SCD_10,
+  SCD_20,
+  SCD_40,
+  SCD_60,
+  SCD_80,
+  SCD_100,
+  SCD_125,
+  SCD_150,
+  SCD_175,
+  SCD_200,
+  SCD_250,
+  SCD_300,
+  SCD_350,
+  SCD_400,
+  SCD_450,
+  SCD_500
+} scd_thresh_t;
 
 /* Direct Commands ----------------------------------------------------------- */
 
@@ -128,6 +132,16 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t, uint8_t value, char*);
 idn_RetVal_t BQ_Get_OutputPinConifg (output_pin_t, uint8_t* result, char*); 
 idn_RetVal_t BQ_Set_OutputPinConifg (output_pin_t, uint8_t value, char*); 
 
+idn_RetVal_t BQ_Set_CellOverVoltage (uint16_t mv, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_CellUnderVoltage (uint16_t mv, uint16_t ms, char*);
+
+idn_RetVal_t BQ_Set_ChargingOverCurrent (uint8_t, uint8_t ms, char*);
+idn_RetVal_t BQ_Set_DischargingOverCurrent (uint8_t, uint8_t ms, char*);
+idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t, uint8_t us, char*); 
+
+idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t, uint8_t sec, char*);
+idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t, uint8_t sec, char*);
+
 /* Setter 2 Bytes ------------------------------------------------------------ */
 
 idn_RetVal_t BQ_Get_VCellMode (uint16_t* mode, char*);
@@ -138,7 +152,6 @@ idn_RetVal_t BQ_Set_AlarmMask (uint16_t mask, char*);
 
 /* System Commands ---------------------------------------------------------- */
 
-idn_RetVal_t BMS_Init (tagBMSInitConfig, char*);
 idn_RetVal_t BQ_PeriodicMeasurement (char*);
 
 #endif /* BQ_COMMAND_H_ */
