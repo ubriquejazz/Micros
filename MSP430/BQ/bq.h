@@ -132,12 +132,12 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t, uint8_t value, char*);
 idn_RetVal_t BQ_Get_OutputPinConifg (output_pin_t, uint8_t* result, char*); 
 idn_RetVal_t BQ_Set_OutputPinConifg (output_pin_t, uint8_t value, char*); 
 
-idn_RetVal_t BQ_Set_CellOverVoltage (uint16_t mv, uint16_t ms, char*);
-idn_RetVal_t BQ_Set_CellUnderVoltage (uint16_t mv, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_CellOverVoltage (float, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_CellUnderVoltage (float, uint16_t ms, char*);
 
-idn_RetVal_t BQ_Set_ChargingOverCurrent (uint8_t, uint8_t ms, char*);
-idn_RetVal_t BQ_Set_DischargingOverCurrent (uint8_t, uint8_t ms, char*);
-idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t, uint8_t us, char*); 
+idn_RetVal_t BQ_Set_ChargingOverCurrent (float, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_DischargingOverCurrent (float, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t, uint16_t us, char*); 
 
 idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t, uint8_t sec, char*);
 idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t, uint8_t sec, char*);

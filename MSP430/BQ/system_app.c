@@ -47,19 +47,19 @@ extern uint8_t RX_Buffer [MAX_BUFFER_SIZE];
 
 typedef struct {
   uint16_t      COV_Delay;        // Cell OverVoltage Protection
-  uint16_t      COV_Thresh;       //
+  float			COV_Thresh;       //
   uint16_t      CUV_Delay;        // Cell UnderVoltage Protection
-  uint16_t      CUV_Thresh;       //
-  uint8_t       OCC_Delay;        // OverCurrent Charge
-  uint8_t       OCC_Thresh;       // 
-  uint8_t       OCD_Delay;        // OverCurrent Discharge
-  uint8_t       OCD_Thresh;       // 
-  uint8_t       SCD_Delay;        // ShortCircuit Discharge
+  float	      	CUV_Thresh;       //
+  uint16_t      OCC_Delay;        // OverCurrent Charge
+  float       	OCC_Thresh;       // 
+  uint16_t      OCD_Delay;        // OverCurrent Discharge
+  float       	OCD_Thresh;       // 
+  uint16_t      SCD_Delay;        // ShortCircuit Discharge
   scd_thresh_t  SCD_Thresh;       //
   uint8_t       OTC_Delay;        // OverTemperature Charge
-  int16_t       OTC_Thresh;       // signed threshold
+  int16_t       OTC_Thresh;       // signed 
   uint8_t       OTD_Delay;        // OverTemperature Discharge
-  int16_t       OTD_Thresh;       // signed threshold  
+  int16_t       OTD_Thresh;       // signed   
 } tagBMSInitConfig;
 
 /* Exported struct ---------------------------------------------------- */
