@@ -394,12 +394,13 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t tsx, uint8_t value, char* log
 idn_RetVal_t BQ_Set_OutputPinConfig (output_pin_t pinx, uint8_t value, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
-	uint16_t addr = DATA_MEM_ADDR(0xFA, pinx);		// settings::configuration
+	uint16_t addr = DATA_MEM_ADDR(0xFA, pinx);				// settings::configuration
 	Setter_8Bits(addr, value);
     sprintf(log, "Set Enable Pin %d to 0x%02x", pinx, value);
 	return ret;
 }
 
+/* Cells  ---------------------------------------------------------------------*/
 
 /**
   * @brief  BQ_Set_CellOverVoltage (4150, 1000, NULL)
@@ -429,7 +430,7 @@ idn_RetVal_t BQ_Set_CellOverVoltage (float mv, uint16_t ms, char* log)
 
 /**
   * @brief  BQ_Set_CellUnderVoltage (2880, 1000, NULL)
-  *			Set user-defined undervoltage protection
+  *			Set user-defined undervoltage protection (SW3)
   * @param	mv, ms
   * @param 	log*		
   */
@@ -449,6 +450,27 @@ idn_RetVal_t BQ_Set_CellUnderVoltage (float mv, uint16_t ms, char* log)
 		Setter_8Bits (DATA_MEM_ADDR(0x75, 0), thresh);		// Protections:CUV:Threshold
 		Setter_2Bytes(DATA_MEM_ADDR(0x75, 1), dly);			// Protections:CUV:Delay
 		sprintf(log, "[+] CUV => 0x%02x, 0x%04x", thresh, dly);
+	}
+	return ret;
+}
+
+/**
+  * @brief  BQ_Set_CellOpenWireCheck (5, NULL)
+  *			Set user-defined undervoltage protection (SW3)
+  * @param	sec  - 0 = cell open-wire check is disabled.
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_CellOpenWireTime (uint8_t sec, char* log) 
+{
+	idn_RetVal_t ret;
+	if(sec < 0 || sec > 255) {
+		sec = 5;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+		Setter_8Bits (0x9314, sec);				// settings:cell open wire
+		sprintf(log, "[+] => 0x%02x s", sec);
 	}
 	return ret;
 }
@@ -478,6 +500,8 @@ idn_RetVal_t BQ_Set_ChargingOverCurrent (float amps, uint16_t ms, char* log)
 	}
 	return ret;
 }
+
+/* OverCurrent ----------------------------------------------------------------*/
 
 /**
   * @brief  BQ_Set_DischargingOverCurrent (70, 10, NULL)
@@ -529,8 +553,10 @@ idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t thresh, uint16_t us, c
   	return ret;
 }
 
+/* OverTemperature ------------------------------------------------------------*/
+
 /**
-  * @brief  BQ_Set_ChargingOverTemperature (85, 1, NULL)
+  * @brief  BQ_Set_ChargingOverTemperature (45, 1, NULL)
   *			Set user-defined charging over-temperature protection
   * @param	temp, sec
   * @param 	log*		
@@ -548,15 +574,15 @@ idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t temp, uint8_t sec, char* lo
 	}
 	// (ret == IDN_OK) 
 	{
-  		Setter_8Bits(DATA_MEM_ADDR(0x9A, 0), temp);
-  		Setter_8Bits(DATA_MEM_ADDR(0x9A, 1),sec);
+  		Setter_8Bits(DATA_MEM_ADDR(0x9A, 0), temp);			// Protections:OTC:Threshold
+  		Setter_8Bits(DATA_MEM_ADDR(0x9A, 1),sec);			// Protections:OTC:Delay
   		sprintf(log, "[+] OTC => %d, 0x%02x", temp, sec);
 	}
   	return ret;
 }
 
 /**
-  * @brief  BQ_Set_DischargingOverTemperature (85, 1, NULL)
+  * @brief  BQ_Set_DischargingOverTemperature (65, 1, NULL)
   *			Set user-defined discharging over-temperature protection
   * @param	temp, sec
   * @param 	log*		
@@ -574,9 +600,63 @@ idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t temp, uint8_t sec, char*
 	}
 	// (ret == IDN_OK) 
 	{
-  		Setter_8Bits(DATA_MEM_ADDR(0x9D, 0), temp);
-  		Setter_8Bits(DATA_MEM_ADDR(0x9D, 1), sec);
+  		Setter_8Bits(DATA_MEM_ADDR(0x9D, 0), temp);			// Protections:OTD:Threshold
+  		Setter_8Bits(DATA_MEM_ADDR(0x9D, 1), sec);			// Protections:OTD:Threshold
   		sprintf(log, "[+] OTD => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
+}
+
+/* UnderTemperature ------------------------------------------------------------*/
+
+/**
+  * @brief  BQ_Set_ChargingUnderTemperature (0, 1, NULL)
+  *			Set user-defined charging under-temperature protection
+  * @param	temp, sec
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_ChargingUnderTemperature (int16_t temp, uint8_t sec, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	if(temp < -40 || temp > 120) {
+		temp = 0;
+		ret = IDN_ERROR;
+	}
+	if(sec < 0 || sec > 255) {	
+		sec = 2;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(DATA_MEM_ADDR(0xA6, 0), temp);			// Protections:UTC:Threshold
+  		Setter_8Bits(DATA_MEM_ADDR(0xA6, 1),sec);			// Protections:UTC:Delay
+  		sprintf(log, "[+] UTC => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
+}
+
+/**
+  * @brief  BQ_Set_DischargingUnderTemperature (-25, 1, NULL)
+  *			Set user-defined discharging Under-temperature protection
+  * @param	temp, sec
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_DischargingUnderTemperature (int16_t temp, uint8_t sec, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	if(temp < -40 || temp > 120) {
+		temp = 0;
+		ret = IDN_ERROR;
+	}
+	if(sec < 0 || sec > 255) {	
+		sec = 2;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(DATA_MEM_ADDR(0xA9, 0), temp);			// Protections:UTD:Threshold
+  		Setter_8Bits(DATA_MEM_ADDR(0xA9, 1), sec);			// Protections:UTD:Threshold
+  		sprintf(log, "[+] UTD => %d, 0x%02x", temp, sec);
 	}
   	return ret;
 }

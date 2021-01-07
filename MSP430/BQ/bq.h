@@ -123,7 +123,7 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char*);
 idn_RetVal_t BQ_Get_EnableRegulator (regulator_t, uint8_t* result, char*);
 idn_RetVal_t BQ_Set_EnableRegulator (regulator_t, uint8_t value, char*);
 
-idn_RetVal_t BQ_Get_EnableProtection (protection_t, uint8_t* result, char*);
+idn_RetVal_t BQ_Get_EnableProtection (protection_t, uint8_t* result, char*);    
 idn_RetVal_t BQ_Set_EnableProtection (protection_t, uint8_t value, char*);
 
 idn_RetVal_t BQ_Get_ThermistorConfig (thermistor_t, uint8_t* result, char*);
@@ -132,20 +132,24 @@ idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t, uint8_t value, char*);
 idn_RetVal_t BQ_Get_OutputPinConifg (output_pin_t, uint8_t* result, char*); 
 idn_RetVal_t BQ_Set_OutputPinConifg (output_pin_t, uint8_t value, char*); 
 
-idn_RetVal_t BQ_Set_CellOverVoltage (float, uint16_t ms, char*);
-idn_RetVal_t BQ_Set_CellUnderVoltage (float, uint16_t ms, char*);
+idn_RetVal_t BQ_Set_CellOverVoltage (float, uint16_t ms, char*);      // SW2
+idn_RetVal_t BQ_Set_CellUnderVoltage (float, uint16_t ms, char*);     // SW2
+idn_RetVal_t BQ_Set_CellOpenWireCheck (uint8_t sec, char*);           // SW2.3.3
 
-idn_RetVal_t BQ_Set_ChargingOverCurrent (float, uint16_t ms, char*);
-idn_RetVal_t BQ_Set_DischargingOverCurrent (float, uint16_t ms, char*);
-idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t, uint16_t us, char*); 
+idn_RetVal_t BQ_Set_ChargingOverCurrent (float, uint16_t ms, char*);              //
+idn_RetVal_t BQ_Set_DischargingOverCurrent (float, uint16_t ms, char*);           //
+idn_RetVal_t BQ_Set_DischargingShortCircuit (scd_thresh_t, uint16_t us, char*);   //
 
-idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t, uint8_t sec, char*);
-idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t, uint8_t sec, char*);
+idn_RetVal_t BQ_Set_ChargingOverTemperature (int16_t, uint8_t sec, char*);        // SW3.3
+idn_RetVal_t BQ_Set_DischargingOverTemperature (int16_t, uint8_t sec, char*);     // SW3.4
+
+idn_RetVal_t BQ_Set_ChargingUnderTemperature (int16_t, uint8_t sec, char*);       // SW3.5
+idn_RetVal_t BQ_Set_DischargingUnderTemperature (int16_t, uint8_t sec, char*);    // SW3.6
 
 /* Setter 2 Bytes ------------------------------------------------------------ */
 
-idn_RetVal_t BQ_Get_VCellMode (uint16_t* mode, char*);
-idn_RetVal_t BQ_Set_VCellMode (uint16_t mode, char*);
+idn_RetVal_t BQ_Get_VCellMode (uint16_t* mode, char*);            // SW2
+idn_RetVal_t BQ_Set_VCellMode (uint16_t mode, char*);             // SW2
 
 idn_RetVal_t BQ_Get_AlarmMask (uint16_t* mask, char*);
 idn_RetVal_t BQ_Set_AlarmMask (uint16_t mask, char*);
