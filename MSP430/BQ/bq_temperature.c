@@ -89,6 +89,27 @@ idn_RetVal_t BQ_Set_InternalOverTemperature (int16_t, uint8_t sec, char*)
   	return ret;
 }
 
+/**
+  * @brief  BQ_Set_CellOverTemperature (60, NULL)
+  *			Set user-defined cel over-temperature protection
+  * @param	temp
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_CellOverTemperature (int8_t temp, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	if(temp < -128 || temp > 127) {
+		temp = 60;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(0x9337, temp);			// settings::cell_balance_config
+  		sprintf(log, "[+] UTINT => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
+}
+
 /* UnderTemperature ------------------------------------------------------------*/
 
 /**
@@ -145,7 +166,7 @@ idn_RetVal_t BQ_Set_DischargingUnderTemperature (int16_t temp, uint8_t sec, char
 
 /**
   * @brief  BQ_Set_InternalUnderTemperature (-20, 1, NULL)
-  *			Set user-defined discharging Under-temperature protection
+  *			Set user-defined discharging under-temperature protection
   * @param	temp, sec
   * @param 	log*		
   */
@@ -164,6 +185,27 @@ idn_RetVal_t BQ_Set_InternalUnderTemperature (int16_t temp, uint8_t sec, char* l
 	{
   		Setter_8Bits(DATA_MEM_ADDR(0xAC, 0), temp);			// Protections:UTINT:Threshold
   		Setter_8Bits(DATA_MEM_ADDR(0xAC, 1), sec);			// Protections:UTINT:Threshold
+  		sprintf(log, "[+] UTINT => %d, 0x%02x", temp, sec);
+	}
+  	return ret;
+}
+
+/**
+  * @brief  BQ_Set_CellUnderTemperature (-20, NULL)
+  *			Set user-defined cel under-temperature protection
+  * @param	temp
+  * @param 	log*		
+  */
+idn_RetVal_t BQ_Set_CellUnderTemperature (int8_t temp, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	if(temp < -128 || temp > 127) {
+		temp = -20;
+		ret = IDN_ERROR;
+	}
+	// (ret == IDN_OK) 
+	{
+  		Setter_8Bits(0x9336, temp);			// settings::cell_balance_config
   		sprintf(log, "[+] UTINT => %d, 0x%02x", temp, sec);
 	}
   	return ret;
