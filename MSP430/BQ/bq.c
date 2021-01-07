@@ -132,6 +132,45 @@ static inline void Getter(uint16_t addr, uint8_t count)
 //******************************************************************************
 
 /**
+  * @brief  BQ_Get_PrimaryProtection (&prot, NULL)
+  *	@param	prot* 	Pimary Protection - Safety Status A Register (SA) 
+  * @param	log*	
+**/
+idn_RetVal_t BQ_Get_PrimaryProtection (sa_protection_t* prot, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	I2C_ReadReg(0x03, 1);
+	prot->bits.SC_DCHG  = READBIT(RX_2Byte[0], BIT_SA_SC_DCHG);		// Short Circuit in Discharge Protection
+	prot->bits.OC2_DCHG = READBIT(RX_2Byte[0], BIT_SA_OC2_DCHG);	// Overcurrent in Discharge 2nd Tier Protection
+	prot->bits.OC1_DCHG = READBIT(RX_2Byte[0], BIT_SA_OC1_DCHG);	// Overcurrent in Discharge 1st Tier Protection
+	prot->bits.OC_CHG   = READBIT(RX_2Byte[0], BIT_SA_OC_CHG);		// Overcurrent in Charge Protection
+	prot->bits.CELL_OV  = READBIT(RX_2Byte[0], BIT_SA_CELL_OV);		// Cell Overvoltage Protection
+	prot->bits.CELL_UV  = READBIT(RX_2Byte[0], BIT_SA_CELL_UV);		// Cell Undervoltage Protection
+	sprintf(log, "Get Protection Status (SA) : 0x%02x", RX_2Byte[0]);
+	return ret;
+}
+
+/**
+  * @brief  BQ_Get_TemperatureProtection (&temp, NULL)
+  *	@param	temp* 	Temperature Protection - Safety Status B Register (SB) 
+  * @param	log*	
+**/
+idn_RetVal_t BQ_Get_TemperatureProtection (sb_protection_t* temp, char* log) 
+{
+	idn_RetVal_t ret = IDN_OK;
+	I2C_ReadReg(0x05, 1);
+	temp->bits.OVERTEMP_FET 	 = READBIT(RX_2Byte[0], BIT_SB_OTF);	// FET Overtemperature
+	temp->bits.OVERTEMP_INTERNAL = READBIT(RX_2Byte[0], BIT_SB_OTINT);	// Internal Overtemperature
+	temp->bits.OVERTEMP_DCHG	 = READBIT(RX_2Byte[0], BIT_SB_OTD);	// Overtemperature in Discharge
+	temp->bits.OVERTEMP_CHG 	 = READBIT(RX_2Byte[0], BIT_SB_OTC);	// Overtemperature in Charge
+	temp->bits.UNDERTEMP_INTERNAL = READBIT(RX_2Byte[0], BIT_SB_UTINT);
+	temp->bits.UNDERTEMP_DCHG 	 = READBIT(RX_2Byte[0], BIT_SB_UTD);	// Undertemperature in Discharge
+	temp->bits.UNDERTEMP_CHG 	 = READBIT(RX_2Byte[0], BIT_SB_UTC);	// Undertemperature in Charge
+	sprintf(log, "Get Temperature Status (SB) : 0x%02x", RX_2Byte[0]);
+	return ret;
+}
+
+/**
   * @brief  BQ_Set_AlarmStatus()
   * @param 	status	bit description in Alarm Status Register
   * @param	log*	
@@ -298,10 +337,10 @@ idn_RetVal_t BQ_Get_EnableRegulator (regulator_t regx, uint8_t* result, char* lo
 /**
   * @brief 	BQ_Get_EnableProtection()
   * @param	abc 	protection to enable
-  * @param	result* to verify that default settings have COV and SCD protectins enabled  
+  * @param	result* i.e. to verify that settings have COV and SCD protections enabled  
   * @param	log*
 **/
-idn_RetVal_t BQ_Get_EnableProtection (protection_t abc, uint8_t* result, char* log) 
+idn_RetVal_t BQ_Get_EnableProtection (type_protection_t abc, uint8_t* result, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
 	uint16_t addr = DATA_MEM_ADDR(0x61, abc);			// settings::configuration
@@ -365,7 +404,7 @@ idn_RetVal_t BQ_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log)
   * @brief  BQ_Set_EnableProtection(A, 0x8C, NULL);
   *
 **/
-idn_RetVal_t BQ_Set_EnableProtection (protection_t abc, uint8_t value, char* log) 
+idn_RetVal_t BQ_Set_EnableProtection (type_protection_t abc, uint8_t value, char* log) 
 {
 	idn_RetVal_t ret = IDN_OK;
 	uint16_t addr = DATA_MEM_ADDR(0x61, abc);				// settings::configuration

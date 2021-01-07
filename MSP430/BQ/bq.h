@@ -26,20 +26,20 @@
 #define BQ76952_REG_SET_CFGUPDATE	0x90	// W. Enters CONFIG_UPDATE mode
 #define BQ76952_REG_EXIT_CFGUPDATE	0x92	// W. Also clears the Battery Status() [POR] and Battery Status()[WD] bits.
 
-// Bits in BQ76952 registers
-#define BIT_PA_SC_DCHG            	7
-#define BIT_PA_OC2_DCHG           	6
-#define BIT_PA_OC1_DCHG           	5
-#define BIT_PA_OC_CHG             	4
-#define BIT_PA_CELL_OV            	3
-#define BIT_PA_CELL_UV            	2
-#define BIT_PB_OTF                	7
-#define BIT_PB_OTINT              	6
-#define BIT_PB_OTD                	5
-#define BIT_PB_OTC                	4
-#define BIT_PB_UTINT              	2
-#define BIT_PB_UTD                	1
-#define BIT_PB_UTC                	0
+// Bits in Safety Status Registers (SA, SB)
+#define BIT_SA_SC_DCHG            7
+#define BIT_SA_OC2_DCHG           6
+#define BIT_SA_OC1_DCHG           5
+#define BIT_SA_OC_CHG             4
+#define BIT_SA_CELL_OV            3
+#define BIT_SA_CELL_UV            2
+#define BIT_SB_OTF                7
+#define BIT_SB_OTINT              6
+#define BIT_SB_OTD                5
+#define BIT_SB_OTC                4
+#define BIT_SB_UTINT              2
+#define BIT_SB_UTD                1
+#define BIT_SB_UTC                0
 
 /* Macros ------------------------------------------------------------- */
 
@@ -47,38 +47,67 @@
 #define LOW_BYTE(data)            (uint8_t)(data & 0x00FF)
 #define HIGH_BYTE(data)           (uint8_t)((data >> 8) & 0x00FF)
 #define DATA_MEM_ADDR(x, y)       (uint16_t) (0x92 << 8) + (uint16_t) (x + y)		
+#define READBIT(byte, i)          ((byte >> i) & 1)               
 
 /* Exported types ---------------------------------------------------- */
 
-typedef enum {
-    PROTECTION_A,		// SCD, OCD2, OCD1, OCC, COV, CUV
-    PROTECTION_B,		// OTF, OTINT, OTD, OTC, UTINT, UTD, UTC
-    PROTECTION_C,		// OCD3, SCDL, OCDL, COVL, PTO, HWDF
-    NumOfProtections
-} protection_t;
+typedef union {
+  struct {
+    uint8_t SC_DCHG            :1;
+    uint8_t OC2_DCHG           :1;
+    uint8_t OC1_DCHG           :1;
+    uint8_t OC_CHG             :1;
+    uint8_t CELL_OV            :1;
+    uint8_t CELL_UV            :1;
+  } bits;
+  uint8_t value;
+} sa_protection_t;
+
+typedef union {
+  struct {
+    uint8_t OVERTEMP_FET      :1;
+    uint8_t OVERTEMP_INTERNAL :1;
+    uint8_t OVERTEMP_DCHG     :1;
+    uint8_t OVERTEMP_CHG      :1;
+    uint8_t UNDERTEMP_INTERNAL  :1;
+    uint8_t UNDERTEMP_DCHG    :1;
+    uint8_t UNDERTEMP_CHG     :1;
+  } bits;
+  uint8_t value;
+} sb_protection_t;
 
 typedef enum {
-	REG12,				// 7:4 REG2 ; 3:0 REG1
-	REG0,				  // REG0_EN only (bit 0)
+    PRIMARY,		    // SA Register: SCD, OCD2, OCD1, OCC, COV, CUV
+    TEMPERATURE,		// SB Register: OTF, OTINT, OTD, OTC, UTINT, UTD, UTC
+    PROTECTION_C,		// SC Register: OCD3, SCDL, OCDL, COVL, PTO, HWDF
+    NumOfProtections
+} type_protection_t;
+
+typedef enum {
+	REG12,				     // 7:4 REG2 ; 3:0 REG1
+	REG0,				       // REG0_EN only (bit 0)
 	NumOfRegulators
 } regulator_t;
 
 typedef enum {
-	CFETOFF,
-	DFETOFF,
-	ALERT,				// 
-	NumOfOuputPins
-} output_pin_t;
+	CFETOFF,           //
+	DFETOFF,           //
+	ALERT,				     // 
+	NumOfOuputPins     
+} output_pin_t;     
 
-typedef enum {
-	TS1,				 //
-	TS2,         //
-	TS3,				 //
+typedef enum {      
+	TS1,				       //
+	TS2,               //
+	TS3,				       //
 	NumOfThermistors
 } thermistor_t;
 
 
 /* Direct Commands ----------------------------------------------------------- */
+
+idn_RetVal_t BQ_Get_PrimaryProtection (sa_protection_t*, char*);
+idn_RetVal_t BQ_Get_TemperatureProtection (sb_temperature_t*, char*);
 
 idn_RetVal_t BQ_Set_AlarmStatus (uint16_t status, char*);
 idn_RetVal_t BQ_Get_AlarmStatus (uint16_t* status, char*);
@@ -105,8 +134,8 @@ idn_RetVal_t BQ_Get_DeviceNumber (uint16_t* device_number, char*);
 idn_RetVal_t BQ_Get_EnableRegulator (regulator_t, uint8_t* result, char*);
 idn_RetVal_t BQ_Set_EnableRegulator (regulator_t, uint8_t value, char*);
 
-idn_RetVal_t BQ_Get_EnableProtection (protection_t, uint8_t* result, char*);    
-idn_RetVal_t BQ_Set_EnableProtection (protection_t, uint8_t value, char*);
+idn_RetVal_t BQ_Get_EnableProtection (type_protection_t, uint8_t* result, char*);    
+idn_RetVal_t BQ_Set_EnableProtection (type_protection_t, uint8_t value, char*);
 
 idn_RetVal_t BQ_Get_ThermistorConfig (thermistor_t, uint8_t* result, char*);
 idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t, uint8_t value, char*);
