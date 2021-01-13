@@ -127,12 +127,14 @@ static inline void Getter(uint16_t addr, uint8_t count)
     wait(2);
 }
 
+
 //******************************************************************************
 // Direct Commands 
 //******************************************************************************
 
 /**
   * @brief  BQ_Get_PrimaryProtection (&prot, NULL)
+  *			Table 5-2 Ref. Manual
   *	@param	prot* 	Pimary Protection - Safety Status A Register (SA) 
   * @param	log*	
 **/
@@ -152,6 +154,7 @@ idn_RetVal_t BQ_Get_PrimaryProtection (sa_protection_t* prot, char* log)
 
 /**
   * @brief  BQ_Get_TemperatureProtection (&temp, NULL)
+  *			Table 5-4 Ref. Manual
   *	@param	temp* 	Temperature Protection - Safety Status B Register (SB) 
   * @param	log*	
 **/
@@ -160,7 +163,7 @@ idn_RetVal_t BQ_Get_TemperatureProtection (sb_protection_t* temp, char* log)
 	idn_RetVal_t ret = IDN_OK;
 	I2C_ReadReg(0x05, 1);
 	temp->bits.OVERTEMP_FET 	 = READBIT(RX_2Byte[0], BIT_SB_OTF);	// FET Overtemperature
-	temp->bits.OVERTEMP_INTERNAL = READBIT(RX_2Byte[0], BIT_SB_OTINT);	// Internal Overtemperature
+	temp->bits.OVERTEMP_INTERNAL = READBIT(RX_2Byte[0], BIT_SB_OTINT);	// Internal Die Overtemperature
 	temp->bits.OVERTEMP_DCHG	 = READBIT(RX_2Byte[0], BIT_SB_OTD);	// Overtemperature in Discharge
 	temp->bits.OVERTEMP_CHG 	 = READBIT(RX_2Byte[0], BIT_SB_OTC);	// Overtemperature in Charge
 	temp->bits.UNDERTEMP_INTERNAL = READBIT(RX_2Byte[0], BIT_SB_UTINT);
@@ -351,24 +354,8 @@ idn_RetVal_t BQ_Get_EnableProtection (type_protection_t abc, uint8_t* result, ch
 }
 
 /**
-  * @brief  BQ_Get_ThermistorConfig()
-  * @param	abc 	thermistor to configure
-  * @param	result*	
-  * @param	log*
-**/
-idn_RetVal_t BQ_Get_ThermistorConfig(thermistor_t tsx, uint8_t* result, char* log) 
-{
-	idn_RetVal_t ret = IDN_OK;
-	uint16_t addr = DATA_MEM_ADDR(0xFD, tsx);			// settings::configuration
-	Getter(addr, 1);
-	*result = RX_2Byte[0];
-	sprintf(log, "Get Enable Thermistor %d : 0x%02x", tsx, RX_2Byte[0]);
-	return ret;
-}
-
-/**
   * @brief  BQ_Get_OutputPinConifg()
-  * @param	abc 	output pin to configure
+  * @param	pinx 	output pin to configure
   * @param	result*	
   * @param	log* 	
 **/
@@ -410,19 +397,6 @@ idn_RetVal_t BQ_Set_EnableProtection (type_protection_t abc, uint8_t value, char
 	uint16_t addr = DATA_MEM_ADDR(0x61, abc);				// settings::configuration
 	Setter_8Bits(addr, value);
 	sprintf(log, "Set Enable Protections %d to 0x%02x", abc, value);
-	return ret;
-}
-
-/**
-  * @brief  BQ_Set_ThermistorConfig(TS3, 0x0F, NULL);
-  *
-**/
-idn_RetVal_t BQ_Set_ThermistorConfig (thermistor_t tsx, uint8_t value, char* log) 
-{
-	idn_RetVal_t ret = IDN_OK;
-	uint16_t addr = DATA_MEM_ADDR(0xFD, tsx);				// settings::configuration
-	Setter_8Bits(addr, value);
-	sprintf(log, "Set Enable Thermistor %d to 0x%02x", tsx, value);
 	return ret;
 }
 

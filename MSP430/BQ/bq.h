@@ -12,6 +12,8 @@
 #define BQ_COMMAND_H_
 
 #include "i2c.h"
+#include "bq_vi.h"
+#include "bq_temperature.h"
 
 /* Defines ----------------------------------------------------------- */
 
@@ -26,7 +28,7 @@
 #define BQ76952_REG_SET_CFGUPDATE	0x90	// W. Enters CONFIG_UPDATE mode
 #define BQ76952_REG_EXIT_CFGUPDATE	0x92	// W. Also clears the Battery Status() [POR] and Battery Status()[WD] bits.
 
-// Bits in Safety Status Registers (SA, SB)
+// Bits in Safety Fault and Alert Registers (SA, SB)
 #define BIT_SA_SC_DCHG            7
 #define BIT_SA_OC2_DCHG           6
 #define BIT_SA_OC1_DCHG           5
@@ -92,16 +94,15 @@ typedef enum {
 typedef enum {
 	CFETOFF,           //
 	DFETOFF,           //
-	ALERT,				     // 
-	NumOfOuputPins     
-} output_pin_t;     
-
-typedef enum {      
+	ALERT,				     //     
 	TS1,				       //
 	TS2,               //
 	TS3,				       //
+  HDQ,               //
+  DCHG,              //
+  DDSG,              //
 	NumOfThermistors
-} thermistor_t;
+} output_pin_t;
 
 
 /* Direct Commands ----------------------------------------------------------- */

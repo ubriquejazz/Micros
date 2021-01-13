@@ -52,10 +52,13 @@ typedef struct {
   float	      	CUV_Thresh;       //
   uint16_t      OCC_Delay;        // OverCurrent Charge
   float       	OCC_Thresh;       // 
-  uint16_t      OCD_Delay;        // OverCurrent Discharge
-  float       	OCD_Thresh;       // 
   uint16_t      SCD_Delay;        // ShortCircuit Discharge
   scd_thresh_t  SCD_Thresh;       //
+  uint16_t      OCD1_Delay;        // OverCurrent Discharge Tier 1
+  float       	OCD1_Thresh;       // 
+  uint16_t      OCD2_Delay;        // OverCurrent Discharge Tier 2
+  float       	OCD2_Thresh;       // 
+
   uint8_t       OTC_Delay;        // OverTemperature Charge
   int16_t       OTC_Thresh;       // signed 
   uint8_t       OTD_Delay;        // OverTemperature Discharge
@@ -71,16 +74,19 @@ int BMS_Init(tagBMSInitConfig init, char* log)
 	BQ_Set_CellOverVoltage (init.COV_Thresh, init.COV_Delay, NULL);
 	BQ_Set_CellUnderVoltage (init.CUV_Thresh, init.CUV_Delay, NULL);
 
-	// OCC, OCD, SCD_40
+	// OCC, SCD_40
 	BQ_Set_ChargingOverCurrent (init.OCC_Thresh, init.OCC_Delay, NULL);
-	BQ_Set_DischargingOverCurrent (init.OCD_Thresh, init.OCD_Delay, NULL);
 	BQ_Set_DischargingShortCircuit (init.SCD_Thresh, init.SCD_Delay, NULL);
+
+	// OCD1, OCD2
+	BQ_Set_DischargingOverCurrent (OCD1, init.OCD1_Thresh, init.OCD1_Delay, NULL);
+	BQ_Set_DischargingOverCurrent (OCD2, init.OCD2_Thresh, init.OCD2_Delay, NULL);
 
 	// OTD, OTC
 	BQ_Set_ChargingOverTemperature(init.OTC_Thresh, init.OTC_Delay, NULL);
 	BQ_Set_DischargingOverTemperature(init.OTD_Thresh, init.OTD_Delay, NULL);
 
-	// Protections
+	// Enable all protections (by default COV and OTx)
     BQ_Set_EnableProtection(PROTECTION_A, 0xFC, NULL);
     BQ_Set_EnableProtection(PROTECTION_B, 0xF7, NULL);	
 	BQ_Set_EnableProtection(PROTECTION_C, 0xFE, NULL);	
