@@ -72,79 +72,77 @@ typedef struct BMSConfig_Configuration2_s
 
 typedef struct BMSConfig_Protection_s
 {
-	float		thresholdCOV;              /* ... */
-	uint16_t	msCOV;                     /* ... */
-	float		recoveryCOV;               /* ... */
-	float		thresholdCUV;              /* ... */
-	uint16_t	msCUV;                     /* ... */
-	float		recoveryCUV;               /* ... */
-	uint8_t		secCOW;                    /* ... */
-	/* OverTemperature */
-	int8_t		thresholdOTD;              /* ... */
-	int8_t		recoveryOTD;               /* ... */
-	uint8_t		secOTD;                    /* ... */
-	int8_t		thresholdOTC;              /* ... */
-	int8_t		recoveryOTC;               /* ... */
-	uint8_t		secOTC;                    /* ... */
-	int8_t		thresholdOTInt;            /* ... */
-	int8_t		recoveryOTInt;             /* ... */
-	uint8_t		secOTInt;                  /* ... */
-	/* UnderTemperture */
-	int8_t		thresholdUTD;              /* ... */
-	int8_t		recoveryUTD;               /* ... */
-	uint8_t		secUTD;                    /* ... */
-	int8_t		thresholdUTC;              /* ... */
-	int8_t		recoveryUTC;               /* ... */
-	uint8_t		secUTC;                    /* ... */
-	int8_t		thresholdUTInt;            /* ... */
-	int8_t		recoveryUTInt;             /* ... */
-	uint8_t		secUTInt;                  /* ... */
-	/* OverCurrent */
-	float		thresholdOCC;              /* ... */
-	uint8_t		msOCC;                     /* ... */
-	int16_t		recovery1OCC;		       /* ... */
-	int16_t		recovery2OCC;		       /* ... */
-	/* Discharge */
-	float		thresholdOCD1;             /* ... */
-	uint8_t		msOCD1;                    /* ... */
-	float		thresholdOCD2;             /* ... */
-	uint8_t		msOCD2;                    /* ... */
-	uint8_t		thresholdSCD;              /* ... */
-	uint8_t		usSCD;                     /* ... */
-	uint8_t		recoverySCD;               /* ... */
-}__attribute__((packed, aligned(1))) BMSConfig_Protection_t;
-
-typedef struct BMSConfig_Safety_s
-{
+	/* Overvoltage I */
+	float		thresholdCOV;           /* ... */
+	uint16_t	msCOV;                  /* ... */
+	float		recoveryCOV;            /* ... */
+	float		thresholdCUV;           /* ... */
+	uint16_t	msCUV;                  /* ... */
+	float		recoveryCUV;            /* ... */
+	uint8_t		secCOW;                 /* ... */
+	/* OverTemperature I */
+	int8_t		thresholdOTD;           /* ... */
+	int8_t		recoveryOTD;            /* ... */
+	uint8_t		secOTD;                 /* ... */
+	int8_t		thresholdOTC;           /* ... */
+	int8_t		recoveryOTC;            /* ... */
+	uint8_t		secOTC;                 /* ... */
+	int8_t		thresholdOTInt;         /* ... */
+	int8_t		recoveryOTInt;          /* ... */
+	uint8_t		secOTInt;               /* ... */
+	/* UnderTemperture I */
+	int8_t		thresholdUTD;           /* ... */
+	int8_t		recoveryUTD;            /* ... */
+	uint8_t		secUTD;                 /* ... */
+	int8_t		thresholdUTC;           /* ... */
+	int8_t		recoveryUTC;            /* ... */
+	uint8_t		secUTC;                 /* ... */
+	int8_t		thresholdUTInt;         /* ... */
+	int8_t		recoveryUTInt;          /* ... */
+	uint8_t		secUTInt;               /* ... */
+	/* OverCurrent I */
+	float		thresholdOCC;           /* ... */
+	uint8_t		msOCC;                  /* ... */
+	int16_t		recovery1OCC;		    /* ... */
+	int16_t		recovery2OCC;		    /* ... */
+	/* Discharge I */
+	float		thresholdOCD1;          /* ... */
+	uint8_t		msOCD1;                 /* ... */
+	float		thresholdOCD2;          /* ... */
+	uint8_t		msOCD2;                 /* ... */
+	uint8_t		thresholdSCD;           /* ... */
+	uint8_t		usSCD;                  /* ... */
+	uint8_t		recoverySCD;            /* ... */
+	/* Overvoltage II */
 	int16_t		thresholdSUV;			/* ... */
 	uint8_t		secSUV;					/* ... */
 	int16_t		thresholdSOV;			/* ... */
 	uint8_t		secSOV;					/* ... */
 	int16_t		thresholdTOS;			/* ... */
 	uint8_t		secTOS;					/* ... */
-	/* Temperature */
+	/* Temperature II */
 	int8_t		thresholdSOT;			/* ... */
 	uint8_t		secSOT;					/* ... */
 	int8_t		thresholdSOTF;			/* ... */
 	uint8_t		secSOTF;				/* ... */
-	/* OverCurrent */
+	/* OverCurrent II */
 	int16_t 	thresholdSOCC;			/* ... */
 	uint8_t 	secSOCC;				/* ... */
 	int16_t		thresholdSOCD;			/* ... */
 	uint8_t 	secSOCD;				/* ... */
-	/* FETs */
+	/* FETs II */
 	int16_t		thresholdCFET;			/* ... */
 	uint8_t		secCFET;				/* ... */
 	int16_t		thresholdDFET;			/* ... */
 	uint8_t		secDFET;				/* ... */
-	/* Imbalance */
+	/* Imbalance II */
 	int16_t		threshVIMR;				/* ... */
 	uint8_t 	secVIMR;				/* ... */
 	int16_t		checkVoltageVIMR;		/* ... */
 	int16_t		maxCurrentVIMR;			/* ... */
 	uint16_t	durationVIMR;			/* ... */
 
-}__attribute__((packed, aligned(1))) BMSConfig_Safety_t;
+}__attribute__((packed, aligned(1))) BMSConfig_Protection_t;
 
 typedef struct BMSConfig_Info_s
 {
@@ -171,8 +169,6 @@ typedef struct BMSConfig_s
 	BMSConfig_Configuration2_t	conf2;
 
 	BMSConfig_Protection_t		protect;
-
-	BMSConfig_Safety_t			safety;
 
 	BMSConfig_Info_t			info;
 
