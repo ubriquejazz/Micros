@@ -69,29 +69,18 @@ uint16_t bq34std_dod_0(); ;
 uint16_t bq34std_q_max_dod_0();
 uint16_t bq34std_q_max_time();
 
-static inline bq34_checksum(uint8_t  delay)
+void bq34_enter_calibration();
+void bq34_exit_calibration();
+void bq34_calibrate_cc_offset();
+void bq34_calibrate_board_offset();
+
+static inline bool bq34_checksum(uint8_t delay)
 {
 	bq34_write_reg(0x60, bq34_flash_block_checksum(););
     OsDelay(delay);
     bq34std_reset();
     OsDelay(delay);
-}
-
-static inline bq34_enter_calibration() {
-    bq34_unsealed ();
-    do {
-        bq34std_cal_enable();
-        bq34std_enter_cal();
-        delay(1000);
-    } while (!(bq34std_control_status() & 0x1000)); // CALEN
-}
-
-static inline bq34_exit_calibration() {
-    do {
-        bq34std_exit_cal();
-        delay(1000);
-    } while (!(bq34std_control_status() &~ 0x1000)); // CALEN
-    bq34_checksum(150);
+    return true;
 }
 
 #endif /* BQ34_STD_H_ */
