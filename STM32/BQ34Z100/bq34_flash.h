@@ -12,14 +12,12 @@
 #include "cmsis_os.h"
 #include "string.h"
 
-typedef struct
-{
-    int8_t  set;
-    int8_t  clear;
+typedef struct {
+    int8_t  	set;
+    int8_t  	clear;
 } voltage_t;
 
-typedef struct 
-{
+typedef struct {
     int16_t     current;
     int16_t     min_capacity;
     int16_t     cell_voltage;
@@ -36,8 +34,6 @@ bool bq34fl_update_number_of_series_cells(uint8_t cells);
 bool bq34fl_update_pack_configuration(uint16_t config);
 bool bq34fl_update_charge_termination_parameters(taper_t);
 
-void bq34fl_calibrate_cc_offset() 
-void bq34fl_calibrate_board_offset()
 void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_count);
 void bq34fl_calibrate_sense_resistor(int16_t applied_current);
 
