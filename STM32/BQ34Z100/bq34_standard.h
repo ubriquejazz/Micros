@@ -69,10 +69,10 @@ uint16_t bq34std_dod_0(); ;
 uint16_t bq34std_q_max_dod_0();
 uint16_t bq34std_q_max_time();
 
-void bq34_enter_calibration();
-void bq34_exit_calibration();
-void bq34_calibrate_cc_offset();
-void bq34_calibrate_board_offset();
+void bq34std_enter_calibration();
+void bq34std_exit_calibration();
+void bq34std_calibrate_cc_offset();
+void bq34std_calibrate_board_offset();
 
 static inline bool bq34_checksum(uint8_t delay)
 {
