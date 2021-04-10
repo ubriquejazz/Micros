@@ -35,19 +35,6 @@ uint16_t bq34_read_control(uint8_t address_lsb, uint8_t address_msb) {
     return read_register(0x00, 2);
 }
 
-void bq34_read_flash_block(uint8_t sub_class, uint8_t offset) {
-    write_reg(0x61, 0x00); // Block control
-    write_reg(0x3e, sub_class); // Flash class
-    write_reg(0x3f, offset / 32); // Flash block
-    
-    Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
-    Wire.write(0x40); // Block data
-    Wire.requestFrom(BQ34Z100_G1_ADDRESS, 32, true);
-    for (uint8_t i = 0; i < 32; i++) {
-        flash_block_data[i] = Wire.read(); // Data
-    }
-}
-
 void bq34_write_reg(uint8_t addr, uint8_t val) {
     Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
     Wire.write(addr);
@@ -55,26 +42,8 @@ void bq34_write_reg(uint8_t addr, uint8_t val) {
     Wire.endTransmission(true);
 }
 
-void bq34_write_flash_block(uint8_t sub_class, uint8_t offset) {
-    write_reg(0x61, 0x00); // Block control
-    write_reg(0x3e, sub_class); // Flash class
-    write_reg(0x3f, offset / 32); // Flash block
-    
-    Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
-    Wire.write(0x40); // Block data
-    for (uint8_t i = 0; i < 32; i++) {
-        Wire.write(flash_block_data[i]); // Data
-    }
-    Wire.endTransmission(true);
-}
+/* data processing */
 
-uint8_t bq34_flash_block_checksum() {
-    uint8_t temp = 0;
-    for (uint8_t i = 0; i < 32; i++) {
-        temp += flash_block_data[i];
-    }
-    return 255 - temp;
-}
 
 double bq34_xemics_to_double(uint32_t value) {
     bool is_negetive = false;
