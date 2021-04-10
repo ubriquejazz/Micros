@@ -74,13 +74,4 @@ void bq34std_exit_calibration();
 void bq34std_calibrate_cc_offset();
 void bq34std_calibrate_board_offset();
 
-static inline bool bq34_checksum(uint8_t delay)
-{
-	bq34_write_reg(0x60, bq34_flash_block_checksum(););
-    OsDelay(delay);
-    bq34std_reset();
-    OsDelay(delay);
-    return true;
-}
-
 #endif /* BQ34_STD_H_ */

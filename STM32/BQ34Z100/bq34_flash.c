@@ -2,9 +2,60 @@
 
 uint8_t flash_block_data[32];
 
+/* basic */
+
+void bq34fl_get_buffer() {
+    return &flash_block_data[0];
+}
+
+void bq34fl_read_block(uint8_t sub_class, uint8_t offset) {
+    bq34_write_reg(0x61, 0x00); // Block control
+    bq34_write_reg(0x3e, sub_class); // Flash class
+    bq34_write_reg(0x3f, offset / 32); // Flash block
+    
+    Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
+    Wire.write(0x40); // Block data
+    Wire.requestFrom(BQ34Z100_G1_ADDRESS, 32, true);
+    for (uint8_t i = 0; i < 32; i++) {
+        flash_block_data[i] = Wire.read(); // Data
+    }
+}
+
+void bq34fl_write_block(uint8_t sub_class, uint8_t offset) {
+    bq34_write_reg(0x61, 0x00); // Block control
+    bq34_write_reg(0x3e, sub_class); // Flash class
+    bq34_write_reg(0x3f, offset / 32); // Flash block
+    
+    Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
+    Wire.write(0x40); // Block data
+    for (uint8_t i = 0; i < 32; i++) {
+        Wire.write(flash_block_data[i]); // Data
+    }
+    Wire.endTransmission(true);
+}
+
+uint8_t bq34fl_block_checksum() {
+    uint8_t temp = 0;
+    for (uint8_t i = 0; i < 32; i++) {
+        temp += flash_block_data[i];
+    }
+    return 255 - temp;
+}
+
+bool bq34fl_check_checksum(uint8_t delay)
+{
+    bq34_write_reg(0x60, bq34fl_block_checksum(););
+    OsDelay(delay);
+    bq34std_reset();
+    OsDelay(delay);
+    return true;
+}
+
+/* advanced */
+
 bool bq34fl_update_design_capacity(int16_t capacity) {
     bq34_unsealed ();
-    bq34_read_flash_block(48, 0);    
+    bq34fl_read_block(48, 0);    
     flash_block_data[6] = 0; // Cycle Count
     flash_block_data[7] = 0;
     
@@ -21,12 +72,12 @@ bool bq34fl_update_design_capacity(int16_t capacity) {
     for (uint8_t i = 11; i <= 12; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_q_max(int16_t capacity) {
     bq34_unsealed ();
-    bq34_read_flash_block(82, 0);
+    bq34fl_read_block(82, 0);
     flash_block_data[0] = capacity >> 8; // Q Max
     flash_block_data[1] = capacity & 0xff;
     
@@ -36,24 +87,24 @@ bool bq34fl_update_q_max(int16_t capacity) {
     for (uint8_t i = 0; i <= 3; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_design_energy(int16_t energy) {
     bq34_unsealed ();
-    bq34_read_flash_block(48, 0);
+    bq34fl_read_block(48, 0);
     flash_block_data[13] = energy >> 8; // Design Energy
     flash_block_data[14] = energy & 0xff;
     
     for (uint8_t i = 13; i <= 14; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_cell_charge_voltage_range(uint16_t t1_t2, uint16_t t2_t3, uint16_t t3_t4) {
     bq34_unsealed ();
-    bq34_read_flash_block(48, 0);    
+    bq34fl_read_block(48, 0);    
     flash_block_data[17] = t1_t2 >> 8; // Cell Charge Voltage T1-T2
     flash_block_data[18] = t1_t2 & 0xff;
     
@@ -66,16 +117,16 @@ bool bq34fl_update_cell_charge_voltage_range(uint16_t t1_t2, uint16_t t2_t3, uin
     for (uint8_t i = 17; i <= 22; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_number_of_series_cells(uint8_t cells) {
     bq34_unsealed ();
-    bq34_read_flash_block(64, 0);    
+    bq34fl_read_block(64, 0);    
     flash_block_data[7] = cells; // Number of Series Cell
     
     bq34_write_reg(0x40 + 7, flash_block_data[7]);    
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_pack_configuration(uint16_t config) {
@@ -87,14 +138,14 @@ bool bq34fl_update_pack_configuration(uint16_t config) {
     for (uint8_t i = 0; i <= 1; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
 
 bool bq34fl_update_charge_termination_parameters(taper_t taper) 
 {
     taper_t updated;
     bq34_unsealed ();
-    bq34_read_flash_block(36, 0);
+    bq34fl_read_block(36, 0);
     
     flash_block_data[0] = taper.current >> 8; // Taper Current
     flash_block_data[1] = taper.current & 0xff;
@@ -116,8 +167,10 @@ bool bq34fl_update_charge_termination_parameters(taper_t taper)
     for (uint8_t i = 0; i <= 10; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    return bq34_checksum(150);
+    return bq34fl_check_checksum(150);
 }
+
+/* advanced & calibration */
 
 void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_count) {
     double volt_array[50];
@@ -143,7 +196,7 @@ void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_co
     }
 
     bq34_unsealed ();
-    bq34_read_flash_block(104, 0);
+    bq34fl_read_block(104, 0);
     
     uint16_t current_voltage_divider = flash_block_data[14] << 8;
     current_voltage_divider |= flash_block_data[15];
@@ -156,10 +209,10 @@ void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_co
     for (uint8_t i = 14; i <= 15; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    bq34_checksum(150);
+    bq34fl_check_checksum(150);
     
     bq34_unsealed ();
-    bq34_read_flash_block(68, 0);
+    bq34fl_read_block(68, 0);
     
     int16_t flash_update_of_cell_voltage = (double)(2800 * cells_count * 5000) / (double)new_voltage_divider;
     
@@ -169,7 +222,7 @@ void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_co
     for (uint8_t i = 0; i <= 1; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    bq34_checksum(150);
+    bq34fl_check_checksum(150);
 }
 
 void bq34fl_calibrate_sense_resistor(int16_t applied_current) {
@@ -196,7 +249,7 @@ void bq34fl_calibrate_sense_resistor(int16_t applied_current) {
     }
 
     bq34_unsealed ();
-    bq34_read_flash_block(104, 0);
+    bq34fl_read_block(104, 0);
 
     uint32_t cc_gain = flash_block_data[0] << 24;
     cc_gain |= flash_block_data[1] << 16;
@@ -227,5 +280,5 @@ void bq34fl_calibrate_sense_resistor(int16_t applied_current) {
     for (uint8_t i = 4; i <= 7; i++) {
         bq34_write_reg(0x40 + i, flash_block_data[i]);
     }
-    bq34_checksum(150);
+    bq34fl_check_checksum(150);
 }

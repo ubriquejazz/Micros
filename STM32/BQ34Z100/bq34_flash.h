@@ -12,6 +12,9 @@
 #include "cmsis_os.h"
 #include "string.h"
 
+#include "bq34z100g1.h"
+#include "bq34_standard.h"
+
 typedef struct {
     int8_t  	set;
     int8_t  	clear;
@@ -26,6 +29,13 @@ typedef struct {
     voltage_t   fc;
 } taper_t;
 
+/* basic */
+uint8_t* bq34fl_get_buffer(void);
+void bq34fl_read_block(uint8_t sub_class, uint8_t offset);
+void bq34fl_write_block(uint8_t sub_class, uint8_t offset);
+bool bq34fl_check_checksum(uint8_t delay);
+
+/* advanced */
 bool bq34fl_update_design_capacity(int16_t capacity);
 bool bq34fl_update_q_max(int16_t capacity)
 bool bq34fl_update_design_energy(int16_t energy); 
