@@ -26,15 +26,6 @@ uint16_t bq34_read_register(uint8_t address, uint8_t length) {
     return temp;
 }
 
-uint16_t bq34_read_control(uint8_t address_lsb, uint8_t address_msb) {
-    Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
-    Wire.write(0x00);
-    Wire.write(address_lsb);
-    Wire.write(address_msb);
-    Wire.endTransmission(true);
-    return read_register(0x00, 2);
-}
-
 void bq34_write_reg(uint8_t addr, uint8_t val) {
     Wire.beginTransmission(BQ34Z100_G1_ADDRESS);
     Wire.write(addr);

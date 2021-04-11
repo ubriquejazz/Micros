@@ -16,10 +16,7 @@
 
 void 	 bq34_unsealed ();
 uint16_t bq34_read_register(uint8_t address, uint8_t length);
-uint16_t bq34_read_control(uint8_t address_lsb, uint8_t address_msb);
 void 	 bq34_write_reg(uint8_t addr, uint8_t val);
-
-
 double 	 bq34_xemics_to_double(uint32_t value);
 uint32_t bq34_double_to_xemics(double value);
     
