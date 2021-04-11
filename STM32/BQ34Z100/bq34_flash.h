@@ -44,6 +44,7 @@ bool bq34fl_update_number_of_series_cells(uint8_t cells);
 bool bq34fl_update_pack_configuration(uint16_t config);
 bool bq34fl_update_charge_termination_parameters(taper_t);
 
+/* advanced & calibration */
 void bq34fl_calibrate_voltage_divider(uint16_t applied_voltage, uint8_t cells_count);
 void bq34fl_calibrate_sense_resistor(int16_t applied_current);
 
