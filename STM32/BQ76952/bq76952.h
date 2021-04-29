@@ -1,102 +1,88 @@
-/*
- * bq76952_hm.h
- *
- *  Created on: 26 oct. 2020
- *      Author: IDJGB0
- */
+/**
+  ******************************************************************************
+  * @file    bq76952.h
+  * @author  IDJGB0
+  * @version V1.0.0
+  * @date    13 abr. 2021
+  * @brief   Header file of bq76952.c
+  *          This file provides firmware functions to manage the following
+  *          functionalities of the Batt. Monitor:
+  *           + Initialization functions
+  *           + Request and Release
+  *
+  @verbatim
+  ==============================================================================
+                        ##### How to use this module #####
+  ==============================================================================
+  [..]
+
+  The Batt. Monitor manager can be used as follows:
+
+  (#) Initialize the module by calling the BQ76952_Init().
+
+  (#) In order to operate, a BQ76952_Request() must be satisfactory.
+
+  (#) After operation the function BQ76952_Release() must be called.
+
+  @endverbatim
+  ******************************************************************************
+  * @attention
+  *
+  *
+  ******************************************************************************
+  */
 
 #ifndef BQ76952_H_
 #define BQ76952_H_
 
-#include <stdio.h>
-#include "cmsis_os.h"
-#include "string.h"
-
-#include "bq_registers.h"
-#include "bq76952_hm.h"
-
-/* Drivers */
-#include "../IDN/STM32L4xx_IDN_HAL_Driver/stm32l4xx_idn_hal_i2c.h"
-#include <../Application/Drivers/IdnDefinitions.h>
-
 /* Exported types ---------------------------------------------------- */
 
-#ifdef BQ76952_ENABLE_EXTERNAL_GPIO_INTERRUPTS
+/*!
+ * @brief Rellenar!
+ */
+typedef enum Bq76952_AlarmState_e
+{
+  /* low */
+  ALERT_WAKE          , // Device is wakened from SLEEP mode
+  ALERT_ADC_SCAN      , // Voltage ADC Scan Complete.
+  ALERT_CBALANCING    , // Cell balancing is active
+  ALERT_FUSE_DRIVEN   , // FUSE Pin Driven.
+  ALERT_SHUT_VOLTAGE  , // Stack voltage is below Power:Shutdown:Shutdown Stack Voltage
+  ALERT_DFET_OFF      , // the DSG FET is off.
+  ALERT_CFET_OFF      , // the CHG FET is off.
+  ALERT_FULL_SCAN     , // Full Voltage Scan Complete
+  ALERT_INIT_START    , // Initialization started
+  ALERT_INIT_COMPLETE , // Initialization completed (completed one measurement scan)
+  ALERT_MASK_SF       , // Set if a bit in SF Alert A–C() is set
+  ALERT_MASK_PF       , // Set if a bit in PF Alert A–D() is set
+  ALERT_UNKNOWN
+} Bq76952_AlarmState_t;
 
-  /*!
-   * @brief Rellenar!
-   */
-  typedef enum Bq76952_AlarmState_e
-  {
-    /* low */
-    ALERT_WAKE      , // Device is wakened from SLEEP mode
-    ALERT_ADC_SCAN    , // Voltage ADC Scan Complete.
-    ALERT_CBALANCING  , // Cell balancing is active
-    ALERT_FUSE_DRIVEN , // FUSE Pin Driven.
-    ALERT_SHUT_VOLTAGE  , // Stack voltage is below Power:Shutdown:Shutdown Stack Voltage
-    ALERT_DFET_OFF    , // the DSG FET is off.
-    ALERT_CFET_OFF    , // the CHG FET is off.
-    ALERT_FULL_SCAN   , // Full Voltage Scan Complete
-    /* MSK_SF MSK_PF INITSTART INITCOMP */
-    ALERT_INIT_START  , // Initialization started
-    ALERT_INIT_COMPLETE , // Initialization completed (completed one measurement scan)
-    ALERT_MASK_PF   , // Set if a bit in PF Alert A–D() is set
-    /* SSBC SSA Breakout */
-    FAULT_COW,    // Cell Open Wire
-    FAULT_COV,    // Cell Overvoltage 
-    ALERT_COV,    // Cell Overvoltage 
-    FAULT_CUV,    // Cell Undervoltage 
-    ALERT_CUV,    // Cell Undervoltage 
-    FAULT_OTD,    // Overtemperature in Discharge 
-    ALERT_OTD,    // Overtemperature in Discharge 
-    FAULT_UTD,    // Undertemperature in Discharge 
-    ALERT_UTD,    // Undertemperature in Discharge
-    FAULT_OTC,    // Overtemperature in Charge
-    ALERT_OTC,    // Overtemperature in Charge 
-    FAULT_UTC,    // Undertemperature in Charge 
-    ALERT_UTC,    // Undertemperature in Charge 
-    FAULT_SCD,    // Short Circuit in Discharge
-    ALERT_SCD,    // Short Circuit in Discharge 
-    FAULT_OCD1,   // Overcurrent in Discharge (peak)
-    ALERT_OCD1,   // Overcurrent in Discharge (peak)
-    FAULT_OCD2,   // Overcurrent in Discharge (continuous)
-    ALERT_OCD2,   // Overcurrent in Discharge (continuous)
-    FAULT_OCC,    // Overcurrent in Charge (peak)
-    ALERT_OCC,    // Overcurrent in Charge (peak)
-    /* PF Breakout */
-    PFAIL_SOCC,   // Safety Overcurrent in Charge PF
-    PFAIL_SOCD,   // Safety Overcurrent in Discharge PF
-    PFAIL_TOSF,   // Top of the Stack PF
-    PFAIL_SOV,    // Safety Overvoltage PF
-    PFAIL_SUV,    // Safety Undervoltage PF
-    PFAIL_SOT,    // Safety Overtemperature PF
-    PFAIL_SOTF,   // Safety Overtemperature FET PF
-    PFAIL_CFETF,  // Charge FET PF
-    PFAIL_DFETF,  // Discharge FET PF
-    PFAIL_VIMR,   // Voltage Imbalance Relax
-    ALERT_UNKNOWN
-  } Bq76952_AlarmState_t;
+/*!
+ * @brief Rellenar!
+ */
+typedef enum Bq76952_FETState_e
+{
+  FET_STATE_ALL_FET_OFF   = (uint8_t)0,
+  FET_STATE_CFET_OFF      = (uint8_t)1,
+  FET_STATE_DFET_OFF      = (uint8_t)2,
+  FET_STATE_CFET_ON       = (uint8_t)3,
+  FET_STATE_DFET_ON       = (uint8_t)4, // Todo Chequear qué opciones hay!
+  FET_STATE_ALL_FET_ON    = (uint8_t)5, // Delmir: no estoy seguros de poder decir ALL_FET_ON/OFF
+} Bq76952_FETState_t;
 
-  /*!
-   * @brief Rellenar!
-   */
-  typedef enum Bq76952_FETState_e
-  {
-    FET_STATE_ALL_FET_OFF     = (uint8_t)0,
-    FET_STATE_CFET_OFF        = (uint8_t)1,
-    FET_STATE_DFET_OFF        = (uint8_t)2,
-    FET_STATE_CFET_ON       = (uint8_t)3,
-    FET_STATE_DFET_ON       = (uint8_t)4, // Todo Chequear qué opciones hay!
-    FET_STATE_ALL_FET_ON      = (uint8_t)5, // Delmir: no estoy seguros de poder decir ALL_FET_ON/OFF
-  } Bq76952_FETState_t;
+/*!
+ * @brief Rellenar!
+ */
+typedef struct bq76952_Callbacks_Ext_s
+{
+  void (*CbAlarm)(Bq76952_AlarmState_t state);
+  void (*CbFETs)(Bq76952_FETState_t state);
+} bq76952_Callbacks_Ext_t;
 
-  typedef struct bq76952_Callbacks_Ext_s
-  {
-    void (*CbAlarm)(Bq76952_AlarmState_t state);
-    void (*CbFETs)(Bq76952_FETState_t state);
-  } bq76952_Callbacks_Ext_t;
-#endif
-
+/*!
+ * @brief Rellenar!
+ */
 typedef struct
 {
   I2C_HandleTypeDef*    devHandle;      /*!< device handle      */
@@ -105,12 +91,10 @@ typedef struct
   QueueHandle_t         queue;          /*!< alarm queue        */
   osThreadId            taskHandle;     /*!< task Handle        */
   uint8_t               requested;      /*!< user notification  */
-  uint8_t               buf[12];        /*!< read buffer        */
+  uint8_t               buf[32];        /*!< read buffer        */
   idn_RetVal_t          intResult;      /*!< i2c notification   */
 
-#ifdef BQ76952_ENABLE_EXTERNAL_GPIO_INTERRUPTS
   bq76952_Callbacks_Ext_t   extCallbacks;
-#endif
 } bq76952_t;
 
 /* Exported constants ------------------------------------------------ */
@@ -123,12 +107,6 @@ typedef struct
 /* Exported macros -----------------------------------------------------------*/
 
 #define CELL_NO_TO_ADDR(cellNo)   (0x14 + ((cellNo-1)*2))
-#define LOW_BYTE(data)            (uint8_t)(data & 0x00FF)
-#define HIGH_BYTE(data)            (uint8_t)((data >> 8) & 0x00FF)
-#define WORD2B(high, low)         ((uint16_t)high << 8) | low
-#define WORD4B(a3,a2,a1,a0)       ((uint32_t)a3 << 24) | ((uint32_t)a2 << 16) | ((uint32_t)a1 << 8)  | a0
-#define DATA_MEM_ADDR(x)          (uint16_t) (0x92 << 8) + (uint16_t) (x)
-#define READBIT(byte, i)          ((byte >> i) & 1)
 #define BQ76952_I2C_WAIT(x)       __NOP()
 
 /* Exported functions --------------------------------------------------------*/
@@ -261,35 +239,4 @@ static inline void BQ76952_Getter(uint16_t addr, uint8_t count)
     BQ76952_I2C_WAIT(2);
 }
 
-#ifdef BQ76952_ENABLE_EXTERNAL_GPIO_INTERRUPTS
-  /* ALERT Pin */
-  idn_RetVal_t BQ76952_RequestAlarm(void (*Callback)(Bq76952_AlarmState_t alarm));
-  idn_RetVal_t BQ76952_ReleaseAlarm(void (*Callback)(Bq76952_AlarmState_t alarm));
-
-  /* DDSG, DCHG, DFETOFF, CFETOFF Pins */
-  idn_RetVal_t BQ76952_RequestFETState(void (*Callback)(Bq76952_FETState_t state));
-  idn_RetVal_t BQ76952_ReleaseFETState(void (*Callback)(Bq76952_FETState_t state));
-  idn_RetVal_t BQ76952_SetFETControl(Bq76952_FETControl_t control);
-
-  /* RESET Pin */
-  idn_RetVal_t BQ76952_RequestResetPin(void);
-  idn_RetVal_t BQ76952_ReleaseResetPin(void);
-
-  // Funcions shoud be called from a Thread
-  void BQ76952_PerformReset(void);
-  void BQ76952_PerformShutdown(void);
-
-  /* Reset Pin */
-  idn_RetVal_t BQ76952_RequestPrecensePin(void);
-  idn_RetVal_t BQ76952_ReleasePresencePin(void);
-  idn_RetVal_t BQ76952_IsPresencePinAsserted(void);
-
-  /* Boot TS2 Pin */
-  idn_RetVal_t BQ76952_RequestBootPin(void);
-  idn_RetVal_t BQ76952_ReleaseBootPin(void);
-  idn_RetVal_t BQ76952_PerformBoot(void);
-#endif
-
 #endif /* BQ76952_H_ */
-
-

@@ -8,13 +8,6 @@
 #ifndef BQ_COMMANDS_H_
 #define BQ_COMMANDS_H_
 
-#include <stdio.h>
-#include "cmsis_os.h"
-#include "string.h"
-
-#include "bq76952.h"
-#include "bq_registers.h"
-
 #define BQCMD_Cell_01_Voltage 	0x14
 #define BQCMD_Cell_02_Voltage 	0x16
 #define BQCMD_Cell_03_Voltage 	0x18
@@ -67,42 +60,81 @@ typedef enum {
 	NumOfStatusTwoTransistorsBQ76952
 } bq76952_fetstatus_t;
 
-typedef struct {
-	uint8_t FET_EN;			// Normal FET control is enabled. FET Test mode is disabled (ignore FET Test subcommands)
-	uint8_t	FET_INIT_OFF;	// Default host FET control state forces FETs off
-	uint8_t	FET_CTRL_EN;	// FETs are controlled by the device
-	uint8_t	HOST_FET_EN;	// Host FET control commands are allowed
-	uint8_t	SLEEPCHG;		// CHG FET may be enabled in SLEEP mode
-	uint8_t SFMODE_SLEEP; 	// Source-follower mode is enabled on the DSG FET driver while SLEEP
-} bq76952_fetconfig_t;
-
 /* Subcommand and direct-commands for CasandrAPP ----------------------------*/
-idn_RetVal_t BQCMD_Get_SubCommand(uint16_t, uint8_t, void *variable);
-idn_RetVal_t BQCMD_Get_DirectCommand(uint8_t, uint8_t, void *variable);
+
+inline idn_RetVal_t BQCMD_Get_DirectCommand(uint8_t command, uint8_t bytes_to_read, void *variable)
+{
+	idn_RetVal_t ret = IDN_OK;
+	uint8_t* buf = BQ76952_GetBuffer(bytes_to_read);
+
+	ret = BQ76952_ReadReg(BQ76952_SLAVE_ADDR, command, bytes_to_read);
+	if(bytes_to_read == 2) {
+		*(uint16_t*)variable = WORD2B (buf[1], buf[0]);
+		// FS_WriteR(file_id, *(uint16_t*)variable, 0);
+	}
+	else if (bytes_to_read == 1) {
+		*(uint8_t*)variable = buf[0];
+		// FS_WriteR(file_id, *(uint8_t*)variable, 0);
+	}
+	else {
+		ret = IDN_ERROR;
+	}
+	return ret;
+}
+
+inline idn_RetVal_t BQCMD_Get_SubCommand(uint16_t command, uint8_t bytes_to_read, void *variable)
+{
+	idn_RetVal_t ret = IDN_OK;
+	uint8_t* buf = BQ76952_GetBuffer(bytes_to_read);
+
+	if(bytes_to_read == 4) {
+		ret = BQ76952_Getter(command, 4);
+		*(uint32_t*)variable = WORD4B (buf[3], buf[2], buf[1], buf[0]);
+	}
+	if(bytes_to_read == 2) {
+		ret = BQ76952_Getter(command, 2);
+		*(uint16_t*)variable = WORD2B (buf[1], buf[0]);
+	}
+	else if (bytes_to_read == 1) {
+		ret = BQ76952_Getter(command, 1);
+		*(uint8_t*)variable = buf[0];
+	}
+	else {
+		ret = IDN_ERROR;
+	}
+	return ret;
+}
 
 /* Command-Only Sub-commands (12.3) -----------------------------------------*/
-idn_RetVal_t BQCMD_Set_Reset (char*);
-idn_RetVal_t BQCMD_Set_ConfigUpdateMode (uint8_t mode, char*);
-idn_RetVal_t BQCMD_Set_DeepSleep(uint8_t mode, char*);
-idn_RetVal_t BQCMD_Set_Shutdown(char*);
-idn_RetVal_t BQCMD_Set_Sealed(char*);
-idn_RetVal_t BQCMD_Set_SleepEnable(uint8_t enable, char*);
 
-/* Command-Only Sub-commands (12.3) -----------------------------------------*/
 idn_RetVal_t BQCMD_Set_CHGFET(char*);
 idn_RetVal_t BQCMD_Set_DSGFET(char*);
-idn_RetVal_t BQCMD_Set_FETEnable (char*);
 idn_RetVal_t BQCMD_Set_PFEnable(char*);
-idn_RetVal_t BQCMD_Set_PFReset(char*);
-idn_RetVal_t BQCMD_Set_AllFETs(uint8_t value, char*);
-idn_RetVal_t BQCMD_Set_DSG_OFF(char*);
-idn_RetVal_t BQCMD_Set_CHG_OFF(char*);
 
-/* Command-Only Sub-commands (12.3) -----------------------------------------*/
-idn_RetVal_t BQCMD_Set_LDRestart(char*);
-idn_RetVal_t BQCMD_Set_ControlLD(uint8_t enable, char*);
-idn_RetVal_t BQCMD_Set_ControlALERT(uint8_t value, char*);
-idn_RetVal_t BQCMD_Set_ResetIntegratedCharge(char*);
+inline idn_RetVal_t BQCMD_Set_Reset (char* log)
+{
+	idn_RetVal_t ret = IDN_OK;
+	TX_2Byte[0] = 0x12;
+	TX_2Byte[1] = 0x00;
+	ret = BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
+    BQ76952_I2C_WAIT(15);
+	sprintf(log, "Returned to default settings");
+	return ret;
+}
+inline idn_RetVal_t BQCMD_Set_ConfigUpdateMode (idn_Bool_t mode, char* log)
+{
+	idn_RetVal_t ret = IDN_OK;
+	if (mode){
+		TX_2Byte[0] = 0x90;
+	} else {
+		TX_2Byte[0] = 0x92;
+	}
+	TX_2Byte[1] = 0x00;
+	ret = BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
+	BQ76952_I2C_WAIT(1);
+	sprintf(log, "Set CONFIG_UPDATE mode : %d", mode);
+	return ret;
+}
 
 /* Direct Commands (12.1) ----------------------------------------------------*/
 idn_RetVal_t BQCMD_Get_CtrlStatus (ctrl_status_t*, char*);
@@ -112,30 +144,5 @@ idn_RetVal_t BQCMD_Get_FETStatus (fet_status_t*, char*);
 /* Sub-commands with data (12.4) --------------------------------------------*/
 idn_RetVal_t BQCMD_Get_ManufacturerStatus (uint16_t* status, char* );
 idn_RetVal_t BQCMD_Get_DeviceNumber (uint16_t* device_number, char*);
-idn_RetVal_t BQCMD_Get_IntegratedChargeInteger (uint32_t*, uint32_t*, char*);
-idn_RetVal_t BQCMD_Get_IntegratedChargeFraction(uint32_t*, uint32_t*, char*);
-
-/* User defined commands (BCMD2) --------------------------------------------*/
-idn_RetVal_t BQCMD2_Get_Mode(bq76952_mode_t* mode);
-idn_RetVal_t BQCMD2_Get_SecurityMode(bq76952_securitymode_t* mode);
-idn_RetVal_t BQCMD2_Get_FetStatus(bq76952_fetstatus_t* fet);
-idn_RetVal_t BQCMD2_Set_EnableBalancing(uint8_t balanceEnabled, char*);
-idn_RetVal_t BQCMD2_Set_FETDriver (bq76952_fetconfig_t,  char*);
-idn_RetVal_t BQCMD2_Get_InstantaneousCapacity(uint32_t*, char*);
-
-/* Pin Configuration commands --------------------------------------------------------*/
-idn_RetVal_t BQCMD2_Enable_ALERT_Pin(char*);		// ALERT interrupt pin for the MCU
-idn_RetVal_t BQCMD2_Enable_FETS_Pin(char*);
-idn_RetVal_t BQCMD2_Enable_STATUS_Pin(char*);
-idn_RetVal_t BQCMD2_Disable_ALERT_Pin(char*);		// ALERT interrupt pin for the MCU
-idn_RetVal_t BQCMD2_Disable_FETS_Pin(char*);
-idn_RetVal_t BQCMD2_Disable_STATUS_Pin(char*);
-
-/* Processing ALERT pin interrupt ----------------------------------------------------*/
-idn_RetVal_t BQCMD2_Alert_SA_SB_SC(void (*callback)(Bq76952_AlarmState_t state));
-idn_RetVal_t BQCMD2_Fault_SA(void (*callback)(Bq76952_AlarmState_t state));
-idn_RetVal_t BQCMD2_Fault_SB_SC(void (*callback)(Bq76952_AlarmState_t state));
-idn_RetVal_t BQCMD2_Alert_PFA_PFB_PFC_PFD (void (*callback)(Bq76952_AlarmState_t state));
-idn_RetVal_t BQCMD2_Fault_PFA_PFB_PFC_PFD (void (*callback)(Bq76952_AlarmState_t state));
 
 #endif /* BQ_COMMANDS_H_ */
