@@ -116,8 +116,10 @@ extern bq76952_t Bq76952;
 
 /* Operation functions -------------------------------------------------------*/
 
-static inline void BQ76952_GetBuffer(uint8_t* buf, uint8_t bytes_to_read) {
+static inline idn_RetVal_t BQ76952_GetBuffer(uint8_t* buf, uint8_t bytes_to_read) 
+{
   buf = &Bq76952.buf[0];
+  return mutex_lock();
 }
 
 /**
@@ -138,12 +140,12 @@ idn_RetVal_t BQ76952_Release(void);
 /**
   * @brief  Write Register.
   */
-idn_RetVal_t BQ76952_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count);
+idn_RetVal_t TICOMM_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count);
 
 /**
   * @brief  Read Register.
   */
-idn_RetVal_t BQ76952_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count);
+idn_RetVal_t TICOMM_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count);
 
 /**
   * @brief  Compute the Checksum used in "Data R-W Access"
@@ -162,11 +164,11 @@ static inline void BQ76952_Setter_8Bits(uint16_t addr, uint8_t value)
   TX_3Byte[0] = LOW_BYTE(addr);
   TX_3Byte[1] = HIGH_BYTE(addr);
   TX_3Byte[2] = value;
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_3Byte, 3);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_3Byte, 3);
   BQ76952_I2C_WAIT(1);
   TX_2Byte[0] = BQ76952_Checksum(TX_3Byte, 3);
   TX_2Byte[1] = 0x05; // Length
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
   BQ76952_I2C_WAIT(1);
 }
 
@@ -181,11 +183,11 @@ static inline void BQ76952_Setter_2Bytes(uint16_t addr, uint16_t value)
   TX_4Byte[1] = HIGH_BYTE(addr);
   TX_4Byte[2] = LOW_BYTE(value);
   TX_4Byte[3] = HIGH_BYTE(value);
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_4Byte, 4);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_4Byte, 4);
   BQ76952_I2C_WAIT(1);
   TX_2Byte[0] = BQ76952_Checksum(TX_4Byte, 4);
   TX_2Byte[1] = 0x06;  // Length
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
   BQ76952_I2C_WAIT(1);
 }
 
@@ -203,11 +205,11 @@ static inline void BQ76952_Setter_4Bytes(uint16_t addr, uint16_t high, uint16_t 
   TX_6Byte[3] = HIGH_BYTE(high);
   TX_6Byte[4] = LOW_BYTE(low);
   TX_6Byte[5] = HIGH_BYTE(low);
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_6Byte, 6);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_6Byte, 6);
   BQ76952_I2C_WAIT(1);
   TX_2Byte[0] = BQ76952_Checksum(TX_6Byte, 6);
   TX_2Byte[1] = 0x08;  // Length
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
   BQ76952_I2C_WAIT(1);
 }
 
@@ -220,7 +222,7 @@ static inline void BQ76952_Setter_Direct(uint8_t addr, uint16_t value)
 {
   TX_2Byte[0] = LOW_BYTE(value);
   TX_2Byte[1] = HIGH_BYTE(value);
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, addr, TX_2Byte, 2);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, addr, TX_2Byte, 2);
   BQ76952_I2C_WAIT(1);
 }
 
@@ -233,10 +235,53 @@ static inline void BQ76952_Getter(uint16_t addr, uint8_t count)
 {
   TX_2Byte[0] = LOW_BYTE(addr);
   TX_2Byte[1] = HIGH_BYTE(addr);
-  BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
-    BQ76952_I2C_WAIT(1);
-    BQ76952_ReadReg(BQ76952_SLAVE_ADDR, 0x40, count);
-    BQ76952_I2C_WAIT(2);
+  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
+  BQ76952_I2C_WAIT(1);
+  TICOMM_ReadReg(BQ76952_SLAVE_ADDR, 0x40, count);
+  BQ76952_I2C_WAIT(2);
+}
+
+/* Subcommand and direct-commands for CasandrAPP ----------------------------*/
+
+static inline idn_RetVal_t BQ76952_Get_DirectCommand(uint8_t command, uint8_t bytes_to_read, void *variable)
+{
+  idn_RetVal_t ret = IDN_OK;
+
+  ret = TICOMM_ReadReg(BQ76952_SLAVE_ADDR, command, bytes_to_read);
+  if(bytes_to_read == 2) {
+    *(uint16_t*)variable = WORD2B (Bq76952.buf[1], Bq76952.buf[0]);
+    // FS_WriteR(file_id, *(uint16_t*)variable, 0);
+  }
+  else if (bytes_to_read == 1) {
+    *(uint8_t*)variable = Bq76952.buf[0];
+    // FS_WriteR(file_id, *(uint8_t*)variable, 0);
+  }
+  else {
+    ret = IDN_ERROR;
+  }
+  return ret;
+}
+
+static inline idn_RetVal_t BQ76952_Get_SubCommand(uint16_t command, uint8_t bytes_to_read, void *variable)
+{
+  idn_RetVal_t ret = IDN_OK;
+
+  if(bytes_to_read == 4) {
+    ret = BQ76952_Getter(command, 4);
+    *(uint32_t*)variable = WORD4B (Bq76952.buf[3], Bq76952.buf[2], Bq76952.buf[1], Bq76952.buf[0]);
+  }
+  if(bytes_to_read == 2) {
+    ret = BQ76952_Getter(command, 2);
+    *(uint16_t*)variable = WORD2B (Bq76952.buf[1], Bq76952.buf[0]);
+  }
+  else if (bytes_to_read == 1) {
+    ret = BQ76952_Getter(command, 1);
+    *(uint8_t*)variable = Bq76952.buf[0];
+  }
+  else {
+    ret = IDN_ERROR;
+  }
+  return ret;
 }
 
 #endif /* BQ76952_H_ */

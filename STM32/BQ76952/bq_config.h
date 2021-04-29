@@ -34,9 +34,14 @@ inline idn_RetVal_t BQCFG_Get_EnableRegulator (regulator_t regx, uint8_t* result
 {
   idn_RetVal_t ret = IDN_OK;
   uint16_t addr = DATA_MEM_ADDR(0x36 + regx);     // settings::configuration
-  ret = BQ76952_Getter(addr, 1);
-  *result = Bq76952.buf[0];
-  sprintf(log, "Get Enable Regulator %d : 0x%02x", regx, Bq76952.buf[0]);
+  uint8_t* buf;
+  ret = BQ76952_GetBuffer(buf, 1);
+  if (ret == IDN_OK) {
+    ret = BQ76952_Getter(addr, 1);
+    *result = buf[0];
+    sprintf(log, "Get Enable Regulator %d : 0x%02x", regx, buf[0]);
+    mutex_unlock();
+  }
   return ret;
 }
 

@@ -49,11 +49,15 @@ idn_RetVal_t BQPR_Get_SB_Alert (sb_protection_t*, char*);
 
 inline idn_RetVal_t BQPR_Get_SB_Fault (sb_protection_t* temp, char* log)
 {
-  idn_RetVal_t ret = IDN_OK;
-  ret = BQ76952_ReadReg(BQ76952_SLAVE_ADDR, 0x05, 1);
-  BQ76952_I2C_WAIT(2);
-  BQREG_Process_SB_Protection(Bq76952.buf[0], temp);
-  sprintf(log, "Get Safety Status (SB) : 0x%02x", Bq76952.buf[0]);
+  idn_RetVal_t ret = IDN_BUSY;
+  uint8_t* buf;
+  ret = BQ76952_GetBuffer(buf, 1);
+  if (ret == IDN_OK) {
+    ret = BQ76952_Get_DirectCommand (0x05, 1);
+    BQREG_Process_SB_Protection(buf[0], temp);
+    sprintf(log, "Get Safety Status (SB) : 0x%02x", buf[0]);
+    mutex_unlock();
+  }
   return ret;
 }
 

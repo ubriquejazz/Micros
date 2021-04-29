@@ -60,51 +60,6 @@ typedef enum {
 	NumOfStatusTwoTransistorsBQ76952
 } bq76952_fetstatus_t;
 
-/* Subcommand and direct-commands for CasandrAPP ----------------------------*/
-
-inline idn_RetVal_t BQCMD_Get_DirectCommand(uint8_t command, uint8_t bytes_to_read, void *variable)
-{
-	idn_RetVal_t ret = IDN_OK;
-	uint8_t* buf = BQ76952_GetBuffer(bytes_to_read);
-
-	ret = BQ76952_ReadReg(BQ76952_SLAVE_ADDR, command, bytes_to_read);
-	if(bytes_to_read == 2) {
-		*(uint16_t*)variable = WORD2B (buf[1], buf[0]);
-		// FS_WriteR(file_id, *(uint16_t*)variable, 0);
-	}
-	else if (bytes_to_read == 1) {
-		*(uint8_t*)variable = buf[0];
-		// FS_WriteR(file_id, *(uint8_t*)variable, 0);
-	}
-	else {
-		ret = IDN_ERROR;
-	}
-	return ret;
-}
-
-inline idn_RetVal_t BQCMD_Get_SubCommand(uint16_t command, uint8_t bytes_to_read, void *variable)
-{
-	idn_RetVal_t ret = IDN_OK;
-	uint8_t* buf = BQ76952_GetBuffer(bytes_to_read);
-
-	if(bytes_to_read == 4) {
-		ret = BQ76952_Getter(command, 4);
-		*(uint32_t*)variable = WORD4B (buf[3], buf[2], buf[1], buf[0]);
-	}
-	if(bytes_to_read == 2) {
-		ret = BQ76952_Getter(command, 2);
-		*(uint16_t*)variable = WORD2B (buf[1], buf[0]);
-	}
-	else if (bytes_to_read == 1) {
-		ret = BQ76952_Getter(command, 1);
-		*(uint8_t*)variable = buf[0];
-	}
-	else {
-		ret = IDN_ERROR;
-	}
-	return ret;
-}
-
 /* Command-Only Sub-commands (12.3) -----------------------------------------*/
 
 idn_RetVal_t BQCMD_Set_CHGFET(char*);
@@ -114,23 +69,22 @@ idn_RetVal_t BQCMD_Set_PFEnable(char*);
 inline idn_RetVal_t BQCMD_Set_Reset (char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	TX_2Byte[0] = 0x12;
-	TX_2Byte[1] = 0x00;
-	ret = BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
+	ret = BQ76952_Setter_Direct(0x3E, 0x0012);
     BQ76952_I2C_WAIT(15);
 	sprintf(log, "Returned to default settings");
 	return ret;
 }
+
 inline idn_RetVal_t BQCMD_Set_ConfigUpdateMode (idn_Bool_t mode, char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	if (mode){
-		TX_2Byte[0] = 0x90;
+	if (mode)
+	{
+		ret = BQ76952_Setter_Direct(0x3E, 0x0090);
 	} else {
 		TX_2Byte[0] = 0x92;
+		ret = BQ76952_Setter_Direct(0x3E, 0x0092);
 	}
-	TX_2Byte[1] = 0x00;
-	ret = BQ76952_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
 	BQ76952_I2C_WAIT(1);
 	sprintf(log, "Set CONFIG_UPDATE mode : %d", mode);
 	return ret;
@@ -143,6 +97,18 @@ idn_RetVal_t BQCMD_Get_FETStatus (fet_status_t*, char*);
 
 /* Sub-commands with data (12.4) --------------------------------------------*/
 idn_RetVal_t BQCMD_Get_ManufacturerStatus (uint16_t* status, char* );
-idn_RetVal_t BQCMD_Get_DeviceNumber (uint16_t* device_number, char*);
 
+inline idn_RetVal_t BQCMD_Get_DeviceNumber (uint16_t* device_number, char* log)
+{
+  idn_RetVal_t ret = IDN_BUSY;
+  uint8_t* buf;
+  ret = BQ76952_GetBuffer(buf, 2);
+  if (ret == IDN_OK) {
+    ret = BQ76952_Get_DirectCommand (0x05, 2);
+    BQREG_Process_SB_Protection(WORD2B(buf[1], buf[0]), device_number);
+    sprintf(log, "Get Device No. : 0x%04x", *device_number);
+    mutex_unlock();
+  }
+  return ret;
+}
 #endif /* BQ_COMMANDS_H_ */
