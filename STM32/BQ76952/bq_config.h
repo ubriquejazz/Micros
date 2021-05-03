@@ -33,24 +33,31 @@ typedef enum {
 inline idn_RetVal_t BQCFG_Get_EnableRegulator (regulator_t regx, uint8_t* result, char* log)
 {
   idn_RetVal_t ret = IDN_OK;
-  uint16_t addr = DATA_MEM_ADDR(0x36 + regx);     // settings::configuration
-  uint8_t* buf;
-  ret = BQ76952_GetBuffer(buf, 1);
-  if (ret == IDN_OK) {
-    ret = BQ76952_Getter(addr, 1);
-    *result = buf[0];
+  Bq76952.wr.buf[0] = 0x92
+  Bq76952.wr.buf[1] = (0x36 + regx);     // settings::configuration
+  if(( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE ) &&
+     ( xSemaphoreTake( Bq76952.rd.mutex, ( TickType_t ) 10 ) == pdTRUE ))
+  {
+    ret = TICOMM_TIComm_ReadFlash (BQ76952_SLAVE_ADDR, NoCRC, 
+              Bq76952.wr.buf, 2, Bq76952.rd.buf, 1);
+    *result = Bq76952.rd.buf[0];
     sprintf(log, "Get Enable Regulator %d : 0x%02x", regx, buf[0]);
-    mutex_unlock();
+    xSemaphoreGive(  Bq76952.wr.mutex );
+    xSemaphoreGive(  Bq76952.rd.mutex );
   }
+  else {
+  sprintf(log, "Cannot access the shared resource safely");
+  } 
   return ret;
 }
 
 inline idn_RetVal_t BQCFG_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log)
 {
   idn_RetVal_t ret = IDN_OK;
-  uint16_t addr = DATA_MEM_ADDR(0x36 + regx);       // settings::configuration
-  ret = BQ76952_Setter_8Bits(addr, value);
+  Bq76952.wr.buf[0] = 0x92
+  Bq76952.wr.buf[1] = (0x36 + regx);       // settings::configuration
   sprintf(log, "Set Regulator %d to 0x%02x", regx, value);
+  ret = BQ76952_SetterNoCRC(2);
   return ret;
 }
 

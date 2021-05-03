@@ -69,24 +69,20 @@ idn_RetVal_t BQCMD_Set_PFEnable(char*);
 inline idn_RetVal_t BQCMD_Set_Reset (char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	ret = BQ76952_Setter_Direct(0x3E, 0x0012);
-    BQ76952_I2C_WAIT(15);
+	Bq76952.wr.buf[0] = 0x00
+	Bq76952.wr.buf[1] = 0x12
 	sprintf(log, "Returned to default settings");
+	ret = BQ76952_SetterNoCRC(2);
 	return ret;
 }
 
 inline idn_RetVal_t BQCMD_Set_ConfigUpdateMode (idn_Bool_t mode, char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	if (mode)
-	{
-		ret = BQ76952_Setter_Direct(0x3E, 0x0090);
-	} else {
-		TX_2Byte[0] = 0x92;
-		ret = BQ76952_Setter_Direct(0x3E, 0x0092);
-	}
-	BQ76952_I2C_WAIT(1);
+	Bq76952.wr.buf[0] = 0x00
+	Bq76952.wr.buf[1] = (mode) ? 0x90 : 0x92
 	sprintf(log, "Set CONFIG_UPDATE mode : %d", mode);
+	ret = BQ76952_SetterNoCRC(2);
 	return ret;
 }
 
@@ -100,15 +96,23 @@ idn_RetVal_t BQCMD_Get_ManufacturerStatus (uint16_t* status, char* );
 
 inline idn_RetVal_t BQCMD_Get_DeviceNumber (uint16_t* device_number, char* log)
 {
-  idn_RetVal_t ret = IDN_BUSY;
-  uint8_t* buf;
-  ret = BQ76952_GetBuffer(buf, 2);
-  if (ret == IDN_OK) {
-    ret = BQ76952_Get_DirectCommand (0x05, 2);
-    BQREG_Process_SB_Protection(WORD2B(buf[1], buf[0]), device_number);
-    sprintf(log, "Get Device No. : 0x%04x", *device_number);
-    mutex_unlock();
-  }
-  return ret;
+  	idn_RetVal_t ret = IDN_BUSY;
+  	Bq76952.wr.buf[0] = 0x01;
+	Bq76952.wr.buf[1] = 0x00;
+	if(( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE ) &&
+	   ( xSemaphoreTake( Bq76952.rd.mutex, ( TickType_t ) 10 ) == pdTRUE ))
+	{
+		ret = TICOMM_TIComm_ReadFlash (BQ76952_SLAVE_ADDR, NoCRC, 
+							Bq76952.wr.buf, 2, Bq76952.rd.buf, 2);
+		*device_number = WORD2B( Bq76952.rd.buf[1],  Bq76952.rd.buf[0]);
+		sprintf(log, "Get Device No. : 0x%04x", *device_number);
+		xSemaphoreGive(  Bq76952.wr.mutex );
+		xSemaphoreGive(  Bq76952.rd.mutex );
+	}
+	else {
+	sprintf(log, "Cannot access the shared resource safely");
+	}	
+	return ret;
 }
+
 #endif /* BQ_COMMANDS_H_ */
