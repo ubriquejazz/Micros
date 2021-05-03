@@ -150,6 +150,18 @@ idn_RetVal_t BQ76952_Release(void);
 
 /* Subcommand and direct-commands for CasandrAPP ----------------------------*/
 
+static inline idn_RetVal_t BQ76952_SetterNoCRC(uint8_t count)
+{
+  idn_RetVal_t ret = IDN_BUSY;
+  if( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE )
+  {
+    ret = TIComm_WriteFlash(BQ76952_SLAVE_ADDR, NO_CRC, Bq76952.wr.buf, count);
+  }
+  else {
+    sprintf(log, "Cannot access the shared resource safely");
+  }
+  return ret;
+}
 
 static inline idn_RetVal_t BQ76952_Get_DirectCommand(uint8_t command, uint8_t bytes_to_read, void *variable)
 {

@@ -2,6 +2,8 @@
 #ifndef TICOMM_H_
 #define TICOMM_H_
 
+
+
 /**
   * @brief  Compute the Checksum used in "Data R-W Access"
   */
@@ -26,7 +28,7 @@ idn_RetVal_t TIComm_WriteFlash (uint8_t dev_addr, uint8_t crc,
 
 		// 0x60 Write checksum
 		crc_local[0] = TICOMM_Checksum(write, wlen);
-		crc_local[1] = 4+count;  // Length
+		crc_local[1] = 4+wlen;  // Length
 		IDN_HAL_I2C_Mem_Write_IT(dev_addr, 0x60, crc_local, 2);    
 	}
 	__i2c_master_release()

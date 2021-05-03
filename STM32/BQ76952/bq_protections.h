@@ -55,7 +55,7 @@ inline idn_RetVal_t BQPR_Get_SB_Fault (sb_protection_t* temp, char* log)
   {
       ret = TICOMM_ReadReg(BQ76952_SLAVE_ADDR, 0x05, Bq76952.rd.buf, 1);
       BQREG_Process_SB_Protection(Bq76952.rd.buf[0], temp);
-      sprintf(log, "Get Safety Status (SB) : 0x%02x", buf[0]);
+      sprintf(log, "Get Safety Status (SB) : 0x%02x", Bq76952.rd.buf[0]);
       xSemaphoreGive(  Bq76952.wr.mutex );
   }
   else {
@@ -69,38 +69,27 @@ inline idn_RetVal_t BQPR_Get_SB_Fault (sb_protection_t* temp, char* log)
 inline idn_RetVal_t BQPR_Set_CUV_Raw (uint8_t thresh, uint16_t dly, uint8_t hyst, char*)
 {
   idn_RetVal_t ret = IDN_OK;
-  if( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE )
-  {
-  	Bq76952.wr.buf[0] =	0x92
-  	Bq76952.wr.buf[1] = 0x75
-	Bq76952.wr.buf[2] = (thresh); 			// Protections:CUV:Threshold
-	Bq76952.wr.buf[3] = LOW_BYTE(dly);    	// Protections:CUV:Delay
-	Bq76952.wr.buf[4] = HIGH_BYTE(dly);    	// Protections:CUV:Delay
-    Bq76952.wr.buf[5] = (hyst);       		// Protections:COV:Recovery H.
-	ret = TIComm_WriteFlash(BQ76952_SLAVE_ADDR, NO_CRC, Bq76952.wr.buf, 6);
-    sprintf(log, BQPR_Voltage_LogFormat, "CUV", thresh, dly, hyst);
-  }
+  Bq76952.wr.buf[0] = 0x92
+  Bq76952.wr.buf[1] = 0x75
+  Bq76952.wr.buf[2] = (thresh);         // Protections:CUV:Threshold
+  Bq76952.wr.buf[3] = LOW_BYTE(dly);    // Protections:CUV:Delay
+  Bq76952.wr.buf[4] = HIGH_BYTE(dly);   // Protections:CUV:Delay
+  Bq76952.wr.buf[5] = (hyst);           // Protections:COV:Recovery H. 
+  sprintf(log, BQPR_Voltage_LogFormat, "CUV", thresh, dly, hyst);
+  ret = BQ76952_SetterNoCRC(6);
   return ret;
 }
 
 inline idn_RetVal_t BQPR_Set_SF_Alert_Mask (sa_protection_t prota, sb_protection_t protb, sc_protection_t protc, char* log)
 {
   idn_RetVal_t ret = IDN_BUSY;
-
-  if( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE )
-  {
-  	Bq76952.wr.buf[0] =	0x92
-  	Bq76952.wr.buf[1] = 0x62
-    Bq76952.wr.buf[2] = (prota.value);      // Settings:Alarm
-    Bq76952.wr.buf[3] = (protb.value);      // Settings:Alarm
-    Bq76952.wr.buf[4] = (protc.value);      // Settings:Alarm
-    ret = TIComm_WriteFlash(BQ76952_SLAVE_ADDR, NO_CRC, Bq76952.wr.buf, 5);
-    sprintf(log, "SF Alert Masks (ABC): 0x%02x, 0x%02x, 0x%02x", prota.value, protb.value, protc.value);
-    xSemaphoreGive(  Bq76952.wr.mutex );
-  }
-  else {
-    sprintf(log, "Cannot access the shared resource safely");
-  }
+  Bq76952.wr.buf[0] = 0x92
+  Bq76952.wr.buf[1] = 0x62
+  Bq76952.wr.buf[2] = (prota.value);      // Settings:Alarm
+  Bq76952.wr.buf[3] = (protb.value);      // Settings:Alarm
+  Bq76952.wr.buf[4] = (protc.value);      // Settings:Alarm
+  sprintf(log, "SF Alert Masks (ABC): 0x%02x, 0x%02x, 0x%02x", prota.value, protb.value, protc.value);
+  ret = BQ76952_SetterNoCRC(5);
   return ret;
 }
 
