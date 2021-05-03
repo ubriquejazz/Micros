@@ -69,8 +69,8 @@ idn_RetVal_t BQCMD_Set_PFEnable(char*);
 inline idn_RetVal_t BQCMD_Set_Reset (char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	Bq76952.wr.buf[0] = 0x00
-	Bq76952.wr.buf[1] = 0x12
+	Bq76952.wr.buf[1] = 0x00
+	Bq76952.wr.buf[0] = 0x12
 	sprintf(log, "Returned to default settings");
 	ret = BQ76952_SetterNoCRC(2);
 	return ret;
@@ -79,8 +79,8 @@ inline idn_RetVal_t BQCMD_Set_Reset (char* log)
 inline idn_RetVal_t BQCMD_Set_ConfigUpdateMode (idn_Bool_t mode, char* log)
 {
 	idn_RetVal_t ret = IDN_OK;
-	Bq76952.wr.buf[0] = 0x00
-	Bq76952.wr.buf[1] = (mode) ? 0x90 : 0x92
+	Bq76952.wr.buf[1] = 0x00
+	Bq76952.wr.buf[0] = (mode) ? 0x90 : 0x92
 	sprintf(log, "Set CONFIG_UPDATE mode : %d", mode);
 	ret = BQ76952_SetterNoCRC(2);
 	return ret;
@@ -97,8 +97,8 @@ idn_RetVal_t BQCMD_Get_ManufacturerStatus (uint16_t* status, char* );
 inline idn_RetVal_t BQCMD_Get_DeviceNumber (uint16_t* device_number, char* log)
 {
   	idn_RetVal_t ret = IDN_BUSY;
-  	Bq76952.wr.buf[0] = 0x01;
-	Bq76952.wr.buf[1] = 0x00;
+	Bq76952.wr.buf[1] = 0x00
+	Bq76952.wr.buf[0] = 0x01
 	if(( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE ) &&
 	   ( xSemaphoreTake( Bq76952.rd.mutex, ( TickType_t ) 10 ) == pdTRUE ))
 	{

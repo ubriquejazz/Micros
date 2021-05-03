@@ -69,8 +69,8 @@ inline idn_RetVal_t BQPR_Get_SB_Fault (sb_protection_t* temp, char* log)
 inline idn_RetVal_t BQPR_Set_CUV_Raw (uint8_t thresh, uint16_t dly, uint8_t hyst, char*)
 {
   idn_RetVal_t ret = IDN_OK;
-  Bq76952.wr.buf[0] = 0x92
-  Bq76952.wr.buf[1] = 0x75
+  Bq76952.wr.buf[1] = 0x92
+  Bq76952.wr.buf[0] = 0x75
   Bq76952.wr.buf[2] = (thresh);         // Protections:CUV:Threshold
   Bq76952.wr.buf[3] = LOW_BYTE(dly);    // Protections:CUV:Delay
   Bq76952.wr.buf[4] = HIGH_BYTE(dly);   // Protections:CUV:Delay
@@ -83,8 +83,8 @@ inline idn_RetVal_t BQPR_Set_CUV_Raw (uint8_t thresh, uint16_t dly, uint8_t hyst
 inline idn_RetVal_t BQPR_Set_SF_Alert_Mask (sa_protection_t prota, sb_protection_t protb, sc_protection_t protc, char* log)
 {
   idn_RetVal_t ret = IDN_BUSY;
-  Bq76952.wr.buf[0] = 0x92
-  Bq76952.wr.buf[1] = 0x62
+  Bq76952.wr.buf[1] = 0x92
+  Bq76952.wr.buf[0] = 0x62
   Bq76952.wr.buf[2] = (prota.value);      // Settings:Alarm
   Bq76952.wr.buf[3] = (protb.value);      // Settings:Alarm
   Bq76952.wr.buf[4] = (protc.value);      // Settings:Alarm

@@ -33,8 +33,8 @@ typedef enum {
 inline idn_RetVal_t BQCFG_Get_EnableRegulator (regulator_t regx, uint8_t* result, char* log)
 {
   idn_RetVal_t ret = IDN_OK;
-  Bq76952.wr.buf[0] = 0x92
-  Bq76952.wr.buf[1] = (0x36 + regx);     // settings::configuration
+  Bq76952.wr.buf[1] = 0x92
+  Bq76952.wr.buf[0] = (0x36 + regx);     // settings::configuration
   if(( xSemaphoreTake( Bq76952.wr.mutex, ( TickType_t ) 10 ) == pdTRUE ) &&
      ( xSemaphoreTake( Bq76952.rd.mutex, ( TickType_t ) 10 ) == pdTRUE ))
   {
@@ -54,8 +54,8 @@ inline idn_RetVal_t BQCFG_Get_EnableRegulator (regulator_t regx, uint8_t* result
 inline idn_RetVal_t BQCFG_Set_EnableRegulator (regulator_t regx, uint8_t value, char* log)
 {
   idn_RetVal_t ret = IDN_OK;
-  Bq76952.wr.buf[0] = 0x92
-  Bq76952.wr.buf[1] = (0x36 + regx);       // settings::configuration
+  Bq76952.wr.buf[1] = 0x92
+  Bq76952.wr.buf[0] = (0x36 + regx);       // settings::configuration
   sprintf(log, "Set Regulator %d to 0x%02x", regx, value);
   ret = BQ76952_SetterNoCRC(2);
   return ret;
