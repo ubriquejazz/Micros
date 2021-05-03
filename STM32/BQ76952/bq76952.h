@@ -85,13 +85,23 @@ typedef struct bq76952_Callbacks_Ext_s
  */
 typedef struct
 {
+  uint8_t               buf[32];
+  uint8_t               crc[2];
+  SemaphoreHandle_t     mutex;
+} bq76952_buf_t;
+
+/*!
+ * @brief Rellenar!
+ */
+typedef struct
+{
   I2C_HandleTypeDef*    devHandle;      /*!< device handle      */
   Idn_Hal_I2c_Callbacks_t   callbacks;  /*!< callback structure */
   osTimerId             timerId;        /*!< timer ID           */
   QueueHandle_t         queue;          /*!< alarm queue        */
   osThreadId            taskHandle;     /*!< task Handle        */
   uint8_t               requested;      /*!< user notification  */
-  uint8_t               buf[32];        /*!< read buffer        */
+  bq76952_buf_t         rd, wr;
   idn_RetVal_t          intResult;      /*!< i2c notification   */
 
   bq76952_Callbacks_Ext_t   extCallbacks;
@@ -111,21 +121,22 @@ typedef struct
 
 /* Exported functions --------------------------------------------------------*/
 
-extern uint8_t TX_2Byte[], TX_3Byte[], TX_4Byte[], TX_6Byte[];
 extern bq76952_t Bq76952;
 
 /* Operation functions -------------------------------------------------------*/
 
-static inline idn_RetVal_t BQ76952_GetBuffer(uint8_t* buf, uint8_t bytes_to_read) 
-{
-  buf = &Bq76952.buf[0];
-  return mutex_lock();
-}
-
 /**
   * @brief  Initialize the global structure
   */
-idn_RetVal_t BQ76952_Init(void);
+idn_RetVal_t BQ76952_Init(void)
+{
+
+  /* Create the semaphore to guard a shared resource.  As we are using
+    the semaphore for mutual exclusion we create a mutex semaphore
+    rather than a binary semaphore. */
+    Bq76952.wr.mutex  = xSemaphoreCreateMutex();
+    Bq76952.rd.mutex  = xSemaphoreCreateMutex();
+}
 
 /**
   * @brief  Request the module (thread-safe not implemented)
@@ -137,111 +148,8 @@ idn_RetVal_t BQ76952_Request(void);
   */
 idn_RetVal_t BQ76952_Release(void);
 
-/**
-  * @brief  Write Register.
-  */
-idn_RetVal_t TICOMM_WriteReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t *reg_data, uint8_t count);
-
-/**
-  * @brief  Read Register.
-  */
-idn_RetVal_t TICOMM_ReadReg(uint8_t dev_addr, uint8_t reg_addr, uint8_t count);
-
-/**
-  * @brief  Compute the Checksum used in "Data R-W Access"
-  */
-uint8_t BQ76952_Checksum(uint8_t *ptr, uint8_t len);
-
-/* Inline functions ****************************************************/
-
-/**
-  * @brief  BQ76952_Setter_8Bits (0xABCD, 0xFF)
-  * @param  addr  16 bit address (subcommand)
-  * @param  value   8 bits
-**/
-static inline void BQ76952_Setter_8Bits(uint16_t addr, uint8_t value)
-{
-  TX_3Byte[0] = LOW_BYTE(addr);
-  TX_3Byte[1] = HIGH_BYTE(addr);
-  TX_3Byte[2] = value;
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_3Byte, 3);
-  BQ76952_I2C_WAIT(1);
-  TX_2Byte[0] = BQ76952_Checksum(TX_3Byte, 3);
-  TX_2Byte[1] = 0x05; // Length
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
-  BQ76952_I2C_WAIT(1);
-}
-
-/**
-  * @brief  BQ76952_Setter_2Bytes (0xABCD, 0xFFFF)
-  * @param  addr  16 bit address (subcommand)
-  * @param  value   16 bits
-**/
-static inline void BQ76952_Setter_2Bytes(uint16_t addr, uint16_t value)
-{
-  TX_4Byte[0] = LOW_BYTE(addr);
-  TX_4Byte[1] = HIGH_BYTE(addr);
-  TX_4Byte[2] = LOW_BYTE(value);
-  TX_4Byte[3] = HIGH_BYTE(value);
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_4Byte, 4);
-  BQ76952_I2C_WAIT(1);
-  TX_2Byte[0] = BQ76952_Checksum(TX_4Byte, 4);
-  TX_2Byte[1] = 0x06;  // Length
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
-  BQ76952_I2C_WAIT(1);
-}
-
-/**
-  * @brief  BQ76952_Setter_2Bytes (0xABCD, 0xFFFF)
-  * @param  addr  16 bit address (subcommand)
-  * @param  high  16 bits
-  * @param  low   16 bits
-**/
-static inline void BQ76952_Setter_4Bytes(uint16_t addr, uint16_t high, uint16_t low)
-{
-  TX_6Byte[0] = LOW_BYTE(addr);
-  TX_6Byte[1] = HIGH_BYTE(addr);
-  TX_6Byte[2] = LOW_BYTE(high);
-  TX_6Byte[3] = HIGH_BYTE(high);
-  TX_6Byte[4] = LOW_BYTE(low);
-  TX_6Byte[5] = HIGH_BYTE(low);
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_6Byte, 6);
-  BQ76952_I2C_WAIT(1);
-  TX_2Byte[0] = BQ76952_Checksum(TX_6Byte, 6);
-  TX_2Byte[1] = 0x08;  // Length
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x60, TX_2Byte, 2);
-  BQ76952_I2C_WAIT(1);
-}
-
-/**
-  * @brief  BQ76952_Setter_Direct (0xAB, 0xFF)
-  * @param  addr  8 bit address (direct command)
-  * @param  value   16 bits
-**/
-static inline void BQ76952_Setter_Direct(uint8_t addr, uint16_t value)
-{
-  TX_2Byte[0] = LOW_BYTE(value);
-  TX_2Byte[1] = HIGH_BYTE(value);
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, addr, TX_2Byte, 2);
-  BQ76952_I2C_WAIT(1);
-}
-
-/**
-  * @brief  BQ76952_Getter (0xABCD, 1)
-  * @param  addr  16 bit address (subcommand)
-  * @param  count   number of bytes to get {1,2}
-**/
-static inline void BQ76952_Getter(uint16_t addr, uint8_t count)
-{
-  TX_2Byte[0] = LOW_BYTE(addr);
-  TX_2Byte[1] = HIGH_BYTE(addr);
-  TICOMM_WriteReg(BQ76952_SLAVE_ADDR, 0x3E, TX_2Byte, 2);
-  BQ76952_I2C_WAIT(1);
-  TICOMM_ReadReg(BQ76952_SLAVE_ADDR, 0x40, count);
-  BQ76952_I2C_WAIT(2);
-}
-
 /* Subcommand and direct-commands for CasandrAPP ----------------------------*/
+
 
 static inline idn_RetVal_t BQ76952_Get_DirectCommand(uint8_t command, uint8_t bytes_to_read, void *variable)
 {
