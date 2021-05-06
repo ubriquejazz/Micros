@@ -27,6 +27,30 @@ tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
     {EOF_CONFIG,        0,      0},
 };
 
+tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
+{// {SubClass           Size,   NoOfparam},
+/****************** Class: Configuration *********************/
+    {SAFETY,            10,     6},
+    {CHRG_INHIBIT_CNFG, 6,      3},
+    {CHRG,              14,     6},
+    {CHRG_TERMN,        27,     17},
+    {CFG_DATA,          60,     23},
+    {DISCHRG,           22,     11},
+    {MNF_DATA,          12,     6},
+    {LIFE_DATA,         12,     6},
+    {LIFE_TEMP_SAMP,    2,      1},
+    {REGISTERS,         8,      6},
+    {LIFE_RESOL,        5,      4},
+    {LED_DSPLY,         1,      1},
+    {POWER,             12,     4},
+/*************** Class: Manufacturing Info. ******************/
+    {MNF_INFO,          32,     1},
+/******************* Class: Gas Gauging **********************/
+    {IT_CFG,            93,     36},
+    {CRNT_THRSHLD,      11,     6},
+    {STATE,             17,     9},
+    {EOF_CONFIG,        0,      0},
+};
 
 /**************************************************************************************
 * BREIF:    This method swap the bytes of the variable depending on its size
