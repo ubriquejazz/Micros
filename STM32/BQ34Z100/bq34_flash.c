@@ -2,7 +2,13 @@
 
 uint8_t flash_block_data[32];
 
-tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
+typedef struct $ {
+    t_DFSubClass    DFSubClass;         
+    uint8_t         Size;
+    uint8_t         NoOfparam; 
+} tagBQ_DFConfigSubClass;
+
+tagBQ_DFConfigSubClass DFConfigSubClass[]=
 {// {SubClass           Size,   NoOfparam},
 /****************** Class: Configuration *********************/
     {SAFETY,            10,     6},
@@ -27,10 +33,13 @@ tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
     {EOF_CONFIG,        0,      0},
 };
 
-
+typedef struct $ {
+    uint8_t Offset;
+    uint8_t DataType;
+} tagBQ_DFConfig;
 //Note: Your cannot skip inbetween variable of subclass
 //      Start of varaible should always be from zero offset
-//      No. of Parameters of kstBQ_DFConfig[] must be inline with tagbq34z100ConfigSubClassPar structure
+//      No. of Parameters of kstBQ_DFConfig[] must be inline with the other structure
 tagBQ_DFConfig kstBQ_DFConfig[]=
 {
 /*********************************************SAFETY***********************************************/
@@ -223,11 +232,11 @@ tagBQ_DFConfig kstBQ_DFConfig[]=
 *           size:       Size of the variable
 * RETVAL:   None
 ***************************************************************************************/
-static void SwapBytes(void *source,int Offset ,int size)
+static void SwapBytes(void *source, int Offset ,int size)
 {
-    typedef unsigned char TwoBytes[2];
-    typedef unsigned char FourBytes[4];
-    typedef unsigned char EightBytes[8];
+    typedef uint8_t TwoBytes[2];
+    typedef uint8_t FourBytes[4];
+    typedef uint8_t EightBytes[8];
 
     source = source + Offset;
     unsigned char temp;
@@ -238,7 +247,6 @@ static void SwapBytes(void *source,int Offset ,int size)
         temp = (*src)[0];
         (*src)[0] = (*src)[1];
         (*src)[1] = temp;
-
         return;
     }
 
@@ -252,7 +260,6 @@ static void SwapBytes(void *source,int Offset ,int size)
         temp = (*src)[1];
         (*src)[1] = (*src)[2];
         (*src)[2] = temp;
-
         return;
     }
 
@@ -274,7 +281,6 @@ static void SwapBytes(void *source,int Offset ,int size)
         temp = (*src)[3];
         (*src)[3] = (*src)[4];
         (*src)[4] = temp;
-
         return;
     }
 }
@@ -283,43 +289,49 @@ static void SwapBytes(void *source,int Offset ,int size)
 /**************************************************************************************
 * BREIF:    This method Read's/Write's a data flash configuration class memory
 *           in a loop.
-* PARAM:    enBQ_DFClassMode: Read/Write mode
+* PARAM:    mode: Read/Write mode
 * RETVAL:   None.
 ***************************************************************************************/
-static void bq34z100DFConfig(tagBQ_DFClassMode enBQ_DFClassMode,tagbq34z100Config *pbq34z100Config)
+static void bq34z100DFConfig(int mode, tagbq34z100Config *pbq34z100Config)
 {
     int iParamCnt=0;
     int SubClassLocatn = 0;
-    for(int k = 0; kBQ_DFConfigSubClass[k].enBQ_DFSubClass!=EOF_CONFIG; k++)
+    for(int k = 0; DFConfigSubClass[k].SubClass!=EOF_CONFIG; k++)
     {
-        if(enBQ_DFClassMode == READ)
-            bq34z100_read_data_class(kBQ_DFConfigSubClass[k].enBQ_DFSubClass, pbq34z100Config,kBQ_DFConfigSubClass[k].SubClassSize, SubClassLocatn);
+        if(mode == READ)
+            bq34z100_read_data_class(   DFConfigSubClass[k].DFSubClass, pbq34z100Config,
+                                        DFConfigSubClass[k].SubClassSize, SubClassLocatn);
 
-        for(int i=0 ; i<kBQ_DFConfigSubClass[k].NoOfParam ; i++)
+        for(int i=0 ; i<DFConfigSubClass[k].NoOfParam; i++)
         {
-            SwapBytes(pbq34z100Config, (kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn),kstBQ_DFConfig[iParamCnt].chDataType);
+            SwapBytes(pbq34z100Config, 
+                        kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn,
+                        kstBQ_DFConfig[iParamCnt].chDataType);
             iParamCnt++;
         }
-        if(enBQ_DFClassMode == WRITE)
-            bq34z100_write_data_class(kBQ_DFConfigSubClass[k].enBQ_DFSubClass, pbq34z100Config,kBQ_DFConfigSubClass[k].SubClassSize, SubClassLocatn);
+        if(mode == WRITE)
+            bq34z100_write_data_class(  DFConfigSubClass[k].DFSubClass, pbq34z100Config,
+                                        DFConfigSubClass[k].SubClassSize, SubClassLocatn);
 
         // SubClassLocatn: Provides the start address of the first variable of next subclass
-        SubClassLocatn += kBQ_DFConfigSubClass[k].SubClassSize;
+        SubClassLocatn += DFConfigSubClass[k].SubClassSize;
     }
 
-    if(enBQ_DFClassMode == WRITE)
+    if(mode == WRITE)
     {
         //  Swapping the bytes of variables to readable format
         iParamCnt=0;
         SubClassLocatn = 0;
-        for(int k = 0; kBQ_DFConfigSubClass[k].enBQ_DFSubClass!=EOF_CONFIG; k++)
+        for(int k = 0; DFConfigSubClass[k].DFSubClass!=EOF_CONFIG; k++)
         {
-            for(int i=0 ; i<kBQ_DFConfigSubClass[k].NoOfParam ; i++)
+            for(int i=0 ; i<DFConfigSubClass[k].NoOfParam ; i++)
             {
-                SwapBytes(pbq34z100Config, (kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn),kstBQ_DFConfig[iParamCnt].chDataType);
+                SwapBytes(pbq34z100Config, 
+                            kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn,
+                            kstBQ_DFConfig[iParamCnt].chDataType);
                 iParamCnt++;
             }
-            SubClassLocatn += kBQ_DFConfigSubClass[k].SubClassSize;
+            SubClassLocatn += DFConfigSubClass[k].SubClassSize;
         }
     }
 

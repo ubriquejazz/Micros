@@ -27,34 +27,34 @@
 #define U2	2
 
 typedef enum {
-/* Data Flash Sub-Class */
-SAFETY				=2,
-CHRG_INHIBIT_CNFG	=32,
-CHRG				=34,
-CHRG_TERMN			=36,
-CFG_DATA			=48,
-DISCHRG				=49,
-MNF_DATA			=56,
-MNF_INFO			=58,
-LIFE_DATA			=59,
-LIFE_TEMP_SAMP		=60,
-REGISTERS			=64,
-LIFE_RESOL			=66,
-LED_DSPLY			=67,
-POWER				=68,
-IT_CFG				=80,
-CRNT_THRSHLD		=81,
-STATE				=82,
-R_A0				=88,
-R_AX				=89,
-CAL_DATA			=104,
-CAL_CURR			=107,
-CODES				=112,
-EOF_CONFIG			=255,
-}tagBQ_DFSubClass;
+	/* Data Flash Sub-Class */
+	SAFETY				= 2,
+	CHRG_INHIBIT_CNFG	= 32,
+	CHRG				= 34,
+	CHRG_TERMN			= 36,
+	CFG_DATA			= 48,
+	DISCHRG				= 49,
+	MNF_DATA			= 56,
+	MNF_INFO			= 58,
+	LIFE_DATA			= 59,
+	LIFE_TEMP_SAMP		= 60,
+	REGISTERS			= 64,
+	LIFE_RESOL			= 66,
+	LED_DSPLY			= 67,
+	POWER				= 68,
+	IT_CFG				= 80,
+	CRNT_THRSHLD		= 81,
+	STATE				= 82,
+	R_A0				= 88,
+	R_AX				= 89,
+	CAL_DATA			= 104,
+	CAL_CURR			= 107,
+	CODES				= 112,
+	EOF_CONFIG			= 255,
+} t_DFSubClass;
 
 /* Define parameters of DataFlash subClass Safety in structure */
-typedef struct
+typedef struct tagbq34z100Config_s
 {
 /*********************************************SAFETY***********************************************/
 	int16_t OTChg;
@@ -155,106 +155,11 @@ typedef struct
 	uint16_t LTFlashCnt;
 
 /********************************************REGISTERS*****************************************/
-	union
-	{
-		struct
-		{
-			/* Lower Byte */
-			unsigned char TEMPS:1;
-			unsigned char GNDSEL:1;
-			unsigned char QPCCLEAR:1;
-			unsigned char NiDV:1;
-			unsigned char NiDT:1;
-			unsigned char RMFCC:1;
-			unsigned char SLEEP:1;
-			unsigned char RFACTSTEP:1;
-
-			/* Higher Byte */
-			unsigned char RSNS0:1;
-			unsigned char RSNS1:1;
-			unsigned char IWAKE:1;
-			unsigned char VOLTSEL:1;
-			unsigned char RSVD:1;
-			unsigned char SCALED:1;
-			unsigned char CAL_EN:1;
-			unsigned char RESCAP:1;
-		}PackConfigurationBit;
-		unsigned short PackConfigurationWord;
-	}PackConfiguration;
-
-	union
-	{
-		struct
-		{
-			unsigned char FConvEN:1;
-			unsigned char DoDWT:1;
-			unsigned char LFPRelax:1;
-			unsigned char JEITA:1;
-			unsigned char RSVD1:1;
-			unsigned char VconsEN:1;
-			unsigned char RSVD2:1;
-			unsigned char CHGDoDEoC:1;
-		}PackConfigurationB_Bit;
-		unsigned char PackConfigurationB_Byte;
-	}PackConfigurationB;
-
-	union
-	{
-		struct
-		{
-			unsigned char SMOOTH:1;
-			unsigned char RELAX_SMOOTH_OK:1;
-			unsigned char RELAX_JUMP_OK:1;
-			unsigned char LOCK_0:1;
-			unsigned char SleepWakeCHG:1;
-			unsigned char FF_NEAR_EDV:1;
-			unsigned char RSOC_HOLD:1;
-			unsigned char SOH_DISP:1;
-		}PackConfigurationC_Bit;
-		unsigned char PackConfigurationC_Byte;
-	}PackConfigurationC;
-
-	union
-	{
-		struct
-		{
-			unsigned char LED_Mode0:1;
-			unsigned char LED_Mode1:1;
-			unsigned char LED_Mode2:1;
-			unsigned char LED_ON:1;
-			unsigned char EXT_LED0:1;
-			unsigned char EXT_LED1:1;
-			unsigned char EXT_LED2:1;
-			unsigned char EXT_LED3:1;
-		}LED_CommConfigurationBit;
-		unsigned char LED_CommConfigurationByte;
-	}LED_CommConfiguration;
-
-	union
-	{
-		struct
-		{
-			/* Lower Byte */
-			unsigned char DSG:1;
-			unsigned char EOD:1;
-			unsigned char RCA:1;
-			unsigned char LB_RSVD1:1;
-			unsigned char CF:1;
-			unsigned char LB_RSVD2:2;
-			unsigned char OCVTAKEN:1;
-
-			/* Higher Byte */
-			unsigned char CHG:1;
-			unsigned char FC:1;
-			unsigned char XCHG:1;
-			unsigned char CHG_INH:1;
-			unsigned char BATLOW:1;
-			unsigned char BAT_HIGH:1;
-			unsigned char OTD:1;
-			unsigned char OTC:1;
-		}ALERTConfigurationBit;
-		unsigned short ALERTConfigurationWord;
-	}ALERTConfiguration;
+	uint16_t PackConfiguration;
+	uint8_t PackConfigurationB;
+	uint8_t PackConfigurationC;
+	uint8_t LED_CommConfiguration;
+	uint16_t ALERTConfiguration;
 	uint8_t NumberOfCells;
 
 /*************************************LIFETIME RESOLUTION**********************************/
