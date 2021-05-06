@@ -2,6 +2,279 @@
 
 uint8_t flash_block_data[32];
 
+tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
+{// {SubClass           Size,   NoOfparam},
+/****************** Class: Configuration *********************/
+    {SAFETY,            10,     6},
+    {CHRG_INHIBIT_CNFG, 6,      3},
+    {CHRG,              14,     6},
+    {CHRG_TERMN,        27,     17},
+    {CFG_DATA,          60,     23},
+    {DISCHRG,           22,     11},
+    {MNF_DATA,          12,     6},
+    {LIFE_DATA,         12,     6},
+    {LIFE_TEMP_SAMP,    2,      1},
+    {REGISTERS,         8,      6},
+    {LIFE_RESOL,        5,      4},
+    {LED_DSPLY,         1,      1},
+    {POWER,             12,     4},
+/*************** Class: Manufacturing Info. ******************/
+    {MNF_INFO,          32,     1},
+/******************* Class: Gas Gauging **********************/
+    {IT_CFG,            93,     36},
+    {CRNT_THRSHLD,      11,     6},
+    {STATE,             17,     9},
+    {EOF_CONFIG,        0,      0},
+};
+
+
+/**************************************************************************************
+* BREIF:    This method swap the bytes of the variable depending on its size
+* PARAM:    *source:    Start Address.
+*           Offset:     Offset value from start address
+*           size:       Size of the variable
+* RETVAL:   None
+***************************************************************************************/
+static void SwapBytes(void *source,int Offset ,int size)
+{
+    typedef unsigned char TwoBytes[2];
+    typedef unsigned char FourBytes[4];
+    typedef unsigned char EightBytes[8];
+
+    source = source + Offset;
+    unsigned char temp;
+
+    if(size == 2)
+    {
+        TwoBytes *src = (TwoBytes *)source;
+        temp = (*src)[0];
+        (*src)[0] = (*src)[1];
+        (*src)[1] = temp;
+
+        return;
+    }
+
+    if(size == 4)
+    {
+        FourBytes *src = (FourBytes *)source;
+        temp = (*src)[0];
+        (*src)[0] = (*src)[3];
+        (*src)[3] = temp;
+
+        temp = (*src)[1];
+        (*src)[1] = (*src)[2];
+        (*src)[2] = temp;
+
+        return;
+    }
+
+    if(size == 8)
+    {
+        EightBytes *src = (EightBytes *)source;
+        temp = (*src)[0];
+        (*src)[0] = (*src)[7];
+        (*src)[7] = temp;
+
+        temp = (*src)[1];
+        (*src)[1] = (*src)[6];
+        (*src)[6] = temp;
+
+        temp = (*src)[2];
+        (*src)[2] = (*src)[5];
+        (*src)[5] = temp;
+
+        temp = (*src)[3];
+        (*src)[3] = (*src)[4];
+        (*src)[4] = temp;
+
+        return;
+    }
+}
+
+
+/**************************************************************************************
+* BREIF:    This method Read's/Write's a data flash configuration class memory
+*           in a loop.
+* PARAM:    enBQ_DFClassMode: Read/Write mode
+* RETVAL:   None.
+***************************************************************************************/
+static void bq34z100DFConfig(tagBQ_DFClassMode enBQ_DFClassMode,tagbq34z100Config *pbq34z100Config)
+{
+    int iParamCnt=0;
+    int SubClassLocatn = 0;
+    for(int k = 0; kBQ_DFConfigSubClass[k].enBQ_DFSubClass!=EOF_CONFIG; k++)
+    {
+        if(enBQ_DFClassMode == READ)
+            bq34z100_read_data_class(kBQ_DFConfigSubClass[k].enBQ_DFSubClass, pbq34z100Config,kBQ_DFConfigSubClass[k].SubClassSize, SubClassLocatn);
+
+        for(int i=0 ; i<kBQ_DFConfigSubClass[k].NoOfParam ; i++)
+        {
+            SwapBytes(pbq34z100Config, (kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn),kstBQ_DFConfig[iParamCnt].chDataType);
+            iParamCnt++;
+        }
+        if(enBQ_DFClassMode == WRITE)
+            bq34z100_write_data_class(kBQ_DFConfigSubClass[k].enBQ_DFSubClass, pbq34z100Config,kBQ_DFConfigSubClass[k].SubClassSize, SubClassLocatn);
+
+        // SubClassLocatn: Provides the start address of the first variable of next subclass
+        SubClassLocatn += kBQ_DFConfigSubClass[k].SubClassSize;
+    }
+
+    if(enBQ_DFClassMode == WRITE)
+    {
+        //  Swapping the bytes of variables to readable format
+        iParamCnt=0;
+        SubClassLocatn = 0;
+        for(int k = 0; kBQ_DFConfigSubClass[k].enBQ_DFSubClass!=EOF_CONFIG; k++)
+        {
+            for(int i=0 ; i<kBQ_DFConfigSubClass[k].NoOfParam ; i++)
+            {
+                SwapBytes(pbq34z100Config, (kstBQ_DFConfig[iParamCnt].chOffset + SubClassLocatn),kstBQ_DFConfig[iParamCnt].chDataType);
+                iParamCnt++;
+            }
+            SubClassLocatn += kBQ_DFConfigSubClass[k].SubClassSize;
+        }
+    }
+
+/**************************************************************************************
+* BREIF:    This method read a dataflash subclass memory BQ34Z100-G1
+* PARAM:    nDataClass: data class number
+*           pData:      buffer holding the whole data class (all blocks)
+*           nLength:    length of data class (all blocks)
+* RETVAL:   0 = success
+***************************************************************************************/
+static int bq34z100_read_data_class(unsigned char nDataClass, void *pData, unsigned char nLength, unsigned short StartAddressLocatn)
+{
+    unsigned char nRemainder = nLength;
+    unsigned char nDataBlock = 0x00;
+
+    pData = pData+StartAddressLocatn;
+
+    if (nLength < 1) return 0;
+
+    do
+    {
+        nLength = nRemainder;
+        if (nLength > 32)
+        {
+            nRemainder = nLength - 32;
+            nLength = 32;
+        }
+        else nRemainder = 0;
+
+        //nData = (nDataBlock << 8) | nDataClass;
+        bq34z100_cmd_write(CMD_BLK_DATA_CNTRL, 0x00U,1);            //Enable Flash x’fer command
+        bq34z100_cmd_write(CMD_DATA_FLASH_CLASS, nDataClass,1); //SubClass address
+        bq34z100_cmd_write(CMD_DATA_FLASH_BLOCK, nDataBlock,1); //Enable General Purpose Block and its pages
+        osDelay(200);   //Delay: To get the initial vale of pData
+
+        if(I2c3_Read(BQ34Z100_ADDR,CMD_BLOCK_DATA, 1,pData, nLength) != 0x01U)  // RD Operation OK
+        {
+            LogErr_Put(BQ34Z100_MODID, BQ34Z100_COMMUNICATION, Notification);
+            return -1;
+        }
+
+        osDelay(200);
+
+        pData += nLength;
+        nDataBlock++;
+
+    }while (nRemainder > 0);
+
+    return 0;
+}
+
+
+/**************************************************************************************
+* BREIF:    This method calculate check sum for block transfer
+* PARAM:    pData:      pointer to data block
+*           nLength:    length of data block
+* RETVAL:   Checksum Value
+***************************************************************************************/
+static unsigned char check_sum(unsigned char *pData, unsigned char nLength)
+{
+    unsigned char nSum = 0x00;
+    unsigned char n;
+
+    for (n = 0; n < nLength; n++)
+        nSum += pData[n];
+
+    nSum = 0xFF - nSum;
+    return nSum;
+}
+
+
+/**************************************************************************************
+* BREIF:    This method write a dataflash subclass memory of BQ34Z100-G1
+* PARAM:    nDataClass: data class number
+*           pData:      buffer holding the whole data class (all blocks)
+*           nLength:    length of data class (all blocks)
+*           StartAddressLocatn: Offset of buffer holding the whole data class
+* RETVAL:   0 = success
+***************************************************************************************/
+static int bq34z100_write_data_class(unsigned char nDataClass, void *pData,unsigned char nLength,unsigned short StartAddressLocatn)
+{
+    unsigned char nRemainder = nLength;
+    unsigned char pCheckSum[2] = {0x00, 0x00};
+    unsigned char nDataBlock = 0x00;
+
+    pData = pData+StartAddressLocatn;
+    if (nLength < 1) return 0;
+
+    do
+     {
+        nLength = nRemainder;
+
+        if (nLength > 32)
+        {
+            nRemainder = nLength - 32;
+            nLength = 32;
+        }
+        else
+            nRemainder = 0;
+
+    //nData = (nDataBlock << 8) | nDataClass;
+    bq34z100_cmd_write(CMD_BLK_DATA_CNTRL, 0x00U,1);                //Enable Flash x’fer command / Enable block data flash control
+    bq34z100_cmd_write(CMD_DATA_FLASH_CLASS, nDataClass,1);     // Sub-Class address
+    bq34z100_cmd_write(CMD_DATA_FLASH_BLOCK, nDataBlock,1);     //Enable General Purpose Block and its pages
+    osDelay(100);
+
+
+    if (I2c3_Write(BQ34Z100_ADDR, CMD_BLOCK_DATA,1, pData, nLength) != 0x01U)
+    {
+        LogErr_Put(BQ34Z100_MODID, BQ34Z100_COMMUNICATION, Notification);
+        return -1;
+    }
+
+    pCheckSum[0] = check_sum(pData, nLength);
+    I2c3_Write(BQ34Z100_ADDR,CMD_CHECK_SUM, 1,pCheckSum, 1);
+
+    osDelay(1000);      // Delay 1,000 mSec
+    bq34z100_cmd_write(CMD_DATA_FLASH_CLASS, nDataClass,1);
+
+    I2c3_Read(BQ34Z100_ADDR,CMD_CHECK_SUM, 1,pCheckSum + 1, 1);
+
+    if (pCheckSum[0] != pCheckSum[1])
+    {
+        LogErr_Put(BQ34Z100_MODID, BQ34Z100_CHKSUM, Notification);
+        return -2;
+    }
+
+    pData += nLength;
+    nDataBlock++;
+    } while (nRemainder > 0);
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
 /* basic */
 
 void bq34fl_get_buffer() {
