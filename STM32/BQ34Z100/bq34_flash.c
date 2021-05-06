@@ -27,29 +27,193 @@ tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
     {EOF_CONFIG,        0,      0},
 };
 
-tagBQ_DFConfigSubClass kBQ_DFConfigSubClass[]=
-{// {SubClass           Size,   NoOfparam},
-/****************** Class: Configuration *********************/
-    {SAFETY,            10,     6},
-    {CHRG_INHIBIT_CNFG, 6,      3},
-    {CHRG,              14,     6},
-    {CHRG_TERMN,        27,     17},
-    {CFG_DATA,          60,     23},
-    {DISCHRG,           22,     11},
-    {MNF_DATA,          12,     6},
-    {LIFE_DATA,         12,     6},
-    {LIFE_TEMP_SAMP,    2,      1},
-    {REGISTERS,         8,      6},
-    {LIFE_RESOL,        5,      4},
-    {LED_DSPLY,         1,      1},
-    {POWER,             12,     4},
-/*************** Class: Manufacturing Info. ******************/
-    {MNF_INFO,          32,     1},
-/******************* Class: Gas Gauging **********************/
-    {IT_CFG,            93,     36},
-    {CRNT_THRSHLD,      11,     6},
-    {STATE,             17,     9},
-    {EOF_CONFIG,        0,      0},
+
+//Note: Your cannot skip inbetween variable of subclass
+//      Start of varaible should always be from zero offset
+//      No. of Parameters of kstBQ_DFConfig[] must be inline with tagbq34z100ConfigSubClassPar structure
+tagBQ_DFConfig kstBQ_DFConfig[]=
+{
+/*********************************************SAFETY***********************************************/
+//  {Offset,DataType
+    {0,     I2},        //OT Chg
+    {2,     U1},        //OT Chg Time
+    {3,     I2},        //OT Check Recovery
+    {5,     I2},        //OT Dsg
+    {7,     U1},        //OT Dsg Time
+    {8,     I2},        //OT Dsg Recovery
+
+/************************************Charge Inhibit configuration**********************************/
+    {0,     I2},        //Chg Inhibit Temp Low
+    {2,     I2},        //Chg Inhibit Temp High
+    {4,     I2},        //Temp Hysterisis
+
+/***********************************************Charge ********************************************/
+    {0,     I2},        //Suspend Low Temp
+    {2,     I2},        //Suspend High Temp
+    {4,     U1},        //Pb EFF Efficiency
+    {5,     F4},        //Pb Temp Comp
+    {9,     U1},        //Pb Drop Off Percent
+    {10,    F4},        //Pb Reduction Rate
+
+/******************************************Charge Termination**************************************/
+    {0,     I2},        //Taper Current
+    {2,     I2},        //Min Taper Capacity
+    {4,     I2},        //Cell Taper Voltage
+    {6,     U1},        //Current Taper Window
+    {7,     I1},        //TCA Set %
+    {8,     I1},        //TCA Clear %
+    {9,     I1},        //FC Set %
+    {10,    I1},        //FC Clear %
+    {11,    I2},        //DODatEOC Delta T
+    {13,    I2},        //NiMH Delta Temp
+    {15,    U2},        //NiMH Delta Temp Time
+    {17,    U2},        //NiMH Hold Off Time
+    {19,    I2},        //NiMH Hold Off Current
+    {21,    I2},        //NiMH Hold Off Temp
+    {23,    U1},        //NiMH Cell Negative Delta Volt
+    {24,    U1},        //NiMH Cell Negative Delta Time
+    {25,    I2},        //NiMH Cell Neg Delta Qual Volt
+
+/*********************************************DATA**********************************************/
+    {0,     2},         //RESERVED1
+    {2,     U2},        //Manufacture Date
+    {4,     H2},        //Serial Number
+    {6,     U2},        //Cycle Count
+    {8,     I2},        //CC Threshold
+    {10,    U1},        //Max Error Limit
+    {11,    I2},        //Design Capacity
+    {13,    I2},        //Design Energy
+    {15,    I2},        //SOH Load I
+    {17,    U2},        //Cell Charge Voltage T1-T2
+    {19,    U2},        //Cell Charge Voltage T2-T3
+    {21,    U2},        //Cell Charge Voltage T3-T4
+    {23,    U1},        //Charge Current T1-T2
+    {24,    U1},        //Charge Current T2-T3
+    {25,    U1},        //Charge Current T3-T4
+    {26,    I1},        //JEITA T1
+    {27,    I1},        //JEITA T2
+    {28,    I1},        //JEITA T3
+    {29,    I1},        //JEITA T4
+    {30,    U1},        //Design Energy Scale
+    {31,    S12},       //Device Name
+    {43,    S12},       //Manufacturer Name
+    {55,    S5},        //Device Chemistry
+
+/*******************************************DISCHARGE*******************************************/
+    {0,     U2},        //SOC1 Set Threshold
+    {2,     U2},        //SOC1 Clear Threshold
+    {4,     U2},        //SOCF Set Threshold
+    {6,     U2},        //SOCF Clear Threshold
+    {8,     I2},        //Cell BL Set Volt Threshold
+    {10,    U1},        //Cell BL Set Volt Time
+    {11,    I2},        //Cell BL Clear Volt Threshold
+    {13,    I2},        //Cell BH Set Volt Threshold
+    {15,    U1},        //Cell BH Volt Time
+    {16,    I2},        //Cell BH Clear Volt Threshold
+    {18,    3},         //RESERVED2
+    {21,    U1},        //Cycle Delta
+
+/****************************************MANUFACTURER DATA**************************************/
+    {0,     H2},        //Pack Lot Code
+    {2,     H2},        //PCB Lot Code
+    {4,     H2},        //Firmware Version
+    {6,     H2},        //Hardware Revision
+    {8,     H2},        //Cell Revision
+    {10,    H2},        //DF Config Version
+
+/******************************************LIFETIME DATA***************************************/
+    {0,     I2},        //Lifetime Max Temp
+    {2,     I2},        //Lifetime Min Temp
+    {4,     I2},        //Lifetime Max Chg Current
+    {6,     I2},        //Lifetime Max Dsg Current
+    {8,     U2},        //Lifetime Max Pack Voltage
+    {10,    U2},        //Lifetime Min Pack Voltage
+
+/*************************************LIFETIME TEMP SAMPLES************************************/
+    {0,     U2},        //LT Flash Cnt
+
+/********************************************REGISTERS*****************************************/
+    {0,     H2},        //Pack Configuration
+    {2,     H1},        //Pack Configuration B
+    {3,     H1},        //Pack Configuration C
+    {4,     H1},        //LED_Comm Configuration
+    {5,     H2},        //Alert Configuration
+    {7,     U1},        //Number of series cell
+
+/*************************************LIFETIME RESOLUTION**********************************/
+    {0,     U1},        //LT Temp Res
+    {1,     U1},        //LT Cur Res
+    {2,     U1},        //LT V Res
+    {3,     U2},        //LT Update Time
+
+/****************************************LED DISPLAY***************************************/
+    {0,     U1},        //LED Hold Time
+
+/*******************************************POWER******************************************/
+    {0,     I2},        //Flash Update OK Cell Volt
+    {2,     I2},        //Sleep Current
+    {4,     7},         //RESERVED3
+    {11,    U1},        //FS Wait
+
+/************************************MANUFACTURING INFO************************************/
+    {0,     32},        //BLOCK A
+
+/*******************************************IT CFG*****************************************/
+    {0,     U1},        //Load Select
+    {1,     U1},        //Load Mode
+    {2,     8},         //RESERVED4
+    {10,    I2},        //Res Current
+    {12,    2},         //RESERVED5
+    {14,    U1},        //Max Res Factor
+    {15,    U1},        //Min Res Factor
+    {16,    1},         //RESERVED6
+    {17,    U2},        //Ra Filter
+    {19,    28},        //RESERVED7
+    {47,    U1},        //Min PassedChg NiMH-LA 1st Qmax
+    {48,    1},         //RESERVED8
+    {49,    U1},        //Maximum Qmax Change
+    {50,    3},         //RESERVED9
+    {53,    I2},        //Cell Terminate Voltage
+    {55,    I2},        //Cell Term V Delta
+    {57,    1},         //RESERVED10
+    {58,    U2},        //ResRelax Time
+    {60,    2},         //RESERVED11
+    {62,    I2},        //User Rate-mA
+    {64,    I2},        //User Rate-Pwr
+    {66,    I2},        //Reserve Cap-mAh
+    {68,    I2},        //Reserve Energy
+    {70,    2},         //RESERVED12
+    {72,    U1},        //Max Scale Back Grid
+    {73,    U2},        //Cell Min DeltaV
+    {75,    U1},        //Ra Max Delta
+    {76,    I2},        //Design Resistance
+    {78,    U1},        //Reference Grid
+    {79,    U1},        //Qmax Max Delta %
+    {80,    U2},        //Max Res Scale
+    {82,    U2},        //Min Res Scale
+    {84,    U1},        //Fast Scale Start SOC
+    {85,    4},         //RESERVED13
+    {89,    I2},        //Charge Hys V Shift
+    {91,    I2},        //Smooth Relax Time
+
+/********************************************Current Threshold*****************************************/
+    {0,     I2},        //Dsg Current Threshold
+    {2,     I2},        //Chg Current Threshold
+    {4,     I2},        //Quit Current
+    {6,     U2},        //Dsg Relax Time
+    {8,     U1},        //Chg Relax Time
+    {9,     U2},        //Cell Max IR Correct
+
+/***********************************************State*************************************************/
+    {0,     I2},        //Qmax Cell 0
+    {2,     U2},        //Cycle Count
+    {4,     H1},        //Update Status
+    {5,     I2},        //Cell V at Chg TermS
+    {7,     I2},        //Avg I Last Run
+    {9,     I2},        //Avg P Last Run
+    {11,    I2},        //Cell Delta Voltage
+    {13,    I2},        //T Rise
+    {15,    I2},        //T Time Constant
 };
 
 /**************************************************************************************

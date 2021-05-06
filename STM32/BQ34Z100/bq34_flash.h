@@ -15,6 +15,17 @@
 #include "bq34z100g1.h"
 #include "bq34_standard.h"
 
+/*	Size of DataTypes */
+#define F4	4
+#define H1	1
+#define H2	2
+#define I1	1
+#define I2	2
+#define S5	5
+#define S12	12
+#define U1	1
+#define U2	2
+
 typedef enum {
 /* Data Flash Sub-Class */
 SAFETY				=2,
