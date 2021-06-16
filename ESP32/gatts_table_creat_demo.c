@@ -148,8 +148,17 @@ struct gatts_profile_inst {
     esp_bt_uuid_t descr_uuid;
 };
 
+/* Private Functions */
+
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
                     esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+
+void app_GetRPM(void);
+
+void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
+void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
+
+/* Globals */
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
 static struct gatts_profile_inst cycling_power_profile_tab[PROFILE_NUM] = {
@@ -176,6 +185,16 @@ static bool is_connected = false;
 uint8_t heart_measurement_ccc[2]      = {0x00, 0x00};
 uint8_t char_value[4]                 = {0x11, 0x22, 0x33, 0x44};
 
+#define SAMPLES 64
+#define LOOPTIME 20
+
+int FIR[SAMPLES];
+int RPM[SAMPLES];
+
+static int power = 200;
+static int rpm = 300;
+static int average = 0, avgrpm=0;
+static int rpm2 = 300;
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
@@ -221,6 +240,8 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
 //      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(char_value), (uint8_t *)char_value}},
 
 };
+
+/* Event Handlers */
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
@@ -280,65 +301,6 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         default:
             break;
     }
-}
-
-void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param)
-{
-    ESP_LOGI(GATTS_TABLE_TAG, "prepare write, handle = %d, value len = %d", param->write.handle, param->write.len);
-    esp_gatt_status_t status = ESP_GATT_OK;
-    if (prepare_write_env->prepare_buf == NULL) {
-        prepare_write_env->prepare_buf = (uint8_t *)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
-        prepare_write_env->prepare_len = 0;
-        if (prepare_write_env->prepare_buf == NULL) {
-            ESP_LOGE(GATTS_TABLE_TAG, "%s, Gatt_server prep no mem", __func__);
-            status = ESP_GATT_NO_RESOURCES;
-        }
-    } else {
-        if(param->write.offset > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_OFFSET;
-        } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
-            status = ESP_GATT_INVALID_ATTR_LEN;
-        }
-    }
-    /*send response when param->write.need_rsp is true */
-    if (param->write.need_rsp){
-        esp_gatt_rsp_t *gatt_rsp = (esp_gatt_rsp_t *)malloc(sizeof(esp_gatt_rsp_t));
-        if (gatt_rsp != NULL){
-            gatt_rsp->attr_value.len = param->write.len;
-            gatt_rsp->attr_value.handle = param->write.handle;
-            gatt_rsp->attr_value.offset = param->write.offset;
-            gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
-            memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
-            esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
-            if (response_err != ESP_OK){
-               ESP_LOGE(GATTS_TABLE_TAG, "Send response error");
-            }
-            free(gatt_rsp);
-        }else{
-            ESP_LOGE(GATTS_TABLE_TAG, "%s, malloc failed", __func__);
-        }
-    }
-    if (status != ESP_GATT_OK){
-        return;
-    }
-    memcpy(prepare_write_env->prepare_buf + param->write.offset,
-           param->write.value,
-           param->write.len);
-    prepare_write_env->prepare_len += param->write.len;
-
-}
-
-void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
-    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf){
-        esp_log_buffer_hex(GATTS_TABLE_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
-    }else{
-        ESP_LOGI(GATTS_TABLE_TAG,"ESP_GATT_PREP_WRITE_CANCEL");
-    }
-    if (prepare_write_env->prepare_buf) {
-        free(prepare_write_env->prepare_buf);
-        prepare_write_env->prepare_buf = NULL;
-    }
-    prepare_write_env->prepare_len = 0;
 }
 
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
@@ -470,7 +432,6 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     }
 }
 
-
 static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
 
@@ -560,17 +521,116 @@ void app_main(void)
         ESP_LOGE(GATTS_TABLE_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
-    uint8_t rpm = 0;
+    //Configure ADC
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
+
+    //Characterize ADC
+//    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+//    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
+
+    memset(FIR, 0, sizeof(FIR));
+    memset(RPM, 0, sizeof(RPM));
+
+    uint8_t millisecond = 0;
     for (;;) {
         if (is_connected) {
-             //the size of rpm need less than MTU size
-             esp_ble_gatts_send_indicate(
+
+            ESP_LOGI(GATTS_TABLE_TAG, "rpm avgrpm = %d", rpm);
+
+            //the size of rpm need less than MTU size
+            esp_ble_gatts_send_indicate(
                                  cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if,
                                  cycling_power_profile_tab[PROFILE_APP_IDX].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_A],
-                                 sizeof(rpm), (uint8_t *)&rpm, false);
+                                 sizeof(millisecond), (uint8_t *)&millisecond, false);
         }
         vTaskDelay(1000/portTICK_RATE_MS);
-        rpm++;
+        millisecond++;
     }
+}
+
+/* Private Functions */
+
+void app_GetRPM(void)
+{
+    uint8_t i;
+
+    FIR [0] = adc1_get_raw(ADC1_CHANNEL_0) - 1875;  //get the sample and remove offset
+//  ESP_LOGW(GATTS_TABLE_TAG, "FIR [0] = %d", FIR[0]);
+
+   rpm=0; //reset average
+   average=0;
+   for (i=SAMPLES; i>1; i--)
+   {
+      FIR[i-1]  = FIR[i-2];                 //shift register
+      RPM[i-1]  = RPM[i-2];                 //shift register
+      rpm       = rpm +FIR[i-1]*FIR[i-2];   //calculating freq
+      average   = average + RPM[i];
+   }
+
+   rpm=rpm/(1000*LOOPTIME);
+   RPM[0]=rpm;
+//   ESP_LOGW(GATTS_TABLE_TAG, "RPM [0] = %d", RPM[0]);
+   average=average/SAMPLES;
+//   ESP_LOGW(GATTS_TABLE_TAG, "average = %d", average);
+}
+
+void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param)
+{
+    ESP_LOGI(GATTS_TABLE_TAG, "prepare write, handle = %d, value len = %d", param->write.handle, param->write.len);
+    esp_gatt_status_t status = ESP_GATT_OK;
+    if (prepare_write_env->prepare_buf == NULL) {
+        prepare_write_env->prepare_buf = (uint8_t *)malloc(PREPARE_BUF_MAX_SIZE * sizeof(uint8_t));
+        prepare_write_env->prepare_len = 0;
+        if (prepare_write_env->prepare_buf == NULL) {
+            ESP_LOGE(GATTS_TABLE_TAG, "%s, Gatt_server prep no mem", __func__);
+            status = ESP_GATT_NO_RESOURCES;
+        }
+    } else {
+        if(param->write.offset > PREPARE_BUF_MAX_SIZE) {
+            status = ESP_GATT_INVALID_OFFSET;
+        } else if ((param->write.offset + param->write.len) > PREPARE_BUF_MAX_SIZE) {
+            status = ESP_GATT_INVALID_ATTR_LEN;
+        }
+    }
+    /*send response when param->write.need_rsp is true */
+    if (param->write.need_rsp){
+        esp_gatt_rsp_t *gatt_rsp = (esp_gatt_rsp_t *)malloc(sizeof(esp_gatt_rsp_t));
+        if (gatt_rsp != NULL){
+            gatt_rsp->attr_value.len = param->write.len;
+            gatt_rsp->attr_value.handle = param->write.handle;
+            gatt_rsp->attr_value.offset = param->write.offset;
+            gatt_rsp->attr_value.auth_req = ESP_GATT_AUTH_REQ_NONE;
+            memcpy(gatt_rsp->attr_value.value, param->write.value, param->write.len);
+            esp_err_t response_err = esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, status, gatt_rsp);
+            if (response_err != ESP_OK){
+               ESP_LOGE(GATTS_TABLE_TAG, "Send response error");
+            }
+            free(gatt_rsp);
+        }else{
+            ESP_LOGE(GATTS_TABLE_TAG, "%s, malloc failed", __func__);
+        }
+    }
+    if (status != ESP_GATT_OK){
+        return;
+    }
+    memcpy(prepare_write_env->prepare_buf + param->write.offset,
+           param->write.value,
+           param->write.len);
+    prepare_write_env->prepare_len += param->write.len;
+
+}
+
+void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param){
+    if (param->exec_write.exec_write_flag == ESP_GATT_PREP_WRITE_EXEC && prepare_write_env->prepare_buf){
+        esp_log_buffer_hex(GATTS_TABLE_TAG, prepare_write_env->prepare_buf, prepare_write_env->prepare_len);
+    }else{
+        ESP_LOGI(GATTS_TABLE_TAG,"ESP_GATT_PREP_WRITE_CANCEL");
+    }
+    if (prepare_write_env->prepare_buf) {
+        free(prepare_write_env->prepare_buf);
+        prepare_write_env->prepare_buf = NULL;
+    }
+    prepare_write_env->prepare_len = 0;
 }
