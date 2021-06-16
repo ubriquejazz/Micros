@@ -1,11 +1,3 @@
-/*
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 /****************************************************************************
 *
 * This demo showcases creating a GATT database using a predefined attribute table.
@@ -15,7 +7,6 @@
 * data.
 *
 ****************************************************************************/
-
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -393,33 +384,13 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                     if (descr_value == 0x0001){
                         ESP_LOGI(GATTS_TABLE_TAG, "notify enable");
                         is_connected = true;
-//                        uint8_t notify_data[15];
-//                        for (int i = 0; i < sizeof(notify_data); ++i)
-//                        {
-//                            notify_data[i] = i % 0xff;
-//                        }
-//                        //the size of notify_data[] need less than MTU size
-//                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, heart_rate_handle_table[IDX_CHAR_VAL_A],
-//                                                sizeof(notify_data), notify_data, false);
-                    }else if (descr_value == 0x0002){
-                        ESP_LOGI(GATTS_TABLE_TAG, "indicate enable");
-                        uint8_t indicate_data[15];
-                        for (int i = 0; i < sizeof(indicate_data); ++i)
-                        {
-                            indicate_data[i] = i % 0xff;
-                        }
-                        //the size of indicate_data[] need less than MTU size
-                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, heart_rate_handle_table[IDX_CHAR_VAL_A],
-                                            sizeof(indicate_data), indicate_data, true);
-                    }
-                    else if (descr_value == 0x0000){
-                        ESP_LOGI(GATTS_TABLE_TAG, "notify/indicate disable ");
+                    }else if (descr_value == 0x0000){
+                        ESP_LOGI(GATTS_TABLE_TAG, "notify disable ");
                         is_connected = false;
                     }else{
                         ESP_LOGE(GATTS_TABLE_TAG, "unknown descr value");
                         esp_log_buffer_hex(GATTS_TABLE_TAG, param->write.value, param->write.len);
                     }
-
                 }
                 /* send response when param->write.need_rsp is true*/
                 if (param->write.need_rsp){
@@ -580,11 +551,6 @@ void app_main(void)
     }
 
     uint8_t rpm = 0;
-//    uint8_t indicate_data[15];
-//    for (int i = 0; i < sizeof(indicate_data); ++i)
-//    {
-//    	indicate_data[i] = i % 0xff;
-//    }
     for (;;) {
     	if (is_connected) {
              //the size of rpm need less than MTU size
