@@ -3,8 +3,8 @@
 * This demo showcases creating a GATT database using a predefined attribute table.
 * It acts as a GATT server and can send adv data, be connected by client.
 * Run the gatt_client demo, the client demo will automatically connect to the gatt_server_service_table demo.
-* Client demo will enable GATT server's notify after connection. The two devices will then exchange
-* data.
+* Client demo will enable GATT server's notify after connection. The two devices will then exchange data
+* When the GATT client performs a write operation, the data length < GATTS_DEMO_CHAR_VAL_LEN_MAX.
 *
 ****************************************************************************/
 
@@ -24,31 +24,13 @@
 #include "gatts_table_creat_demo.h"
 #include "esp_gatt_common_api.h"
 
-#define DEFAULT_VREF    1100        //Use adc2_vref_to_gpio() to obtain a better estimate
-                                    //static esp_adc_cal_characteristics_t *adc_chars;
-
-#define GATTS_TABLE_TAG "GATTS_TABLE_DEMO"
-
-#define PROFILE_NUM                 1
-#define PROFILE_APP_IDX             0
-#define ESP_APP_ID                  0x55
-#define SAMPLE_DEVICE_NAME          "GALAN_BIKE"
-#define SVC_INST_ID                 0
-
-
-/* The max length of characteristic value. When the GATT client performs a write or prepare write operation,
-*  the data length must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
-*/
-#define GATTS_DEMO_CHAR_VAL_LEN_MAX 500
+#define DEFAULT_VREF                1100    //Use adc2_vref_to_gpio() to obtain a better estimate
+#define GATTS_TABLE_TAG "           GATTS_TABLE_DEMO"
+#define GATTS_DEMO_CHAR_VAL_LEN_MAX 500     //  max length of characteristic value
 #define PREPARE_BUF_MAX_SIZE        1024
 #define CHAR_DECLARATION_SIZE       (sizeof(uint8_t))
-
 #define ADV_CONFIG_FLAG             (1 << 0)
 #define SCAN_RSP_CONFIG_FLAG        (1 << 1)
-
-static uint8_t adv_config_done       = 0;
-
-uint16_t cycling_power_handle_table[HRS_IDX_NB];
 
 typedef struct {
     uint8_t                 *prepare_buf;
@@ -158,26 +140,41 @@ void app_GetRPM(void);
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 
-/* Globals */
+/* Profiles */
+
+#define PROFILE_NUM                 2
+
+#define PROFILE_APP_IDX             0
+#define ESP_APP_ID                  0x55
+#define SAMPLE_DEVICE_NAME          "GALAN_BIKE"
+#define SVC_INST_ID                 0
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
-static struct gatts_profile_inst cycling_power_profile_tab[PROFILE_NUM] = {
+static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
     [PROFILE_APP_IDX] = {
+        .gatts_cb = gatts_profile_event_handler,
+        .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
+    },
+
+    [1] = {
         .gatts_cb = gatts_profile_event_handler,
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
 };
 
-/* Service */
-static const uint16_t GATTS_SERVICE_UUID_TEST        = ESP_GATT_UUID_CYCLING_POWER_SVC;
+/* Services */
+
+uint16_t cycling_power_handle_table[IDX_SVC1_NB];
+
+static const uint16_t GATTS_SERVICE_UUID_CPS         = ESP_GATT_UUID_CYCLING_POWER_SVC;
 //static const uint16_t GATTS_CHAR_UUID_TEST_A       = 0xFF01;
 //static const uint16_t GATTS_CHAR_UUID_TEST_B       = 0xFF02;
 static const uint16_t GATTS_CHAR_UUID_RPM            = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_PWR            = 0xFF02;
 
-static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
-static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
-static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_CONFIG;
+static const uint16_t primary_service_uuid          = ESP_GATT_UUID_PRI_SERVICE;
+static const uint16_t character_declaration_uuid    = ESP_GATT_UUID_CHAR_DECLARE;
+static const uint16_t character_client_config_uuid  = ESP_GATT_UUID_CHAR_CLIENT_CONFIG; // 0x2902
 
 //static const uint8_t char_prop_read                = ESP_GATT_CHAR_PROP_BIT_READ;
 //static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
@@ -192,12 +189,12 @@ uint8_t  rpm_ccc[2] = {0x00, 0x00}; // characteristic notification - IDX_CHAR_CF
 uint8_t  pwr_ccc[2] = {0x00, 0x00}; // characteristic notification - IDX_CHAR_CFG_PWR
 
 /* Full Database Description - Used to add attributes into the database */
-static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
+static const esp_gatts_attr_db_t gatt_db[IDX_SVC1_NB] =
 {
     // Service Declaration
-    [IDX_SVC]        =
+    [IDX_SVC1]        =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
-      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_TEST), (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
+      sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_CPS), (uint8_t *)&GATTS_SERVICE_UUID_CPS}},
 
     /* Characteristic Declaration ------------------------------------------------------------------------- */
     [IDX_CHAR_RPM]     =
@@ -231,7 +228,9 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
 
 };
 
-/* Event Handlers */
+/* Advertisement Handler */
+
+static uint8_t adv_config_done = 0;
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
@@ -293,6 +292,8 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
     }
 }
 
+/* Profile(s) Handler */
+
 static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event) {
@@ -326,10 +327,15 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
     #endif
-            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, HRS_IDX_NB, SVC_INST_ID);
+            // IDX_SVC1
+            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_SVC1_NB, SVC_INST_ID);
             if (create_attr_ret){
                 ESP_LOGE(GATTS_TABLE_TAG, "create attr table failed, error code = %x", create_attr_ret);
             }
+
+            // IDX_SVC2
+
+
         }
             break;
         case ESP_GATTS_READ_EVT:
@@ -415,14 +421,19 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             if (param->add_attr_tab.status != ESP_GATT_OK){
                 ESP_LOGE(GATTS_TABLE_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
             }
-            else if (param->add_attr_tab.num_handle != HRS_IDX_NB){
+            else if (param->add_attr_tab.num_handle != IDX_SVC1_NB){
                 ESP_LOGE(GATTS_TABLE_TAG, "create attribute table abnormally, num_handle (%d) \
-                        doesn't equal to HRS_IDX_NB(%d)", param->add_attr_tab.num_handle, HRS_IDX_NB);
+                        doesn't equal to IDX_SVC1_NB(%d)", param->add_attr_tab.num_handle, IDX_SVC1_NB);
             }
             else {
+
+                // IDX_SVC1
                 ESP_LOGI(GATTS_TABLE_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
                 memcpy(cycling_power_handle_table, param->add_attr_tab.handles, sizeof(cycling_power_handle_table));
-                esp_ble_gatts_start_service(cycling_power_handle_table[IDX_SVC]);
+                esp_ble_gatts_start_service(cycling_power_handle_table[IDX_SVC1]);
+
+                // IDX_SVC2
+
             }
             break;
         }
@@ -439,13 +450,15 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
     }
 }
 
+/* Att Handler */
+
 static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
 
     /* If event is register event, store the gatts_if for each profile */
     if (event == ESP_GATTS_REG_EVT) {
         if (param->reg.status == ESP_GATT_OK) {
-            cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if = gatts_if;
+            gl_profile_tab[PROFILE_APP_IDX].gatts_if = gatts_if;
         } else {
             ESP_LOGE(GATTS_TABLE_TAG, "reg app failed, app_id %04x, status %d",
                     param->reg.app_id,
@@ -457,9 +470,9 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
         int idx;
         for (idx = 0; idx < PROFILE_NUM; idx++) {
             /* ESP_GATT_IF_NONE, not specify a certain gatt_if, need to call every profile cb function */
-            if (gatts_if == ESP_GATT_IF_NONE || gatts_if == cycling_power_profile_tab[idx].gatts_if) {
-                if (cycling_power_profile_tab[idx].gatts_cb) {
-                    cycling_power_profile_tab[idx].gatts_cb(event, gatts_if, param);
+            if (gatts_if == ESP_GATT_IF_NONE || gatts_if == gl_profile_tab[idx].gatts_if) {
+                if (gl_profile_tab[idx].gatts_cb) {
+                    gl_profile_tab[idx].gatts_cb(event, gatts_if, param);
                 }
             }
         }
@@ -556,8 +569,8 @@ void app_main(void)
             rpm = millisecond;
             ESP_LOGI(GATTS_TABLE_TAG, "rpm = 0x%04X", rpm);
             esp_ble_gatts_send_indicate(
-                                 cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if,
-                                 cycling_power_profile_tab[PROFILE_APP_IDX].app_id,
+                                 gl_profile_tab[PROFILE_APP_IDX].gatts_if,
+                                 gl_profile_tab[PROFILE_APP_IDX].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_RPM],
                                  sizeof(rpm), (uint8_t *)&rpm, false);
         }
@@ -566,8 +579,8 @@ void app_main(void)
             pwr = 0x1000 + millisecond;
             ESP_LOGI(GATTS_TABLE_TAG, "power = 0x%04X", pwr);
             esp_ble_gatts_send_indicate(
-                                 cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if,
-                                 cycling_power_profile_tab[PROFILE_APP_IDX].app_id,
+                                 gl_profile_tab[PROFILE_APP_IDX].gatts_if,
+                                 gl_profile_tab[PROFILE_APP_IDX].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_POWER],
                                  sizeof(pwr), (uint8_t *)&pwr, false);
 
