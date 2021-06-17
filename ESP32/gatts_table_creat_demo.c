@@ -173,7 +173,7 @@ static const uint16_t GATTS_SERVICE_UUID_TEST        = ESP_GATT_UUID_CYCLING_POW
 //static const uint16_t GATTS_CHAR_UUID_TEST_A       = 0xFF01;
 //static const uint16_t GATTS_CHAR_UUID_TEST_B       = 0xFF02;
 static const uint16_t GATTS_CHAR_UUID_RPM            = 0xFF01;
-
+static const uint16_t GATTS_CHAR_UUID_PWR            = 0xFF02;
 
 static const uint16_t primary_service_uuid         = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid   = ESP_GATT_UUID_CHAR_DECLARE;
@@ -183,19 +183,13 @@ static const uint16_t character_client_config_uuid = ESP_GATT_UUID_CHAR_CLIENT_C
 //static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_notify         = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 
-static bool is_connected = false;
-uint8_t rpm_ccc[2]      = {0x00, 0x00};
+uint16_t rpm;   // characteristic value - IDX_CHAR_VAL_RPM
+uint16_t pwr;   // characteristic value - IDX_CHAR_VAL_PWR
 
-#define SAMPLES 64
-#define LOOPTIME 20
-
-int FIR[SAMPLES];
-int RPM[SAMPLES];
-
-static int power = 200;
-static int rpm = 300;
-static int average = 0, avgrpm=0;
-static int rpm2 = 300;
+static bool rpm_connected = false;
+static bool pwr_connected = false;
+uint8_t  rpm_ccc[2] = {0x00, 0x00}; // characteristic notification - IDX_CHAR_CFG_RPM
+uint8_t  pwr_ccc[2] = {0x00, 0x00}; // characteristic notification - IDX_CHAR_CFG_PWR
 
 /* Full Database Description - Used to add attributes into the database */
 static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
@@ -205,20 +199,35 @@ static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
       sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_TEST), (uint8_t *)&GATTS_SERVICE_UUID_TEST}},
 
-    /* Characteristic Declaration */
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
     [IDX_CHAR_RPM]     =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
-      CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_notify}},
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_notify}},
 
     /* Characteristic Value */
     [IDX_CHAR_VAL_RPM] =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_RPM, ESP_GATT_PERM_READ,
-      GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(rpm), (uint8_t *)&rpm}},
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(rpm), (uint8_t *)&rpm}},
 
     /* Client Characteristic Configuration Descriptor */
     [IDX_CHAR_CFG_RPM]  =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
-      sizeof(uint16_t), sizeof(rpm_ccc), (uint8_t *)rpm_ccc}},
+    sizeof(uint16_t), sizeof(rpm_ccc), (uint8_t *)rpm_ccc}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_POWER]     =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read_notify}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_POWER] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_PWR, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(pwr), (uint8_t *)&pwr}},
+
+    /* Client Characteristic Configuration Descriptor */
+    [IDX_CHAR_CFG_POWER]  =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_client_config_uuid, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
+    sizeof(uint16_t), sizeof(pwr_ccc), (uint8_t *)pwr_ccc}},
 
 };
 
@@ -332,19 +341,36 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                 ESP_LOGI(GATTS_TABLE_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :", param->write.handle, param->write.len);
                 esp_log_buffer_hex(GATTS_TABLE_TAG, param->write.value, param->write.len);
 
+                // IDX_CHAR_CFG_RPM
                 if (cycling_power_handle_table[IDX_CHAR_CFG_RPM] == param->write.handle && param->write.len == 2){
                     uint16_t descr_value = param->write.value[1]<<8 | param->write.value[0];
                     if (descr_value == 0x0001){
-                        ESP_LOGI(GATTS_TABLE_TAG, "notify enable");
-                        is_connected = true;
+                        ESP_LOGI(GATTS_TABLE_TAG, "rpm notify enable");
+                        rpm_connected = true;
                     }else if (descr_value == 0x0000){
-                        ESP_LOGI(GATTS_TABLE_TAG, "notify/indicate disable ");
-                        is_connected = false;
+                        ESP_LOGI(GATTS_TABLE_TAG, "rpm notify disable ");
+                        rpm_connected = false;
                     }else{
                         ESP_LOGE(GATTS_TABLE_TAG, "unknown descr value");
                         esp_log_buffer_hex(GATTS_TABLE_TAG, param->write.value, param->write.len);
                     }
                 }
+
+                // IDX_CHAR_CFG_POWER
+                if (cycling_power_handle_table[IDX_CHAR_CFG_POWER] == param->write.handle && param->write.len == 2){
+                    uint16_t descr_value = param->write.value[1]<<8 | param->write.value[0];
+                    if (descr_value == 0x0001){
+                        ESP_LOGI(GATTS_TABLE_TAG, "pwr notify enable");
+                        pwr_connected = true;
+                    }else if (descr_value == 0x0000){
+                        ESP_LOGI(GATTS_TABLE_TAG, "pwr notify disable ");
+                        pwr_connected = false;
+                    }else{
+                        ESP_LOGE(GATTS_TABLE_TAG, "unknown descr value");
+                        esp_log_buffer_hex(GATTS_TABLE_TAG, param->write.value, param->write.len);
+                    }
+                }
+
                 /* send response when param->write.need_rsp is true*/
                 if (param->write.need_rsp){
                     esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
@@ -440,6 +466,16 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
+/* Application */
+
+#define SAMPLES 64
+#define LOOPTIME 20
+
+uint16_t FIR[SAMPLES];
+uint16_t RPM[SAMPLES];
+
+static uint16_t average = 0, avgrpm=0;
+
 void app_main(void)
 {
     esp_err_t ret;
@@ -513,18 +549,28 @@ void app_main(void)
     memset(FIR, 0, sizeof(FIR));
     memset(RPM, 0, sizeof(RPM));
 
-    uint8_t millisecond = 0;
+    uint16_t millisecond = 0;
     for (;;) {
-        if (is_connected) {
+        if (rpm_connected) {
 
-            ESP_LOGI(GATTS_TABLE_TAG, "rpm avgrpm = %d", rpm);
-
-            //the size of rpm need less than MTU size
+            rpm = millisecond;
+            ESP_LOGI(GATTS_TABLE_TAG, "rpm = 0x%04X", rpm);
             esp_ble_gatts_send_indicate(
                                  cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if,
                                  cycling_power_profile_tab[PROFILE_APP_IDX].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_RPM],
-                                 sizeof(millisecond), (uint8_t *)&millisecond, false);
+                                 sizeof(rpm), (uint8_t *)&rpm, false);
+        }
+        if (pwr_connected) {
+
+            pwr = 0x1000 + millisecond;
+            ESP_LOGI(GATTS_TABLE_TAG, "power = 0x%04X", pwr);
+            esp_ble_gatts_send_indicate(
+                                 cycling_power_profile_tab[PROFILE_APP_IDX].gatts_if,
+                                 cycling_power_profile_tab[PROFILE_APP_IDX].app_id,
+                                 cycling_power_handle_table[IDX_CHAR_VAL_POWER],
+                                 sizeof(pwr), (uint8_t *)&pwr, false);
+
         }
         vTaskDelay(1000/portTICK_RATE_MS);
         millisecond++;
@@ -535,14 +581,12 @@ void app_main(void)
 
 void app_GetRPM(void)
 {
-    uint8_t i;
-
     FIR [0] = adc1_get_raw(ADC1_CHANNEL_0) - 1875;  //get the sample and remove offset
 //  ESP_LOGW(GATTS_TABLE_TAG, "FIR [0] = %d", FIR[0]);
 
    rpm=0; //reset average
    average=0;
-   for (i=SAMPLES; i>1; i--)
+   for (uint8_t i=SAMPLES; i>1; i--)
    {
       FIR[i-1]  = FIR[i-2];                 //shift register
       RPM[i-1]  = RPM[i-2];                 //shift register
