@@ -24,11 +24,14 @@
 #include "gatts_table_creat_demo.h"
 #include "esp_gatt_common_api.h"
 
-#define GATTS_TAG "           GALAN_DEMO"
-#define TEST_DEVICE_NAME            "GALAN_BIKE"
-#define FW_VERSION                  "0.0.1"
+#define GATTS_TAG "           BLE SERVER"
+#define SAMPLE_DEVICE_NAME          "GALAN_BIKE"
 #define MANUFACTURER_NAME           "IDNEO"
-#define MODEL_NAME                  "GalanPowerMeter"
+#define MODEL_NUMBER                "1"
+#define SERIAL_NUMBER               "SN0001"
+#define HW_REVISION                 "RevA"
+#define FW_REVERSION                "0.0.1"
+#define SW_REVISION                 "0.0.1"
 
 #define DEFAULT_VREF                    1100    // use adc2_vref_to_gpio() to obtain a better estimate
 #define GATTS_DEMO_CHAR_VAL_LEN_MAX     500     // max length of characteristic value
@@ -147,13 +150,8 @@ void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t 
 /* Profiles */
 
 #define PROFILE_NUM                 2
-
-#define PROFILE_A_APP_ID             0
-#define ESP_APP_ID                  0x55
-#define SAMPLE_DEVICE_NAME          "GALAN_BIKE"
-#define SVC_INST_ID                 0
-
-#define PROFILE_B_APP_ID             1
+#define PROFILE_A_APP_ID            0
+#define PROFILE_B_APP_ID            1
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
 static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
@@ -363,7 +361,7 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
     #endif
-            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_SVC1_NB, SVC_INST_ID);
+            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_SVC1_NB, PROFILE_A_APP_ID);
             if (create_attr_ret){
                 ESP_LOGE(GATTS_TAG, "create attr table failed, error code = %x", create_attr_ret);
             }
@@ -565,11 +563,17 @@ void app_main(void)
         return;
     }
 
-    ret = esp_ble_gatts_app_register(ESP_APP_ID);
+    ret = esp_ble_gatts_app_register(PROFILE_A_APP_ID);
     if (ret){
         ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
         return;
     }
+
+//    ret = esp_ble_gatts_app_register(PROFILE_B_APP_ID);
+//    if (ret){
+//        ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
+//        return;
+//    }
 
     esp_err_t local_mtu_ret = esp_ble_gatt_set_local_mtu(500);
     if (local_mtu_ret){
