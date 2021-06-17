@@ -132,8 +132,8 @@ struct gatts_profile_inst {
 
 /* Private Functions */
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event,
-                    esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
 void app_GetRPM(void);
 
@@ -144,20 +144,22 @@ void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t 
 
 #define PROFILE_NUM                 2
 
-#define PROFILE_APP_IDX             0
+#define PROFILE_A_APP_ID             0
 #define ESP_APP_ID                  0x55
 #define SAMPLE_DEVICE_NAME          "GALAN_BIKE"
 #define SVC_INST_ID                 0
 
+#define PROFILE_B_APP_ID             1
+
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
 static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
-    [PROFILE_APP_IDX] = {
-        .gatts_cb = gatts_profile_event_handler,
+    [PROFILE_A_APP_ID] = {
+        .gatts_cb = gatts_profile_a_event_handler,
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
 
-    [1] = {
-        .gatts_cb = gatts_profile_event_handler,
+    [PROFILE_B_APP_ID] = {
+        .gatts_cb = gatts_profile_b_event_handler,
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
 };
@@ -167,10 +169,10 @@ static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
 uint16_t cycling_power_handle_table[IDX_SVC1_NB];
 
 static const uint16_t GATTS_SERVICE_UUID_CPS         = ESP_GATT_UUID_CYCLING_POWER_SVC;
-//static const uint16_t GATTS_CHAR_UUID_TEST_A       = 0xFF01;
-//static const uint16_t GATTS_CHAR_UUID_TEST_B       = 0xFF02;
 static const uint16_t GATTS_CHAR_UUID_RPM            = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_PWR            = 0xFF02;
+
+static const uint16_t GATTS_SERVICE_UUID_DIS         = ESP_GATT_UUID_DEVICE_INFO_SVC;
 
 static const uint16_t primary_service_uuid          = ESP_GATT_UUID_PRI_SERVICE;
 static const uint16_t character_declaration_uuid    = ESP_GATT_UUID_CHAR_DECLARE;
@@ -294,10 +296,40 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 
 /* Profile(s) Handler */
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event) {
-        case ESP_GATTS_REG_EVT:{
+    case ESP_GATTS_REG_EVT:
+        ESP_LOGI(GATTS_TABLE_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
+        gl_profile_tab[PROFILE_B_APP_ID].service_id.is_primary = true;
+        gl_profile_tab[PROFILE_B_APP_ID].service_id.id.inst_id = 0x00;
+        gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
+        gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_DIS;
+
+        esp_ble_gatts_create_service(gatts_if, &gl_profile_tab[PROFILE_B_APP_ID].service_id, GATTS_SERVICE_UUID_DIS);
+        break;
+    case ESP_GATTS_DISCONNECT_EVT:
+    case ESP_GATTS_OPEN_EVT:
+    case ESP_GATTS_CANCEL_OPEN_EVT:
+    case ESP_GATTS_CLOSE_EVT:
+    case ESP_GATTS_LISTEN_EVT:
+    case ESP_GATTS_CONGEST_EVT:
+    default:
+        break;
+    }
+}
+
+static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+{
+    switch (event)
+    {
+        case ESP_GATTS_REG_EVT:
+            ESP_LOGI(GATTS_TABLE_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.is_primary = true;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.inst_id = 0x00;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_CPS;
+
             esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(SAMPLE_DEVICE_NAME);
             if (set_dev_name_ret){
                 ESP_LOGE(GATTS_TABLE_TAG, "set device name failed, error code = %x", set_dev_name_ret);
@@ -327,16 +359,10 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
     #endif
-            // IDX_SVC1
             esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_SVC1_NB, SVC_INST_ID);
             if (create_attr_ret){
                 ESP_LOGE(GATTS_TABLE_TAG, "create attr table failed, error code = %x", create_attr_ret);
             }
-
-            // IDX_SVC2
-
-
-        }
             break;
         case ESP_GATTS_READ_EVT:
             ESP_LOGI(GATTS_TABLE_TAG, "ESP_GATTS_READ_EVT");
@@ -426,14 +452,9 @@ static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_
                         doesn't equal to IDX_SVC1_NB(%d)", param->add_attr_tab.num_handle, IDX_SVC1_NB);
             }
             else {
-
-                // IDX_SVC1
                 ESP_LOGI(GATTS_TABLE_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
                 memcpy(cycling_power_handle_table, param->add_attr_tab.handles, sizeof(cycling_power_handle_table));
                 esp_ble_gatts_start_service(cycling_power_handle_table[IDX_SVC1]);
-
-                // IDX_SVC2
-
             }
             break;
         }
@@ -458,7 +479,7 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     /* If event is register event, store the gatts_if for each profile */
     if (event == ESP_GATTS_REG_EVT) {
         if (param->reg.status == ESP_GATT_OK) {
-            gl_profile_tab[PROFILE_APP_IDX].gatts_if = gatts_if;
+            gl_profile_tab[PROFILE_A_APP_ID].gatts_if = gatts_if;
         } else {
             ESP_LOGE(GATTS_TABLE_TAG, "reg app failed, app_id %04x, status %d",
                     param->reg.app_id,
@@ -569,8 +590,8 @@ void app_main(void)
             rpm = millisecond;
             ESP_LOGI(GATTS_TABLE_TAG, "rpm = 0x%04X", rpm);
             esp_ble_gatts_send_indicate(
-                                 gl_profile_tab[PROFILE_APP_IDX].gatts_if,
-                                 gl_profile_tab[PROFILE_APP_IDX].app_id,
+                                 gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                                 gl_profile_tab[PROFILE_A_APP_ID].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_RPM],
                                  sizeof(rpm), (uint8_t *)&rpm, false);
         }
@@ -579,8 +600,8 @@ void app_main(void)
             pwr = 0x1000 + millisecond;
             ESP_LOGI(GATTS_TABLE_TAG, "power = 0x%04X", pwr);
             esp_ble_gatts_send_indicate(
-                                 gl_profile_tab[PROFILE_APP_IDX].gatts_if,
-                                 gl_profile_tab[PROFILE_APP_IDX].app_id,
+                                 gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                                 gl_profile_tab[PROFILE_A_APP_ID].app_id,
                                  cycling_power_handle_table[IDX_CHAR_VAL_POWER],
                                  sizeof(pwr), (uint8_t *)&pwr, false);
 
