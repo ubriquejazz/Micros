@@ -128,7 +128,7 @@ static esp_ble_adv_params_t adv_params = {
 static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
-void app_GetRPM(void);
+int app_GetRPM(void);
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
@@ -195,8 +195,8 @@ static const uint8_t char_prop_read                 = ESP_GATT_CHAR_PROP_BIT_REA
 static const uint8_t char_prop_read_write           = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE;
 static const uint8_t char_prop_read_notify          = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 
-uint16_t rpm;   // characteristic value - IDX_CHAR_VAL_RPM
-uint16_t pwr;   // characteristic value - IDX_CHAR_VAL_PWR
+uint16_t rpm;       // characteristic value - IDX_CHAR_VAL_RPM
+uint16_t pwr;       // characteristic value - IDX_CHAR_VAL_PWR
 static bool rpm_connected = false;
 static bool pwr_connected = false;
 uint8_t  rpm_ccc[2] = {0x00, 0x00}; // characteristic notification - IDX_CHAR_CFG_RPM
@@ -676,12 +676,34 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 /* Application */
 
 #define SAMPLES 64
-#define LOOPTIME 20
+#define AVG     3
 
-uint16_t FIR[SAMPLES];
-uint16_t RPM[SAMPLES];
+int ACC[SAMPLES];
+float RPM_MEAS[AVG];
 
-static uint16_t average = 0, avgrpm=0;
+float FIR[SAMPLES] = {
+  -0.032324782,0.044535824,0.027708853,0.019761315,
+  0.015734866, 0.013160858,0.010829337,0.00818429,
+  0.005036703,0.001394091,-0.002604021,-0.006730702,
+  -0.010706668,-0.014213031,-0.016915365,-0.018506349,
+  -0.018727439,-0.017367625,-0.014281782,-0.009427987,
+  -0.00287441,0.005225689,0.014635419,0.025013476,
+  0.035936691,0.046954758,0.057597117,0.067362902,
+  0.075789171,0.082514315,0.087171213,0.0895621,
+  0.0895621,0.087171213,0.082514315,0.075789171,
+  0.067362902,0.057597117,0.046954758,0.035936691,
+  0.025013476,0.014635419,0.005225689,-0.00287441,
+  -0.009427987,-0.014281782,-0.017367625,-0.018727439,
+  -0.018506349,-0.016915365,-0.014213031,-0.010706668,
+  -0.006730702,-0.002604021,0.001394091,0.005036703,
+  0.00818429,0.010829337,0.013160858,0.015734866,
+  0.019761315,0.027708853,0.044535824,-0.032324782
+  };
+
+static esp_adc_cal_characteristics_t *adc_chars;
+static const adc_channel_t channel = ADC_CHANNEL_6;     //GPIO34 if ADC1, GPIO14 if ADC2
+static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
+static const adc_atten_t atten = ADC_ATTEN_DB_11;
 
 void app_main(void)
 {
@@ -752,22 +774,21 @@ void app_main(void)
     }
 
     //Configure ADC
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_11);
+    adc1_config_width(width);
+    adc1_config_channel_atten(channel, atten);
 
     //Characterize ADC
-//    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-//    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, ADC_ATTEN_DB_0, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
-
-    memset(FIR, 0, sizeof(FIR));
-    memset(RPM, 0, sizeof(RPM));
+    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, atten, width, DEFAULT_VREF, adc_chars);
 
     uint16_t millisecond = 0;
     for (;;) {
+
+        rpm = (uint16_t)app_GetRPM();
+
         if (rpm_connected) {
 
-            rpm = millisecond;
-            ESP_LOGI(GATTS_TAG, "rpm = 0x%04X", rpm);
+            ESP_LOGI(GATTS_TAG, "rpm = %d, 0x%04X", rpm, rpm);
             esp_ble_gatts_send_indicate(
                                  gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
                                  gl_profile_tab[PROFILE_A_APP_ID].app_id,
@@ -792,26 +813,52 @@ void app_main(void)
 
 /* Private Functions */
 
-void app_GetRPM(void)
+int app_GetRPM(void)
 {
-    FIR [0] = adc1_get_raw(ADC1_CHANNEL_0) - 1875;  //get the sample and remove offset
-//  ESP_LOGW(GATTS_TAG, "FIR [0] = %d", FIR[0]);
+    int oldf, result = 0;
+    int adc_reading = 0;
+    static int filt = 0;
+    static uint32_t starttime = 0;
 
-   rpm=0; //reset average
-   average=0;
-   for (uint8_t i=SAMPLES; i>1; i--)
-   {
-      FIR[i-1]  = FIR[i-2];                 //shift register
-      RPM[i-1]  = RPM[i-2];                 //shift register
-      rpm       = rpm +FIR[i-1]*FIR[i-2];   //calculating freq
-      average   = average + RPM[i];
-   }
+#if(0)
+    adc_reading = adc1_get_raw((adc1_channel_t)channel);
+    ACC[0] = adc_reading - 2295;  //get the sample and remove offset
+    oldf = filt;
 
-   rpm=rpm/(1000*LOOPTIME);
-   RPM[0]=rpm;
-//   ESP_LOGW(GATTS_TAG, "RPM [0] = %d", RPM[0]);
-   average=average/SAMPLES;
-//   ESP_LOGW(GATTS_TAG, "average = %d", average);
+    /* FIR output */
+    filt=0;
+    for (int i=SAMPLES; i>1; i--)
+    {
+        ACC[i-1]  = ACC[i-2];                   // shift register
+        filt     += (int) ACC[i]*FIR[i];        // getting FIR output
+    }
+
+    /* timeout for low speed - less than 30 rpm */
+    starttime = xTaskGetTickCount();               // restart time counter
+    if ((xTaskGetTickCount()- starttime) > 2000) result=0;
+
+    /* zero cross detection + hyst (5) */
+    if((filt>5 && oldf<-5) || (filt<-5 && oldf>5))
+    {
+        //timeout reset
+        RPM_MEAS[0]= 30000 / (xTaskGetTickCount()- starttime);  // calculate rpms
+        starttime = xTaskGetTickCount();                        // restart time counter
+
+        result = 0;
+        for (int i=AVG; i>1; i--) {
+            RPM_MEAS[i-1] = RPM_MEAS[i-2];                      // shift RPM_MEAS array
+            result += (int) RPM_MEAS[i-1] / (AVG-1);            // calculate RPM average
+        }
+    }
+#else
+    //Multisampling
+    for (int i = 0; i < SAMPLES; i++) {
+        adc_reading += adc1_get_raw((adc1_channel_t)channel);
+    }
+    adc_reading /= SAMPLES;
+    result = adc_reading;
+#endif
+    return result;
 }
 
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param)
