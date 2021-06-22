@@ -15,6 +15,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_bt.h"
+#include <math.h>
 #include <driver/adc.h>
 #include "esp_adc_cal.h"
 
@@ -128,7 +129,8 @@ static esp_ble_adv_params_t adv_params = {
 static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
-int app_GetRPM(void);
+static float app_GetRPM(int adc_reading);
+static float app_GetPower(int adc_reading, float angular_speed);
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
@@ -501,6 +503,18 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
                     }
                 }
 
+                // IDX_CHAR_VAL_REFRESH_TIME
+                if (cycling_power_handle_table[IDX_CHAR_VAL_REFRESH_TIME] == param->write.handle && param->write.len == 1){
+                    refresh_time = param->write.value[0];
+                    ESP_LOGI(GATTS_TAG, "New refresh time");
+                }
+
+                // IDX_CHAR_VAL_CRANCK_LENGTH
+                if (cycling_power_handle_table[IDX_CHAR_VAL_CRANCK_LENGTH] == param->write.handle && param->write.len == 1){
+                    cranck_mm = param->write.value[0];
+                    ESP_LOGI(GATTS_TAG, "New cranck length");
+                }
+
                 /* send response when param->write.need_rsp is true*/
                 if (param->write.need_rsp){
                     esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
@@ -675,13 +689,13 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 
 /* Application */
 
-#define SAMPLES 64
-#define AVG     3
+#define SAMPLES     64
+#define LOOPTIME    20
+#define AVG         3
 
-int ACC[SAMPLES];
-float RPM_MEAS[AVG];
+float ACC[SAMPLES] = {0};
 
-float FIR[SAMPLES] = {
+static const float FIR[SAMPLES] = {
   -0.032324782,0.044535824,0.027708853,0.019761315,
   0.015734866, 0.013160858,0.010829337,0.00818429,
   0.005036703,0.001394091,-0.002604021,-0.006730702,
@@ -700,10 +714,32 @@ float FIR[SAMPLES] = {
   0.019761315,0.027708853,0.044535824,-0.032324782
   };
 
+TickType_t record_time = 0;
+
 static esp_adc_cal_characteristics_t *adc_chars;
-static const adc_channel_t channel = ADC_CHANNEL_6;     //GPIO34 if ADC1, GPIO14 if ADC2
 static const adc_bits_width_t width = ADC_WIDTH_BIT_12;
 static const adc_atten_t atten = ADC_ATTEN_DB_11;
+
+static void print_char_val_type(esp_adc_cal_value_t val_type)
+{
+    if (val_type == ESP_ADC_CAL_VAL_EFUSE_TP) {
+        ESP_LOGI(GATTS_TAG, "Characterized using Two Point Value\n");
+    } else if (val_type == ESP_ADC_CAL_VAL_EFUSE_VREF) {
+        ESP_LOGI(GATTS_TAG, "Characterized using eFuse Vref\n");
+    } else {
+        ESP_LOGI(GATTS_TAG, "Characterized using Default Vref\n");
+    }
+}
+
+static void convert_float_u16(float x, uint16_t* result)
+{
+    *result = (uint16_t)x;
+}
+
+static void convert_int_u16(int x, uint16_t* result)
+{
+    *result = (uint16_t)x;
+}
 
 void app_main(void)
 {
@@ -775,90 +811,108 @@ void app_main(void)
 
     //Configure ADC
     adc1_config_width(width);
-    adc1_config_channel_atten(channel, atten);
+    adc1_config_channel_atten(ADC_CHANNEL_6, atten);
+    adc1_config_channel_atten(ADC_CHANNEL_7, atten);
 
     //Characterize ADC
     adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
     esp_adc_cal_value_t val_type = esp_adc_cal_characterize(ADC_UNIT_1, atten, width, DEFAULT_VREF, adc_chars);
+    print_char_val_type(val_type);
+
+
 
     uint16_t millisecond = 0;
+    int adc_ch6, adc_ch7;
     for (;;) {
 
-        rpm = (uint16_t)app_GetRPM();
+        adc_ch6 = adc1_get_raw((adc1_channel_t)ADC_CHANNEL_6);
+        adc_ch7 = adc1_get_raw((adc1_channel_t)ADC_CHANNEL_7);
 
-        if (rpm_connected) {
+        if (millisecond > refresh_time * 1000 / LOOPTIME)
+        {
+            if (rpm_connected) {
 
-            ESP_LOGI(GATTS_TAG, "rpm = %d, 0x%04X", rpm, rpm);
-            esp_ble_gatts_send_indicate(
-                                 gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
-                                 gl_profile_tab[PROFILE_A_APP_ID].app_id,
-                                 cycling_power_handle_table[IDX_CHAR_VAL_RPM],
-                                 sizeof(rpm), (uint8_t *)&rpm, false);
+                convert_int_u16(adc_ch6, &rpm);
+                ESP_LOGI(GATTS_TAG, "rpm = %d, 0x%04X", rpm, rpm);
+                esp_ble_gatts_send_indicate(
+                                     gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                                     gl_profile_tab[PROFILE_A_APP_ID].app_id,
+                                     cycling_power_handle_table[IDX_CHAR_VAL_RPM],
+                                     sizeof(rpm), (uint8_t *)&rpm, false);
+            }
+
+            if (pwr_connected) {
+
+                convert_int_u16(adc_ch7, &pwr);
+                ESP_LOGI(GATTS_TAG, "power = 0x%04X", pwr);
+                esp_ble_gatts_send_indicate(
+                                     gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                                     gl_profile_tab[PROFILE_A_APP_ID].app_id,
+                                     cycling_power_handle_table[IDX_CHAR_VAL_POWER],
+                                     sizeof(pwr), (uint8_t *)&pwr, false);
+
+            }
+            millisecond = 0;
         }
-        if (pwr_connected) {
-
-            pwr = 0x1000 + millisecond;
-            ESP_LOGI(GATTS_TAG, "power = 0x%04X", pwr);
-            esp_ble_gatts_send_indicate(
-                                 gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
-                                 gl_profile_tab[PROFILE_A_APP_ID].app_id,
-                                 cycling_power_handle_table[IDX_CHAR_VAL_POWER],
-                                 sizeof(pwr), (uint8_t *)&pwr, false);
-
+        else
+        {
+            millisecond++;
         }
-        vTaskDelay(1000/portTICK_RATE_MS);
-        millisecond++;
+        vTaskDelay(LOOPTIME/portTICK_RATE_MS);
     }
 }
 
 /* Private Functions */
 
-int app_GetRPM(void)
+static float app_GetRPM(int adc_reading)
 {
-    int oldf, result = 0;
-    int adc_reading = 0;
-    static int filt = 0;
-    static uint32_t starttime = 0;
+    float oldf, result = 0;
+    static float filt = 0;          // keep value from previous iteration
+    static float sample[AVG];
 
-#if(0)
-    adc_reading = adc1_get_raw((adc1_channel_t)channel);
-    ACC[0] = adc_reading - 2295;  //get the sample and remove offset
+    ACC[0] = adc_reading - 2295;    // get the sample and remove offset
     oldf = filt;
 
     /* FIR output */
     filt=0;
     for (int i=SAMPLES; i>1; i--)
     {
-        ACC[i-1]  = ACC[i-2];                   // shift register
-        filt     += (int) ACC[i]*FIR[i];        // getting FIR output
+        ACC[i-1] = ACC[i-2];                    // shift register
+        filt += (float) ACC[i]*FIR[i];          // getting FIR output
     }
 
     /* timeout for low speed - less than 30 rpm */
-    starttime = xTaskGetTickCount();               // restart time counter
-    if ((xTaskGetTickCount()- starttime) > 2000) result=0;
+    if ((xTaskGetTickCount()- record_time) > 2000) result=0;
 
     /* zero cross detection + hyst (5) */
-    if((filt>5 && oldf<-5) || (filt<-5 && oldf>5))
+    if( (filt>5 && oldf<-5) || (filt<-5 && oldf>5) )
     {
-        //timeout reset
-        RPM_MEAS[0]= 30000 / (xTaskGetTickCount()- starttime);  // calculate rpms
-        starttime = xTaskGetTickCount();                        // restart time counter
+        sample[0]= 30000 / (xTaskGetTickCount()- record_time);  // calculate rpms
+        record_time = xTaskGetTickCount();                          // restart time counter
 
         result = 0;
         for (int i=AVG; i>1; i--) {
-            RPM_MEAS[i-1] = RPM_MEAS[i-2];                      // shift RPM_MEAS array
-            result += (int) RPM_MEAS[i-1] / (AVG-1);            // calculate RPM average
+            sample[i-1] = sample[i-2];          // shift sample array
+            result += sample[i-1] / (AVG-1);    // calculate RPM average
         }
     }
-#else
-    //Multisampling
-    for (int i = 0; i < SAMPLES; i++) {
-        adc_reading += adc1_get_raw((adc1_channel_t)channel);
-    }
-    adc_reading /= SAMPLES;
-    result = adc_reading;
-#endif
     return result;
+}
+
+static float app_GetPower(int adc_reading, float angular_speed)
+{
+    float watts = 1.0;
+    float newtons;
+
+    newtons = adc_reading - 2295;   // get the sample and remove offset
+
+    /* FIR output */
+
+    watts *= newtons;
+    watts *= cranck_mm * 0.001;
+    watts *= angular_speed;
+    watts += pwr_offset;
+    return watts;
 }
 
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param)
