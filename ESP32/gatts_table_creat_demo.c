@@ -18,30 +18,11 @@
 
 /* Globals */
 
-uint16_t heart_rate_handle_table[IDX_SVC1_NB];
 uint16_t cycling_power_handle_table[IDX_SVC1_NB];
 uint16_t device_info_handle_table[IDX_SVC2_NB];
 
-uint16_t rpm, pwr;
-uint8_t  refresh_time = 3;
-uint16_t cranck_mm = 180;
-int16_t  pwr_offset = 0;
-
-uint8_t dis_manufacturer[] = MANUFACTURER_NAME;
-uint8_t dis_model_number[] = MODEL_NUMBER;
-uint8_t dis_serial_number[] = SERIAL_NUMBER;
-uint8_t dis_hardware_ver[] = HW_REVISION;
-uint8_t dis_firmware_ver[] = FW_REVISION;
-uint8_t dis_software_ver[] = SW_REVISION;
-uint8_t char_value[4]      = {0x11, 0x22, 0x33, 0x44};
-
-// characteristic notification
-static bool rpm_connected = false;
-static bool pwr_connected = false;
-uint8_t  rpm_ccc[2] = {0x00, 0x00}; // notification - IDX_CHAR_CFG_RPM
-uint8_t  pwr_ccc[2] = {0x00, 0x00}; // notification - IDX_CHAR_CFG_PWR
-
-static prepare_type_env_t prepare_write_env;
+static prepare_type_env_t a_prepare_write_env;
+//static prepare_type_env_t b_prepare_write_env;
 
 //#define CONFIG_SET_RAW_ADV_DATA
 #ifdef CONFIG_SET_RAW_ADV_DATA
@@ -120,11 +101,8 @@ static esp_ble_adv_params_t adv_params = {
 
 /* Private Functions */
 
-static void gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-
-//static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 //static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
@@ -148,8 +126,8 @@ struct gatts_profile_inst {
 
 /* One gatt-based profile one app_id and one gatts_if, this array will store the gatts_if returned by ESP_GATTS_REG_EVT */
 static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
-    [PROFILE_APP_IDX] = {
-        .gatts_cb = gatts_profile_event_handler,
+    [PROFILE_A_APP_ID] = {
+        .gatts_cb = gatts_profile_a_event_handler,
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
 
@@ -225,17 +203,16 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
 
 /* Profile(s) Handler */
 
-static void gatts_profile_event_handler (esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 {
     switch (event)
     {
         case ESP_GATTS_REG_EVT:
-
             ESP_LOGI(GATTS_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
-            gl_profile_tab[ESP_APP_ID].service_id.is_primary = true;
-            gl_profile_tab[ESP_APP_ID].service_id.id.inst_id = 0x00;
-            gl_profile_tab[ESP_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
-            gl_profile_tab[ESP_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_TEST;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.is_primary = true;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.inst_id = 0x00;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
+            gl_profile_tab[PROFILE_A_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_CPS;
 
             esp_err_t set_dev_name_ret = esp_ble_gap_set_device_name(SAMPLE_DEVICE_NAME);
             if (set_dev_name_ret){
@@ -266,7 +243,7 @@ static void gatts_profile_event_handler (esp_gatts_cb_event_t event, esp_gatt_if
             }
             adv_config_done |= SCAN_RSP_CONFIG_FLAG;
     #endif
-            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db, gatts_if, IDX_SVC1_NB, SVC_INST_ID);
+            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db_a, gatts_if, IDX_SVC1_NB, PROFILE_A_APP_ID);
             if (create_attr_ret){
                 ESP_LOGE(GATTS_TAG, "create attr table failed, error code = %x", create_attr_ret);
             }
@@ -279,50 +256,62 @@ static void gatts_profile_event_handler (esp_gatts_cb_event_t event, esp_gatt_if
                 // the data length of gattc write  must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
                 ESP_LOGI(GATTS_TAG, "GATT_WRITE_EVT, handle = %d, value len = %d, value :", param->write.handle, param->write.len);
                 esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
-                if (heart_rate_handle_table[IDX_CHAR_CFG_A] == param->write.handle && param->write.len == 2){
+
+                // IDX_CHAR_CFG_RPM
+                if (cycling_power_handle_table[IDX_CHAR_CFG_RPM] == param->write.handle && param->write.len == 2){
                     uint16_t descr_value = param->write.value[1]<<8 | param->write.value[0];
                     if (descr_value == 0x0001){
-                        ESP_LOGI(GATTS_TAG, "notify enable");
-                        uint8_t notify_data[15];
-                        for (int i = 0; i < sizeof(notify_data); ++i)
-                        {
-                            notify_data[i] = i % 0xff;
-                        }
-                        //the size of notify_data[] need less than MTU size
-                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, heart_rate_handle_table[IDX_CHAR_VAL_A],
-                                                sizeof(notify_data), notify_data, false);
-                    }else if (descr_value == 0x0002){
-                        ESP_LOGI(GATTS_TAG, "indicate enable");
-                        uint8_t indicate_data[15];
-                        for (int i = 0; i < sizeof(indicate_data); ++i)
-                        {
-                            indicate_data[i] = i % 0xff;
-                        }
-                        //the size of indicate_data[] need less than MTU size
-                        esp_ble_gatts_send_indicate(gatts_if, param->write.conn_id, heart_rate_handle_table[IDX_CHAR_VAL_A],
-                                            sizeof(indicate_data), indicate_data, true);
-                    }
-                    else if (descr_value == 0x0000){
-                        ESP_LOGI(GATTS_TAG, "notify/indicate disable ");
+                        ESP_LOGI(GATTS_TAG, "rpm notify enable");
+                        rpm_connected = true;
+                    }else if (descr_value == 0x0000){
+                        ESP_LOGI(GATTS_TAG, "rpm notify disable ");
+                        rpm_connected = false;
                     }else{
                         ESP_LOGE(GATTS_TAG, "unknown descr value");
                         esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
                     }
-
                 }
+
+                // IDX_CHAR_CFG_POWER
+                if (cycling_power_handle_table[IDX_CHAR_CFG_POWER] == param->write.handle && param->write.len == 2){
+                    uint16_t descr_value = param->write.value[1]<<8 | param->write.value[0];
+                    if (descr_value == 0x0001){
+                        ESP_LOGI(GATTS_TAG, "pwr notify enable");
+                        pwr_connected = true;
+                    }else if (descr_value == 0x0000){
+                        ESP_LOGI(GATTS_TAG, "pwr notify disable ");
+                        pwr_connected = false;
+                    }else{
+                        ESP_LOGE(GATTS_TAG, "unknown descr value");
+                        esp_log_buffer_hex(GATTS_TAG, param->write.value, param->write.len);
+                    }
+                }
+
+                // IDX_CHAR_VAL_REFRESH_TIME
+                if (cycling_power_handle_table[IDX_CHAR_VAL_REFRESH_TIME] == param->write.handle && param->write.len == 1){
+                    refresh_time = param->write.value[0];
+                    ESP_LOGI(GATTS_TAG, "New refresh time");
+                }
+
+                // IDX_CHAR_VAL_CRANCK_LENGTH
+                if (cycling_power_handle_table[IDX_CHAR_VAL_CRANCK_LENGTH] == param->write.handle && param->write.len == 1){
+                    cranck_mm = param->write.value[0];
+                    ESP_LOGI(GATTS_TAG, "New cranck length");
+                }
+
                 /* send response when param->write.need_rsp is true*/
                 if (param->write.need_rsp){
                     esp_ble_gatts_send_response(gatts_if, param->write.conn_id, param->write.trans_id, ESP_GATT_OK, NULL);
                 }
             }else{
                 /* handle prepare write */
-                example_prepare_write_event_env(gatts_if, &prepare_write_env, param);
+                example_prepare_write_event_env(gatts_if, &a_prepare_write_env, param);
             }
             break;
         case ESP_GATTS_EXEC_WRITE_EVT:
             // the length of gattc prepare write data must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
             ESP_LOGI(GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-            example_exec_write_event_env(&prepare_write_env, param);
+            example_exec_write_event_env(&a_prepare_write_env, param);
             break;
         case ESP_GATTS_MTU_EVT:
             ESP_LOGI(GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
@@ -359,9 +348,9 @@ static void gatts_profile_event_handler (esp_gatts_cb_event_t event, esp_gatt_if
                         doesn't equal to IDX_SVC1_NB(%d)", param->add_attr_tab.num_handle, IDX_SVC1_NB);
             }
             else {
-                ESP_LOGI(GATTS_TAG, "create attribute table successfully, the number handle = %d\n",param->add_attr_tab.num_handle);
-                memcpy(heart_rate_handle_table, param->add_attr_tab.handles, sizeof(heart_rate_handle_table));
-                esp_ble_gatts_start_service(heart_rate_handle_table[IDX_SVC]);
+                ESP_LOGI(GATTS_TAG, "create attribute table, handle = %d\n",param->add_attr_tab.num_handle);
+                memcpy(cycling_power_handle_table, param->add_attr_tab.handles, sizeof(cycling_power_handle_table));
+                esp_ble_gatts_start_service(cycling_power_handle_table[IDX_SVC1]);
             }
             break;
         }
@@ -377,7 +366,6 @@ static void gatts_profile_event_handler (esp_gatts_cb_event_t event, esp_gatt_if
             break;
     }
 }
-
 //static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
 //{
 //    switch (event) {
