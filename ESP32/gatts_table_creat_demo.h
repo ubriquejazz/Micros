@@ -12,16 +12,9 @@
 #define FW_REVISION                 "0.0.1"
 #define SW_REVISION                 "0.0.1"
 
-#define PROFILE_NUM                 1
-#define ESP_APP_ID                  0x55
-
-//#define PROFILE_NUM                 2
+#define PROFILE_NUM                 2
 #define PROFILE_A_APP_ID            0
-//#define PROFILE_B_APP_ID            1
-
-
-#define SVC_INST_ID                 0
-
+#define PROFILE_B_APP_ID            1
 
 /* The max length of characteristic value. When the GATT client performs a write or prepare write operation,
 *  the data length must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
@@ -94,15 +87,15 @@ enum
 {
     IDX_SVC1,
 
-    IDX_CHAR_A,
-    IDX_CHAR_VAL_A,
-    IDX_CHAR_CFG_A,
-
-    IDX_CHAR_B,
-    IDX_CHAR_VAL_B,
-
-    IDX_CHAR_C,
-    IDX_CHAR_VAL_C,
+//    IDX_CHAR_A,
+//    IDX_CHAR_VAL_A,
+//    IDX_CHAR_CFG_A,
+//
+//    IDX_CHAR_B,
+//    IDX_CHAR_VAL_B,
+//
+//    IDX_CHAR_C,
+//    IDX_CHAR_VAL_C,
 
   IDX_CHAR_RPM,
   IDX_CHAR_VAL_RPM,
@@ -261,3 +254,73 @@ static const esp_gatts_attr_db_t gatt_db_a[IDX_SVC1_NB] =
     {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_PWR_OFFSET, ESP_GATT_PERM_READ | ESP_GATT_PERM_WRITE,
     GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(pwr_offset), (uint8_t *)&pwr_offset}},
 };
+
+/* Full Database Description - Used to add attributes into the database */
+static const esp_gatts_attr_db_t gatt_db_b[IDX_SVC2_NB] =
+{
+    // Service Declaration
+    [IDX_SVC2]        =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&primary_service_uuid, ESP_GATT_PERM_READ,
+    sizeof(uint16_t), sizeof(GATTS_SERVICE_UUID_DIS), (uint8_t *)&GATTS_SERVICE_UUID_DIS}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_MANUFACTURER_NAME] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_MANUFACTURER_NAME] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_MANU_NAME, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_manufacturer), dis_manufacturer}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_MODEL_NUMBER] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_MODEL_NUMBER] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_MODEL_NUM, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_model_number), dis_model_number}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_SERIAL_NUMBER] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_SERIAL_NUMBER] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_SERIAL_NUM, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_serial_number), dis_serial_number}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_HW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_FW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_HW_VERSION, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_hardware_ver), dis_hardware_ver}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_FW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_HW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_FW_VERSION, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_firmware_ver), dis_firmware_ver}},
+
+    /* Characteristic Declaration ------------------------------------------------------------------------- */
+    [IDX_CHAR_SW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&character_declaration_uuid, ESP_GATT_PERM_READ,
+    CHAR_DECLARATION_SIZE, CHAR_DECLARATION_SIZE, (uint8_t *)&char_prop_read}},
+
+    /* Characteristic Value */
+    [IDX_CHAR_VAL_SW_REVISION] =
+    {{ESP_GATT_AUTO_RSP}, {ESP_UUID_LEN_16, (uint8_t *)&GATTS_CHAR_UUID_SW_VERSION, ESP_GATT_PERM_READ,
+    GATTS_DEMO_CHAR_VAL_LEN_MAX, sizeof(dis_software_ver), dis_software_ver}},
+};
+

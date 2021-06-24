@@ -22,7 +22,7 @@ uint16_t cycling_power_handle_table[IDX_SVC1_NB];
 uint16_t device_info_handle_table[IDX_SVC2_NB];
 
 static prepare_type_env_t a_prepare_write_env;
-//static prepare_type_env_t b_prepare_write_env;
+static prepare_type_env_t b_prepare_write_env;
 
 //#define CONFIG_SET_RAW_ADV_DATA
 #ifdef CONFIG_SET_RAW_ADV_DATA
@@ -102,7 +102,7 @@ static esp_ble_adv_params_t adv_params = {
 /* Private Functions */
 
 static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
-//static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
+static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
 
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 void example_prepare_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
@@ -130,11 +130,10 @@ static struct gatts_profile_inst gl_profile_tab[PROFILE_NUM] = {
         .gatts_cb = gatts_profile_a_event_handler,
         .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
     },
-
-//    [PROFILE_B_APP_ID] = {
-//        .gatts_cb = gatts_profile_b_event_handler,
-//        .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
-//    },
+    [PROFILE_B_APP_ID] = {
+        .gatts_cb = gatts_profile_b_event_handler,
+        .gatts_if = ESP_GATT_IF_NONE,       /* Not get the gatt_if, so initial is ESP_GATT_IF_NONE */
+    },
 };
 
 /* Advertisement handler */
@@ -366,78 +365,79 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
             break;
     }
 }
-//static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
-//{
-//    switch (event) {
-//        case ESP_GATTS_REG_EVT:
-//            ESP_LOGI(GATTS_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
-//            gl_profile_tab[PROFILE_B_APP_ID].service_id.is_primary = true;
-//            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.inst_id = 0x00;
-//            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
-//            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_DIS;
-//
-//            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db_b, gatts_if, IDX_SVC2_NB, PROFILE_B_APP_ID);
-//            if (create_attr_ret){
-//                ESP_LOGE(GATTS_TAG, "create attr table failed, error code = %x", create_attr_ret);
-//            }
-//            break;
-//        case ESP_GATTS_READ_EVT:
-//            ESP_LOGI(GATTS_TAG, "ESP_GATTS_READ_EVT");
-//            break;
-//        case ESP_GATTS_WRITE_EVT:
-//            ESP_LOGI(GATTS_TAG, "ESP_GATTS_WRITE_EVT");
-//            break;
-//        case ESP_GATTS_EXEC_WRITE_EVT:
-//            // the length of gattc prepare write data must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
-//            ESP_LOGI(GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
-//            example_exec_write_event_env(&b_prepare_write_env, param);
-//            break;
-//        case ESP_GATTS_MTU_EVT:
-//            ESP_LOGI(GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
-//            break;
-//        case ESP_GATTS_CONF_EVT:
-//            ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d", param->conf.status, param->conf.handle);
-//            break;
-//        case ESP_GATTS_START_EVT:
-//            ESP_LOGI(GATTS_TAG, "SERVICE_START_EVT, status %d, service_handle %d", param->start.status, param->start.service_handle);
-//            break;
-//    case ESP_GATTS_CONNECT_EVT:
-//        ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d", param->connect.conn_id);
-//        esp_log_buffer_hex(GATTS_TAG, param->connect.remote_bda, 6);
-//        esp_ble_conn_update_params_t conn_params = {0};
-//        memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
-//        /* For the iOS system, please refer to Apple official documents about the BLE connection parameters restrictions. */
-//        conn_params.latency = 0;
-//        conn_params.max_int = 0x20;    // max_int = 0x20*1.25ms = 40ms
-//        conn_params.min_int = 0x10;    // min_int = 0x10*1.25ms = 20ms
-//        conn_params.timeout = 400;    // timeout = 400*10ms = 4000ms
-//        //start sent the update connection parameters to the peer device.
-//        esp_ble_gap_update_conn_params(&conn_params);
-//        break;
-//    case ESP_GATTS_CREAT_ATTR_TAB_EVT:{
-//        if (param->add_attr_tab.status != ESP_GATT_OK){
-//            ESP_LOGE(GATTS_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
-//        }
-//        else if (param->add_attr_tab.num_handle != IDX_SVC2_NB){
-//            ESP_LOGE(GATTS_TAG, "create attribute table abnormally, num_handle (%d) doesn't equal to IDX_SVC2_NB(%d)", param->add_attr_tab.num_handle, IDX_SVC2_NB);
-//        }
-//        else {
-//            ESP_LOGI(GATTS_TAG, "create attribute table, handle = %d\n",param->add_attr_tab.num_handle);
-//            memcpy(device_info_handle_table, param->add_attr_tab.handles, sizeof(device_info_handle_table));
-//            esp_ble_gatts_start_service(device_info_handle_table[IDX_SVC2]);
-//        }
-//        break;
-//    }
-//    case ESP_GATTS_DISCONNECT_EVT:
-//    case ESP_GATTS_OPEN_EVT:
-//    case ESP_GATTS_CANCEL_OPEN_EVT:
-//    case ESP_GATTS_CLOSE_EVT:
-//    case ESP_GATTS_LISTEN_EVT:
-//    case ESP_GATTS_CONGEST_EVT:
-//    default:
-//        break;
-//    }
-//}
+
+static void gatts_profile_b_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
+{
+    switch (event) {
+        case ESP_GATTS_REG_EVT:
+            ESP_LOGI(GATTS_TAG, "REGISTER_APP_EVT, status %d, app_id %d\n", param->reg.status, param->reg.app_id);
+            gl_profile_tab[PROFILE_B_APP_ID].service_id.is_primary = true;
+            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.inst_id = 0x00;
+            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
+            gl_profile_tab[PROFILE_B_APP_ID].service_id.id.uuid.uuid.uuid16 = GATTS_SERVICE_UUID_DIS;
+
+            esp_err_t create_attr_ret = esp_ble_gatts_create_attr_tab(gatt_db_b, gatts_if, IDX_SVC2_NB, PROFILE_B_APP_ID);
+            if (create_attr_ret){
+                ESP_LOGE(GATTS_TAG, "create attr table failed, error code = %x", create_attr_ret);
+            }
+            break;
+        case ESP_GATTS_READ_EVT:
+            ESP_LOGI(GATTS_TAG, "ESP_GATTS_READ_EVT");
+            break;
+        case ESP_GATTS_WRITE_EVT:
+            ESP_LOGI(GATTS_TAG, "ESP_GATTS_WRITE_EVT");
+            break;
+        case ESP_GATTS_EXEC_WRITE_EVT:
+            // the length of gattc prepare write data must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
+            ESP_LOGI(GATTS_TAG, "ESP_GATTS_EXEC_WRITE_EVT");
+            example_exec_write_event_env(&b_prepare_write_env, param);
+            break;
+        case ESP_GATTS_MTU_EVT:
+            ESP_LOGI(GATTS_TAG, "ESP_GATTS_MTU_EVT, MTU %d", param->mtu.mtu);
+            break;
+        case ESP_GATTS_CONF_EVT:
+            ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONF_EVT, status = %d, attr_handle %d", param->conf.status, param->conf.handle);
+            break;
+        case ESP_GATTS_START_EVT:
+            ESP_LOGI(GATTS_TAG, "SERVICE_START_EVT, status %d, service_handle %d", param->start.status, param->start.service_handle);
+            break;
+    case ESP_GATTS_CONNECT_EVT:
+        ESP_LOGI(GATTS_TAG, "ESP_GATTS_CONNECT_EVT, conn_id = %d", param->connect.conn_id);
+        esp_log_buffer_hex(GATTS_TAG, param->connect.remote_bda, 6);
+        esp_ble_conn_update_params_t conn_params = {0};
+        memcpy(conn_params.bda, param->connect.remote_bda, sizeof(esp_bd_addr_t));
+        /* For the iOS system, please refer to Apple official documents about the BLE connection parameters restrictions. */
+        conn_params.latency = 0;
+        conn_params.max_int = 0x20;    // max_int = 0x20*1.25ms = 40ms
+        conn_params.min_int = 0x10;    // min_int = 0x10*1.25ms = 20ms
+        conn_params.timeout = 400;    // timeout = 400*10ms = 4000ms
+        //start sent the update connection parameters to the peer device.
+        esp_ble_gap_update_conn_params(&conn_params);
+        break;
+    case ESP_GATTS_CREAT_ATTR_TAB_EVT:{
+        if (param->add_attr_tab.status != ESP_GATT_OK){
+            ESP_LOGE(GATTS_TAG, "create attribute table failed, error code=0x%x", param->add_attr_tab.status);
+        }
+        else if (param->add_attr_tab.num_handle != IDX_SVC2_NB){
+            ESP_LOGE(GATTS_TAG, "create attribute table abnormally, num_handle (%d) doesn't equal to IDX_SVC2_NB(%d)", param->add_attr_tab.num_handle, IDX_SVC2_NB);
+        }
+        else {
+            ESP_LOGI(GATTS_TAG, "create attribute table, handle = %d\n",param->add_attr_tab.num_handle);
+            memcpy(device_info_handle_table, param->add_attr_tab.handles, sizeof(device_info_handle_table));
+            esp_ble_gatts_start_service(device_info_handle_table[IDX_SVC2]);
+        }
+        break;
+    }
+    case ESP_GATTS_DISCONNECT_EVT:
+    case ESP_GATTS_OPEN_EVT:
+    case ESP_GATTS_CANCEL_OPEN_EVT:
+    case ESP_GATTS_CLOSE_EVT:
+    case ESP_GATTS_LISTEN_EVT:
+    case ESP_GATTS_CONGEST_EVT:
+    default:
+        break;
+    }
+}
 
 /* Att Handler */
 
@@ -529,7 +529,13 @@ void app_main(void)
         return;
     }
 
-    ret = esp_ble_gatts_app_register(ESP_APP_ID);
+    ret = esp_ble_gatts_app_register(PROFILE_A_APP_ID);
+    if (ret){
+        ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
+        return;
+    }
+
+    ret = esp_ble_gatts_app_register(PROFILE_B_APP_ID);
     if (ret){
         ESP_LOGE(GATTS_TAG, "gatts app register error, error code = %x", ret);
         return;
