@@ -18,8 +18,14 @@
 
 /* Globals */
 
+AppData_t AppData;
+DisData_t DisData;
+
 uint16_t cycling_power_handle_table[IDX_SVC1_NB];
 uint16_t device_info_handle_table[IDX_SVC2_NB];
+
+static bool rpm_connected = false;
+static bool pwr_connected = false;
 
 static prepare_type_env_t a_prepare_write_env;
 static prepare_type_env_t b_prepare_write_env;
@@ -288,13 +294,13 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
 
                 // IDX_CHAR_VAL_REFRESH_TIME
                 if (cycling_power_handle_table[IDX_CHAR_VAL_REFRESH_TIME] == param->write.handle && param->write.len == 1){
-                    refresh_time = param->write.value[0];
+                    AppData.refresh_time = param->write.value[0];
                     ESP_LOGI(GATTS_TAG, "New refresh time");
                 }
 
                 // IDX_CHAR_VAL_CRANCK_LENGTH
                 if (cycling_power_handle_table[IDX_CHAR_VAL_CRANCK_LENGTH] == param->write.handle && param->write.len == 1){
-                    cranck_mm = param->write.value[0];
+                    AppData.cranck_mm = param->write.value[0];
                     ESP_LOGI(GATTS_TAG, "New cranck length");
                 }
 
@@ -470,12 +476,44 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 
 /* Application */
 
-void hello_task(void *pvParameter)
+void send_task(void *pvParameter)
 {
-    while(1) {
-        printf("Hello world!\n");
-        vTaskDelay(2000/ portTICK_RATE_MS);
+    uint16_t millisecond = 0;
+    while(1)
+    {
+
+        if (millisecond > AppData.refresh_time * 1000 / ADC_SAMPL_TIME)
+        {
+            if (rpm_connected) {
+
+                ESP_LOGI(GATTS_TAG, "rpm = %d, 0x%04X", AppData.rpm, AppData.rpm);
+                esp_ble_gatts_send_indicate(
+                                     gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                                     gl_profile_tab[PROFILE_A_APP_ID].app_id,
+                                     cycling_power_handle_table[IDX_CHAR_VAL_RPM],
+                                     sizeof(AppData.rpm), (uint8_t *)&AppData.rpm, false);
+            }
+            millisecond = 0;
+        }
+        else
+        {
+             millisecond++;
+        }
+        vTaskDelay(ADC_SAMPL_TIME/portTICK_RATE_MS);
     }
+}
+
+void app_init(void)
+{
+    AppData.cranck_mm = 180;
+    AppData.pwr_offset = 0;
+    AppData.refresh_time = 3;
+    memcpy(DisData.manufacturer, "IDNEO", 5);
+    memcpy(DisData.model_number, "1", 2);
+    memcpy(DisData.serial_number, "SN001", 5);
+    memcpy(DisData.hardware_ver, "RevA", 5);
+    memcpy(DisData.firmware_ver, "0.0.1", 5);
+    memcpy(DisData.software_ver, "0.0.1", 5);
 }
 
 void app_main(void)
@@ -546,9 +584,10 @@ void app_main(void)
         ESP_LOGE(GATTS_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
+    app_init();
     dac_init();
-    adc_init(1);
-    xTaskCreate(&hello_task, "hello_task", 2048, NULL, 5, NULL);
+    adc_init(AppData.refresh_time);
+    xTaskCreate(&send_task, "send_task", 2048, NULL, 5, NULL);
 }
 
 
