@@ -1,12 +1,3 @@
-/*
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,9 +13,16 @@
 #define SW_REVISION                 "0.0.1"
 
 #define PROFILE_NUM                 1
-#define PROFILE_APP_IDX             0
 #define ESP_APP_ID                  0x55
+
+//#define PROFILE_NUM                 2
+//#define PROFILE_A_APP_ID            0
+//#define PROFILE_B_APP_ID            1
+
+
+#define PROFILE_APP_IDX             0
 #define SVC_INST_ID                 0
+
 
 /* The max length of characteristic value. When the GATT client performs a write or prepare write operation,
 *  the data length must be less than GATTS_DEMO_CHAR_VAL_LEN_MAX.
@@ -41,6 +39,8 @@ typedef struct {
     int                     prepare_len;
 } prepare_type_env_t;
 
+/* Services */
+
 static const uint16_t GATTS_SERVICE_UUID_TEST      = 0x00FF;
 static const uint16_t GATTS_CHAR_UUID_TEST_A       = 0xFF01;
 static const uint16_t GATTS_CHAR_UUID_TEST_B       = 0xFF02;
@@ -54,12 +54,40 @@ static const uint8_t char_prop_write               = ESP_GATT_CHAR_PROP_BIT_WRIT
 static const uint8_t char_prop_read_write_notify   = ESP_GATT_CHAR_PROP_BIT_WRITE | ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
 static const uint8_t heart_measurement_ccc[2]      = {0x00, 0x00};
 
+//static const uint16_t GATTS_SERVICE_UUID_CPS         = ESP_GATT_UUID_CYCLING_POWER_SVC;
+//static const uint16_t GATTS_CHAR_UUID_RPM            = ESP_GATT_UUID_CSC_MEASUREMENT;
+//static const uint16_t GATTS_CHAR_UUID_PWR            = 0x2A63;  // Cycling Power Measurement
+//static const uint16_t GATTS_CHAR_UUID_REFRESH        = 0xFF01;  // Custom
+//static const uint16_t GATTS_CHAR_UUID_CRANCK_LENGTH  = 0x2AAF;  // Longitude
+//static const uint16_t GATTS_CHAR_UUID_PWR_OFFSET     = 0xFF02;  // Custom
+//
+//static const uint16_t GATTS_SERVICE_UUID_DIS         = ESP_GATT_UUID_DEVICE_INFO_SVC;
+//static const uint16_t GATTS_CHAR_UUID_MANU_NAME      = ESP_GATT_UUID_MANU_NAME;
+//static const uint16_t GATTS_CHAR_UUID_MODEL_NUM      = ESP_GATT_UUID_MODEL_NUMBER_STR;
+//static const uint16_t GATTS_CHAR_UUID_SERIAL_NUM     = ESP_GATT_UUID_SERIAL_NUMBER_STR;
+//static const uint16_t GATTS_CHAR_UUID_HW_VERSION     = ESP_GATT_UUID_HW_VERSION_STR;
+//static const uint16_t GATTS_CHAR_UUID_FW_VERSION     = ESP_GATT_UUID_FW_VERSION_STR;
+//static const uint16_t GATTS_CHAR_UUID_SW_VERSION     = ESP_GATT_UUID_SW_VERSION_STR;
+//
+//static const uint16_t primary_service_uuid          = ESP_GATT_UUID_PRI_SERVICE;
+//static const uint16_t character_declaration_uuid    = ESP_GATT_UUID_CHAR_DECLARE;
+//static const uint16_t character_client_config_uuid  = ESP_GATT_UUID_CHAR_CLIENT_CONFIG; // 0x2902
+//
+//static const uint8_t char_prop_read                 = ESP_GATT_CHAR_PROP_BIT_READ;
+//static const uint8_t char_prop_read_write           = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_WRITE;
+//static const uint8_t char_prop_read_notify          = ESP_GATT_CHAR_PROP_BIT_READ | ESP_GATT_CHAR_PROP_BIT_NOTIFY;
+
+extern uint16_t rpm, pwr, cranck_mm;
+extern uint8_t  refresh_time;
+extern int16_t  pwr_offset;
+
 extern uint8_t char_value[4];
 
 /* Attributes State Machine */
 enum
 {
     IDX_SVC,
+
     IDX_CHAR_A,
     IDX_CHAR_VAL_A,
     IDX_CHAR_CFG_A,
@@ -70,11 +98,52 @@ enum
     IDX_CHAR_C,
     IDX_CHAR_VAL_C,
 
-    HRS_IDX_NB,
+  IDX_CHAR_RPM,
+  IDX_CHAR_VAL_RPM,
+  IDX_CHAR_CFG_RPM,
+
+  IDX_CHAR_POWER,
+  IDX_CHAR_VAL_POWER,
+  IDX_CHAR_CFG_POWER,
+
+  IDX_CHAR_REFRESH_TIME,
+  IDX_CHAR_VAL_REFRESH_TIME,
+
+  IDX_CHAR_CRANCK_LENGTH,
+  IDX_CHAR_VAL_CRANCK_LENGTH,
+
+  IDX_CHAR_POWER_OFFSET,
+  IDX_CHAR_VAL_POWER_OFFSET,    // could be negative
+
+  IDX_SVC1_NB,
+};
+
+enum
+{
+    IDX_SVC2,
+  IDX_CHAR_MANUFACTURER_NAME,
+  IDX_CHAR_VAL_MANUFACTURER_NAME,
+
+  IDX_CHAR_MODEL_NUMBER,
+  IDX_CHAR_VAL_MODEL_NUMBER,
+
+  IDX_CHAR_SERIAL_NUMBER,
+  IDX_CHAR_VAL_SERIAL_NUMBER,
+
+  IDX_CHAR_HW_REVISION,
+  IDX_CHAR_VAL_HW_REVISION,
+
+  IDX_CHAR_FW_REVISION,
+  IDX_CHAR_VAL_FW_REVISION,
+
+  IDX_CHAR_SW_REVISION,
+  IDX_CHAR_VAL_SW_REVISION,
+
+  IDX_SVC2_NB,
 };
 
 /* Full Database Description - Used to add attributes into the database */
-static const esp_gatts_attr_db_t gatt_db[HRS_IDX_NB] =
+static const esp_gatts_attr_db_t gatt_db[IDX_SVC1_NB] =
 {
     // Service Declaration
     [IDX_SVC]        =
