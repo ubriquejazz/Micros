@@ -1,0 +1,1 @@
+Code to implement the python extension providing the encapsulation protocol.
